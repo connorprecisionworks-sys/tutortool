@@ -98,6 +98,75 @@ export type Database = {
           },
         ]
       }
+      sessions: {
+        Row: {
+          bill_travel: boolean
+          client_id: string
+          created_at: string
+          duration_minutes: number
+          effective_rate_cents: number
+          id: string
+          invoice_id: string | null
+          location: string | null
+          notes: string | null
+          occurred_on: string
+          start_time: string | null
+          status: Database["public"]["Enums"]["session_status"]
+          travel_minutes: number
+          travel_rate_cents: number | null
+          tutor_id: string
+        }
+        Insert: {
+          bill_travel: boolean
+          client_id: string
+          created_at?: string
+          duration_minutes: number
+          effective_rate_cents: number
+          id?: string
+          invoice_id?: string | null
+          location?: string | null
+          notes?: string | null
+          occurred_on: string
+          start_time?: string | null
+          status?: Database["public"]["Enums"]["session_status"]
+          travel_minutes?: number
+          travel_rate_cents?: number | null
+          tutor_id: string
+        }
+        Update: {
+          bill_travel?: boolean
+          client_id?: string
+          created_at?: string
+          duration_minutes?: number
+          effective_rate_cents?: number
+          id?: string
+          invoice_id?: string | null
+          location?: string | null
+          notes?: string | null
+          occurred_on?: string
+          start_time?: string | null
+          status?: Database["public"]["Enums"]["session_status"]
+          travel_minutes?: number
+          travel_rate_cents?: number | null
+          tutor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sessions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessions_tutor_id_fkey"
+            columns: ["tutor_id"]
+            isOneToOne: false
+            referencedRelation: "tutors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tutors: {
         Row: {
           auth_user_id: string
@@ -154,6 +223,7 @@ export type Database = {
         | "friend"
         | "low_income"
         | "pro_bono"
+      session_status: "logged" | "billed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -291,6 +361,7 @@ export const Constants = {
         "low_income",
         "pro_bono",
       ],
+      session_status: ["logged", "billed"],
     },
   },
 } as const
