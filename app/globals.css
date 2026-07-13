@@ -1,0 +1,116 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-sunken: #f9f9f9;
+  --border: #e5e5e5;
+  --border-strong: #d0d0d0;
+  --text: #0d0d0d;
+  --text-secondary: #6e6e80;
+  --text-tertiary: #8e8ea0;
+  --accent: #0d0d0d;
+  --accent-text: #ffffff;
+  --hover: #f2f2f3;
+  --focus-ring: rgba(13, 13, 13, 0.15);
+  --danger-text: #0d0d0d;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --bg: #212121;
+  --surface: #2f2f2f;
+  --surface-sunken: #1a1a1a;
+  --border: #4d4d4d;
+  --border-strong: #5f5f5f;
+  --text: #ececec;
+  --text-secondary: #b4b4b4;
+  --text-tertiary: #8e8e8e;
+  --accent: #ffffff;
+  --accent-text: #0d0d0d;
+  --hover: #3a3a3a;
+  --focus-ring: rgba(255, 255, 255, 0.15);
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #212121;
+    --surface: #2f2f2f;
+    --surface-sunken: #1a1a1a;
+    --border: #4d4d4d;
+    --border-strong: #5f5f5f;
+    --text: #ececec;
+    --text-secondary: #b4b4b4;
+    --text-tertiary: #8e8e8e;
+    --accent: #ffffff;
+    --accent-text: #0d0d0d;
+    --hover: #3a3a3a;
+    --focus-ring: rgba(255, 255, 255, 0.15);
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text: var(--text);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-accent: var(--accent);
+  --color-accent-text: var(--accent-text);
+  --color-hover: var(--hover);
+  --font-sans: var(--font-inter);
+}
+
+* {
+  border-color: var(--border);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+::selection {
+  background: var(--focus-ring);
+}
+
+a {
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+::placeholder {
+  color: var(--text-tertiary);
+}
+
+* {
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, opacity 150ms ease;
+}
