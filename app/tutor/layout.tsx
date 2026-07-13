@@ -1,18 +1,12 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/shell/app-shell";
 import { TUTOR_NAV } from "@/lib/nav";
+import { requireTutor } from "@/lib/auth/tutor";
 
 export default async function TutorLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect("/login");
+  const tutor = await requireTutor();
 
   return (
-    <AppShell navItems={TUTOR_NAV} brand="TutorTool" userLabel={user.email ?? undefined}>
+    <AppShell navItems={TUTOR_NAV} brand="TutorTool" userLabel={tutor.email}>
       {children}
     </AppShell>
   );
