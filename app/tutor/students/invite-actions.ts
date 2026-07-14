@@ -24,3 +24,16 @@ export async function revokeInviteAction(inviteId: string, studentId: string): P
   if (error) return { error: error.message };
   return {};
 }
+
+export async function regenerateInviteAction(
+  inviteId: string,
+  studentId: string
+): Promise<{ code?: string; error?: string }> {
+  await requireTutor();
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.rpc("regenerate_invite", { p_invite_id: inviteId });
+  revalidatePath(`/tutor/students/${studentId}`);
+  if (error) return { error: error.message };
+  return { code: data as string };
+}

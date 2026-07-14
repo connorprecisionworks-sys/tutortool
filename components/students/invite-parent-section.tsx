@@ -4,14 +4,14 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { StatusDot, type StatusKind } from "@/components/ui/status-dot";
-import { createInviteAction, revokeInviteAction } from "@/app/tutor/students/invite-actions";
+import { createInviteAction, regenerateInviteAction, revokeInviteAction } from "@/app/tutor/students/invite-actions";
 import type { Tables } from "@/lib/database.types";
 
 type Invite = Tables<"invites">;
 
 function inviteLink(code: string): string {
   const origin = typeof window !== "undefined" ? window.location.origin : "";
-  return `${origin}/signup/parent?code=${code}`;
+  return `${origin}/join?code=${code}`;
 }
 
 export function InviteParentSection({ studentId, invites }: { studentId: string; invites: Invite[] }) {
@@ -35,10 +35,25 @@ export function InviteParentSection({ studentId, invites }: { studentId: string;
   }
 
   function revoke(inviteId: string) {
+    if (!confirm("Revoke this invite code? It can no longer be used to join.")) return;
     startTransition(async () => {
       const result = await revokeInviteAction(inviteId, studentId);
       if (result.error) setError(result.error);
       else router.refresh();
+    });
+  }
+
+  function regenerate(inviteId: string) {
+    if (!confirm("Regenerate this code? The old one stops working immediately.")) return;
+    startTransition(async () => {
+      setCopied(false);
+      const result = await regenerateInviteAction(inviteId, studentId);
+      if (result.error) setError(result.error);
+      else {
+        setError(null);
+        setNewCode(result.code ?? null);
+        router.refresh();
+      }
     });
   }
 
@@ -82,6 +97,7 @@ export function InviteParentSection({ studentId, invites }: { studentId: string;
               <th className="py-2 font-medium">Code</th>
               <th className="py-2 font-medium">Status</th>
               <th className="py-2 font-medium">Created</th>
+              <th className="py-2 font-medium">Used by</th>
               <th className="py-2" />
             </tr>
           </thead>
@@ -93,16 +109,29 @@ export function InviteParentSection({ studentId, invites }: { studentId: string;
                   <StatusDot status={inv.status as StatusKind} />
                 </td>
                 <td className="py-2 text-text-secondary">{new Date(inv.created_at).toLocaleDateString()}</td>
+                <td className="py-2 text-text-secondary">
+                  {inv.status === "used" ? (inv.redeemed_by_name ?? inv.redeemed_by_email ?? "—") : "—"}
+                </td>
                 <td className="py-2 text-right">
                   {inv.status === "open" && (
-                    <button
-                      type="button"
-                      disabled={pending}
-                      onClick={() => revoke(inv.id)}
-                      className="text-xs text-text-tertiary hover:text-text disabled:opacity-50"
-                    >
-                      Revoke
-                    </button>
+                    <div className="flex justify-end gap-3">
+                      <button
+                        type="button"
+                        disabled={pending}
+                        onClick={() => regenerate(inv.id)}
+                        className="text-xs text-text-tertiary hover:text-text disabled:opacity-50"
+                      >
+                        Regenerate
+                      </button>
+                      <button
+                        type="button"
+                        disabled={pending}
+                        onClick={() => revoke(inv.id)}
+                        className="text-xs text-text-tertiary hover:text-text disabled:opacity-50"
+                      >
+                        Revoke
+                      </button>
+                    </div>
                   )}
                 </td>
               </tr>
