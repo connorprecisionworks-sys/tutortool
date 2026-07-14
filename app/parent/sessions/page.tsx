@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireParent } from "@/lib/auth/parent";
+import { getLinkedStudents } from "@/lib/auth/linked-students";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Card } from "@/components/ui/card";
@@ -16,18 +17,9 @@ export default async function ParentSessionsPage() {
   const parentUser = await requireParent();
   const supabase = await createClient();
 
-  const { data: links } = await supabase
-    .from("parent_students")
-    .select("student_id, clients(student_name)")
-    .eq("parent_user_id", parentUser.id);
-
-  const studentIds = (links ?? []).map((l) => l.student_id);
-  const studentNames = new Map(
-    (links ?? []).map((l) => [
-      l.student_id,
-      (l.clients as unknown as { student_name: string } | null)?.student_name ?? "Your child",
-    ])
-  );
+  const students = await getLinkedStudents(supabase, parentUser.id);
+  const studentIds = students.map((s) => s.id);
+  const studentNames = new Map(students.map((s) => [s.id, s.name]));
 
   if (studentIds.length === 0) {
     return (

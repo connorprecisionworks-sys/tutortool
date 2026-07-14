@@ -374,6 +374,51 @@ export type Database = {
           },
         ]
       }
+      resources: {
+        Row: {
+          created_at: string
+          id: string
+          student_id: string
+          title: string
+          tutor_id: string
+          type: Database["public"]["Enums"]["resource_type"]
+          url_or_path: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          student_id: string
+          title: string
+          tutor_id: string
+          type: Database["public"]["Enums"]["resource_type"]
+          url_or_path: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          student_id?: string
+          title?: string
+          tutor_id?: string
+          type?: Database["public"]["Enums"]["resource_type"]
+          url_or_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resources_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resources_tutor_id_fkey"
+            columns: ["tutor_id"]
+            isOneToOne: false
+            referencedRelation: "tutors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       session_notes: {
         Row: {
           body: string
@@ -719,6 +764,7 @@ export type Database = {
         | "friend"
         | "low_income"
         | "pro_bono"
+      resource_type: "file" | "link"
       session_status: "logged" | "billed"
     }
     CompositeTypes: {
@@ -858,6 +904,7 @@ export const Constants = {
         "low_income",
         "pro_bono",
       ],
+      resource_type: ["file", "link"],
       session_status: ["logged", "billed"],
     },
   },

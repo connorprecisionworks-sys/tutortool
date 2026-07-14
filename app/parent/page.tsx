@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { requireParent } from "@/lib/auth/parent";
+import { getLinkedStudents } from "@/lib/auth/linked-students";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Card } from "@/components/ui/card";
@@ -10,14 +11,7 @@ export default async function ParentHomePage() {
   const parentUser = await requireParent();
   const supabase = await createClient();
 
-  const { data: links } = await supabase
-    .from("parent_students")
-    .select("relationship, clients(student_name)")
-    .eq("parent_user_id", parentUser.id);
-
-  const children = (links ?? [])
-    .map((l) => (l.clients as unknown as { student_name: string } | null)?.student_name)
-    .filter((name): name is string => Boolean(name));
+  const children = (await getLinkedStudents(supabase, parentUser.id)).map((s) => s.name);
 
   if (children.length === 0) {
     return (
