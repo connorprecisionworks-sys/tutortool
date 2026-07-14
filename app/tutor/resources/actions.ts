@@ -78,6 +78,50 @@ export async function createResourceAction(
   return {};
 }
 
+export async function updateResourceAction(
+  _prev: ResourceFormResult,
+  formData: FormData
+): Promise<ResourceFormResult> {
+  const tutor = await requireTutor();
+  const supabase = await createClient();
+
+  const resourceId = String(formData.get("id") ?? "");
+  const title = String(formData.get("title") ?? "").trim();
+  if (!resourceId) return { error: "Missing resource id." };
+  if (!title) return { error: "Title is required." };
+
+  const { data: existing } = await supabase
+    .from("resources")
+    .select("*")
+    .eq("id", resourceId)
+    .eq("tutor_id", tutor.id)
+    .maybeSingle();
+
+  if (!existing) return { error: "Resource not found." };
+
+  const update: { title: string; url_or_path?: string } = { title };
+
+  // Only a link's target is editable in place — a file resource's
+  // underlying storage object isn't touched by this action (re-uploading
+  // is a delete + re-add, same as before this change).
+  if (existing.type === "link") {
+    const url = String(formData.get("url") ?? "").trim();
+    if (!url) return { error: "Enter a URL." };
+    try {
+      new URL(url);
+    } catch {
+      return { error: "Enter a valid URL (including https://)." };
+    }
+    update.url_or_path = url;
+  }
+
+  const { error } = await supabase.from("resources").update(update).eq("id", resourceId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/tutor/resources");
+  return {};
+}
+
 export async function deleteResourceAction(resourceId: string): Promise<{ error?: string }> {
   const tutor = await requireTutor();
   const supabase = await createClient();

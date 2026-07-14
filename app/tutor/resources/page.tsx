@@ -5,8 +5,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { OpenResourceButton } from "@/components/resources/open-resource-button";
-import { DeleteResourceButton } from "@/components/resources/delete-resource-button";
+import { ResourceRow } from "@/components/resources/resource-row";
 
 export default async function ResourcesPage() {
   const tutor = await requireTutor();
@@ -51,19 +50,14 @@ export default async function ResourcesPage() {
             </thead>
             <tbody>
               {resources.map((r) => (
-                <tr key={r.id} className="border-t border-border">
-                  <td className="px-5 py-3 font-medium">{r.title}</td>
-                  <td className="px-5 py-3 text-text-secondary">
-                    {(r.clients as unknown as { student_name: string } | null)?.student_name ?? "—"}
-                  </td>
-                  <td className="px-5 py-3 text-text-secondary capitalize">{r.type}</td>
-                  <td className="px-5 py-3 text-right">
-                    <div className="flex items-center justify-end gap-3">
-                      <OpenResourceButton resourceId={r.id} label="Open" />
-                      <DeleteResourceButton resourceId={r.id} />
-                    </div>
-                  </td>
-                </tr>
+                <ResourceRow
+                  key={r.id}
+                  id={r.id}
+                  title={r.title}
+                  studentName={(r.clients as unknown as { student_name: string } | null)?.student_name ?? "—"}
+                  type={r.type}
+                  urlOrPath={r.url_or_path}
+                />
               ))}
             </tbody>
           </table>
