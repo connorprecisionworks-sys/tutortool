@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { StatusDot } from "@/components/ui/status-dot";
 import { formatCents } from "@/lib/money";
+import { DeleteInvoiceRowButton } from "@/components/invoices/delete-invoice-row-button";
 
 const TABS = ["all", "draft", "sent", "overdue", "paid", "void"] as const;
 
@@ -86,6 +87,7 @@ export default async function InvoicesPage({
                 <th className="px-5 py-3 text-right font-medium">Total</th>
                 <th className="px-5 py-3 font-medium">Status</th>
                 <th className="px-5 py-3 font-medium">Due</th>
+                <th className="px-5 py-3" />
               </tr>
             </thead>
             <tbody>
@@ -104,6 +106,9 @@ export default async function InvoicesPage({
                     <StatusDot status={inv.status} />
                   </td>
                   <td className="px-5 py-3 text-text-secondary">{inv.due_date ?? "—"}</td>
+                  <td className="px-5 py-3 text-right">
+                    {inv.status === "draft" && <DeleteInvoiceRowButton invoiceId={inv.id} />}
+                  </td>
                 </tr>
               ))}
             </tbody>

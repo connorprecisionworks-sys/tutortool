@@ -5,11 +5,13 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/input";
 import {
+  deleteDraftInvoiceAction,
   markInvoicePaidAction,
   regeneratePaymentLinkAction,
   sendInvoiceAction,
   voidInvoiceAction,
 } from "@/app/tutor/invoices/actions";
+import { useConfirmedAction } from "@/lib/hooks/use-confirmed-action";
 
 export function SendInvoiceButton({ invoiceId, disabled }: { invoiceId: string; disabled?: boolean }) {
   const router = useRouter();
@@ -89,6 +91,27 @@ export function RegeneratePaymentLinkButton({ invoiceId }: { invoiceId: string }
         {pending ? "Generating…" : "Generate/refresh payment link"}
       </Button>
       {error && <p className="mt-1 text-xs text-text">{error}</p>}
+    </div>
+  );
+}
+
+export function DeleteDraftInvoiceButton({ invoiceId }: { invoiceId: string }) {
+  const router = useRouter();
+  const { run, pending, error } = useConfirmedAction(
+    deleteDraftInvoiceAction,
+    "Delete this draft invoice? This can't be undone.",
+    () => {
+      router.push("/tutor/invoices");
+      router.refresh();
+    }
+  );
+
+  return (
+    <div>
+      <Button variant="secondary" disabled={pending} onClick={() => run(invoiceId)}>
+        {pending ? "Deleting…" : "Delete draft"}
+      </Button>
+      {error && <p className="mt-2 text-sm text-text">{error}</p>}
     </div>
   );
 }

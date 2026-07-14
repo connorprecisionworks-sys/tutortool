@@ -11,6 +11,7 @@ import {
   SendInvoiceButton,
   MarkPaidControl,
   VoidInvoiceButton,
+  DeleteDraftInvoiceButton,
   RegeneratePaymentLinkButton,
 } from "@/components/invoices/invoice-actions";
 import { isStripeConfigured } from "@/lib/stripe/client";
@@ -49,7 +50,9 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
 
   const isDraft = invoice.status === "draft";
   const isPayable = invoice.status === "sent" || invoice.status === "overdue";
-  const canVoid = invoice.status === "draft" || invoice.status === "sent" || invoice.status === "overdue";
+  // A draft has never been sent, so "delete" (not void) is its terminal
+  // action — void stays reserved for invoices a client may have already seen.
+  const canVoid = invoice.status === "sent" || invoice.status === "overdue";
 
   return (
     <div>
@@ -168,6 +171,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
               </div>
             )}
             {canVoid && <VoidInvoiceButton invoiceId={invoice.id} />}
+            {isDraft && <DeleteDraftInvoiceButton invoiceId={invoice.id} />}
             {invoice.status === "paid" && <p className="text-sm text-text-secondary">Paid in full.</p>}
             {invoice.status === "void" && <p className="text-sm text-text-secondary">This invoice was voided.</p>}
           </Card>

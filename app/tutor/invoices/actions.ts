@@ -184,6 +184,17 @@ export async function markInvoicePaidAction(invoiceId: string, method: string): 
   return {};
 }
 
+export async function deleteDraftInvoiceAction(invoiceId: string): Promise<{ error?: string }> {
+  await requireTutor();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("delete_draft_invoice", { p_invoice_id: invoiceId });
+
+  revalidatePath("/tutor/invoices");
+  revalidatePath("/tutor/sessions");
+  if (error) return { error: error.message };
+  return {};
+}
+
 export async function voidInvoiceAction(invoiceId: string): Promise<{ error?: string }> {
   await requireTutor();
   const supabase = await createClient();
