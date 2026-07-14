@@ -39,6 +39,106 @@ export type Database = {
   }
   public: {
     Tables: {
+      availability: {
+        Row: {
+          created_at: string
+          end_time: string
+          id: string
+          start_time: string
+          tutor_id: string
+          weekday: number
+        }
+        Insert: {
+          created_at?: string
+          end_time: string
+          id?: string
+          start_time: string
+          tutor_id: string
+          weekday: number
+        }
+        Update: {
+          created_at?: string
+          end_time?: string
+          id?: string
+          start_time?: string
+          tutor_id?: string
+          weekday?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "availability_tutor_id_fkey"
+            columns: ["tutor_id"]
+            isOneToOne: false
+            referencedRelation: "tutors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bookings: {
+        Row: {
+          created_at: string
+          duration_minutes: number
+          id: string
+          mode: Database["public"]["Enums"]["booking_mode"]
+          requested_start: string
+          session_id: string | null
+          status: Database["public"]["Enums"]["booking_status"]
+          student_id: string
+          tutor_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_minutes: number
+          id?: string
+          mode: Database["public"]["Enums"]["booking_mode"]
+          requested_start: string
+          session_id?: string | null
+          status?: Database["public"]["Enums"]["booking_status"]
+          student_id: string
+          tutor_id: string
+        }
+        Update: {
+          created_at?: string
+          duration_minutes?: number
+          id?: string
+          mode?: Database["public"]["Enums"]["booking_mode"]
+          requested_start?: string
+          session_id?: string | null
+          status?: Database["public"]["Enums"]["booking_status"]
+          student_id?: string
+          tutor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "parent_visible_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_tutor_id_fkey"
+            columns: ["tutor_id"]
+            isOneToOne: false
+            referencedRelation: "tutors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       classes: {
         Row: {
           created_at: string
@@ -82,6 +182,7 @@ export type Database = {
           payer_name: string | null
           payer_phone: string | null
           rate_type: Database["public"]["Enums"]["rate_type"]
+          scheduling_mode: string
           student_name: string
           travel_rate_cents: number | null
           tutor_id: string
@@ -99,6 +200,7 @@ export type Database = {
           payer_name?: string | null
           payer_phone?: string | null
           rate_type?: Database["public"]["Enums"]["rate_type"]
+          scheduling_mode?: string
           student_name: string
           travel_rate_cents?: number | null
           tutor_id: string
@@ -116,6 +218,7 @@ export type Database = {
           payer_name?: string | null
           payer_phone?: string | null
           rate_type?: Database["public"]["Enums"]["rate_type"]
+          scheduling_mode?: string
           student_name?: string
           travel_rate_cents?: number | null
           tutor_id?: string
@@ -703,6 +806,15 @@ export type Database = {
         }
         Returns: string
       }
+      approve_booking: { Args: { p_booking_id: string }; Returns: undefined }
+      create_booking: {
+        Args: {
+          p_duration_minutes: number
+          p_requested_start: string
+          p_student_id: string
+        }
+        Returns: string
+      }
       create_draft_invoice: {
         Args: {
           p_client_id: string
@@ -712,7 +824,18 @@ export type Database = {
         Returns: string
       }
       create_invite: { Args: { p_student_id: string }; Returns: string }
+      create_session_for_booking: {
+        Args: {
+          p_client_id: string
+          p_duration_minutes: number
+          p_occurred_on: string
+          p_start_time: string
+          p_tutor_id: string
+        }
+        Returns: string
+      }
       current_tutor_id: { Args: never; Returns: string }
+      decline_booking: { Args: { p_booking_id: string }; Returns: undefined }
       is_parent_of_session: { Args: { p_session_id: string }; Returns: boolean }
       is_parent_of_student: { Args: { p_student_id: string }; Returns: boolean }
       is_tutor_of_client: { Args: { p_client_id: string }; Returns: boolean }
@@ -757,6 +880,8 @@ export type Database = {
       void_invoice: { Args: { p_invoice_id: string }; Returns: undefined }
     }
     Enums: {
+      booking_mode: "request" | "calendar" | "message"
+      booking_status: "requested" | "confirmed" | "declined" | "cancelled"
       invoice_status: "draft" | "sent" | "paid" | "overdue" | "void"
       rate_type:
         | "standard"
@@ -896,6 +1021,8 @@ export const Constants = {
   },
   public: {
     Enums: {
+      booking_mode: ["request", "calendar", "message"],
+      booking_status: ["requested", "confirmed", "declined", "cancelled"],
       invoice_status: ["draft", "sent", "paid", "overdue", "void"],
       rate_type: [
         "standard",

@@ -156,6 +156,18 @@ export function StudentForm({
         </label>
       </div>
 
+      <div className="border-t border-border pt-6">
+        <Label htmlFor="scheduling_mode">Scheduling</Label>
+        <Select id="scheduling_mode" name="scheduling_mode" defaultValue={student?.scheduling_mode ?? "message"}>
+          <option value="message">Message — I&apos;ll log sessions myself</option>
+          <option value="request">Request — parent asks, I approve</option>
+          <option value="calendar">Calendar — parent books an open slot</option>
+        </Select>
+        <FieldHint>
+          Request and Calendar let the parent book against your availability (set in Schedule).
+        </FieldHint>
+      </div>
+
       <div>
         <Label htmlFor="notes">Notes</Label>
         <Textarea id="notes" name="notes" defaultValue={student?.notes ?? ""} rows={3} />

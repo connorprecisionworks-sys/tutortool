@@ -31,6 +31,11 @@ function parseTriState(value: FormDataEntryValue | null): boolean | null {
   return null;
 }
 
+function parseSchedulingMode(value: FormDataEntryValue | null): "request" | "calendar" | "message" {
+  const v = String(value ?? "message");
+  return v === "request" || v === "calendar" ? v : "message";
+}
+
 export async function createStudentAction(
   _prev: StudentFormResult,
   formData: FormData
@@ -59,6 +64,7 @@ export async function createStudentAction(
     bill_travel: parseTriState(formData.get("bill_travel")),
     travel_rate_cents: parseOptionalCents(formData.get("travel_rate_cents")),
     is_philanthropic: formData.get("is_philanthropic") === "on",
+    scheduling_mode: parseSchedulingMode(formData.get("scheduling_mode")),
     notes: String(formData.get("notes") ?? "").trim() || null,
   });
 
@@ -99,6 +105,7 @@ export async function updateStudentAction(
       bill_travel: parseTriState(formData.get("bill_travel")),
       travel_rate_cents: parseOptionalCents(formData.get("travel_rate_cents")),
       is_philanthropic: formData.get("is_philanthropic") === "on",
+      scheduling_mode: parseSchedulingMode(formData.get("scheduling_mode")),
       notes: String(formData.get("notes") ?? "").trim() || null,
     })
     .eq("id", studentId);
