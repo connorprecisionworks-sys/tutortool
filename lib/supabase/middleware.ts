@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/lib/database.types";
+import { intendedRole } from "@/lib/auth/user";
 
 // Only these two /api prefixes are public at the proxy layer: webhook
 // routes (Stripe) carry no Supabase session cookie, and the cron route
@@ -19,14 +20,14 @@ const PUBLIC_PATHS = [
   "/api/cron",
 ];
 
-function isPublicPath(pathname: string) {
-  return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+function matchesPrefix(pathname: string, prefix: string) {
+  return pathname === prefix || pathname.startsWith(`${prefix}/`);
 }
 
-// TODO(connor): this is the P0-P5 single-role (tutor-only) version — it sends
-// every signed-in user to /tutor. P6 adds the `users` table with `role` and
-// this gets a role lookup so parents land on /parent instead. See the P6
-// commit for the updated version.
+function isPublicPath(pathname: string) {
+  return PUBLIC_PATHS.some((p) => matchesPrefix(pathname, p));
+}
+
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -62,10 +63,44 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user && (pathname === "/login" || pathname.startsWith("/signup"))) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/tutor";
-    return NextResponse.redirect(url);
+  const isAuthRedirectPage = pathname === "/login" || pathname.startsWith("/signup");
+  const isParentShell = matchesPrefix(pathname, "/parent");
+  const isTutorShell = matchesPrefix(pathname, "/tutor");
+
+  // One role lookup, reused by both the post-login redirect and the
+  // cross-shell guard below (previously each did its own identical query).
+  // Falls back to the intended role captured at signup (user_metadata) when
+  // no `users` row exists yet — e.g. a parent mid-email-confirmation who
+  // hasn't been backfilled — rather than defaulting to "tutor", which would
+  // permanently mis-provision them the moment requireTutor() runs.
+  if (user && (isAuthRedirectPage || isParentShell || isTutorShell)) {
+    const { data: userRow } = await supabase
+      .from("users")
+      .select("role")
+      .eq("auth_user_id", user.id)
+      .maybeSingle();
+    const role = userRow?.role ?? intendedRole(user);
+
+    if (isAuthRedirectPage) {
+      const url = request.nextUrl.clone();
+      url.pathname = role === "parent" ? "/parent" : "/tutor";
+      return NextResponse.redirect(url);
+    }
+
+    // Cross-shell guard: a tutor hitting /parent/* or a parent hitting
+    // /tutor/* gets bounced to their own shell. requireTutor()/
+    // requireParent() also enforce this server-side; this just avoids the
+    // extra round-trip for the common case.
+    if (role === "parent" && !isParentShell) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/parent";
+      return NextResponse.redirect(url);
+    }
+    if (role !== "parent" && isParentShell) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/tutor";
+      return NextResponse.redirect(url);
+    }
   }
 
   return response;

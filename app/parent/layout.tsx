@@ -1,18 +1,12 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/shell/app-shell";
 import { PARENT_NAV } from "@/lib/nav";
+import { requireParent } from "@/lib/auth/parent";
 
 export default async function ParentLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect("/login");
+  const parent = await requireParent();
 
   return (
-    <AppShell navItems={PARENT_NAV} brand="TutorTool" userLabel={user.email ?? undefined}>
+    <AppShell navItems={PARENT_NAV} brand="TutorTool" userLabel={parent.email}>
       {children}
     </AppShell>
   );

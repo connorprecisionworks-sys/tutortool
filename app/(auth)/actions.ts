@@ -18,7 +18,7 @@ export async function signInAction(formData: FormData): Promise<AuthActionResult
   return {};
 }
 
-export async function signUpTutorAction(formData: FormData): Promise<AuthActionResult> {
+async function signUpWithRole(role: "tutor" | "parent", formData: FormData): Promise<AuthActionResult> {
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
@@ -29,7 +29,7 @@ export async function signUpTutorAction(formData: FormData): Promise<AuthActionR
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { name, role: "tutor" } },
+    options: { data: { name, role } },
   });
 
   if (error) return { error: error.message };
@@ -38,19 +38,40 @@ export async function signUpTutorAction(formData: FormData): Promise<AuthActionR
     return { needsEmailConfirmation: true };
   }
 
-  // Session exists immediately (email confirmations off) — create the tutor
-  // profile row now so /tutor doesn't have to special-case a missing row.
-  const { error: profileError } = await supabase.from("tutors").insert({
+  // Session exists immediately (email confirmations off) — create the
+  // profile row(s) now so the shell layout doesn't have to special-case a
+  // missing row on first load.
+  if (role === "tutor") {
+    const { error: profileError } = await supabase.from("tutors").insert({
+      auth_user_id: data.user!.id,
+      name,
+      email,
+    });
+    // Ignore unique-violation races (row already created by a concurrent request).
+    if (profileError && profileError.code !== "23505") {
+      return { error: profileError.message };
+    }
+  }
+
+  const { error: userRowError } = await supabase.from("users").insert({
     auth_user_id: data.user!.id,
+    role,
     name,
     email,
   });
-  // Ignore unique-violation races (row already created by a concurrent request).
-  if (profileError && profileError.code !== "23505") {
-    return { error: profileError.message };
+  if (userRowError && userRowError.code !== "23505") {
+    return { error: userRowError.message };
   }
 
   return {};
+}
+
+export async function signUpTutorAction(formData: FormData): Promise<AuthActionResult> {
+  return signUpWithRole("tutor", formData);
+}
+
+export async function signUpParentAction(formData: FormData): Promise<AuthActionResult> {
+  return signUpWithRole("parent", formData);
 }
 
 export async function signOutAction(): Promise<void> {

@@ -39,10 +39,40 @@ export type Database = {
   }
   public: {
     Tables: {
+      classes: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          tutor_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          tutor_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          tutor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "classes_tutor_id_fkey"
+            columns: ["tutor_id"]
+            isOneToOne: false
+            referencedRelation: "tutors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           archived: boolean
           bill_travel: boolean | null
+          class_id: string | null
           created_at: string
           custom_rate_cents: number | null
           id: string
@@ -59,6 +89,7 @@ export type Database = {
         Insert: {
           archived?: boolean
           bill_travel?: boolean | null
+          class_id?: string | null
           created_at?: string
           custom_rate_cents?: number | null
           id?: string
@@ -75,6 +106,7 @@ export type Database = {
         Update: {
           archived?: boolean
           bill_travel?: boolean | null
+          class_id?: string | null
           created_at?: string
           custom_rate_cents?: number | null
           id?: string
@@ -90,7 +122,59 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "clients_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "clients_tutor_id_fkey"
+            columns: ["tutor_id"]
+            isOneToOne: false
+            referencedRelation: "tutors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invites: {
+        Row: {
+          code: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          status: string
+          student_id: string
+          tutor_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          status?: string
+          student_id: string
+          tutor_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          status?: string
+          student_id?: string
+          tutor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invites_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invites_tutor_id_fkey"
             columns: ["tutor_id"]
             isOneToOne: false
             referencedRelation: "tutors"
@@ -208,6 +292,45 @@ export type Database = {
             columns: ["tutor_id"]
             isOneToOne: false
             referencedRelation: "tutors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      parent_students: {
+        Row: {
+          created_at: string
+          id: string
+          parent_user_id: string
+          relationship: string | null
+          student_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          parent_user_id: string
+          relationship?: string | null
+          student_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          parent_user_id?: string
+          relationship?: string | null
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parent_students_parent_user_id_fkey"
+            columns: ["parent_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parent_students_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
         ]
@@ -383,6 +506,33 @@ export type Database = {
         }
         Relationships: []
       }
+      users: {
+        Row: {
+          auth_user_id: string
+          created_at: string
+          email: string
+          id: string
+          name: string
+          role: string
+        }
+        Insert: {
+          auth_user_id: string
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          role: string
+        }
+        Update: {
+          auth_user_id?: string
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          role?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -404,7 +554,10 @@ export type Database = {
         }
         Returns: string
       }
+      create_invite: { Args: { p_student_id: string }; Returns: string }
       current_tutor_id: { Args: never; Returns: string }
+      is_parent_of_student: { Args: { p_student_id: string }; Returns: boolean }
+      is_tutor_of_client: { Args: { p_client_id: string }; Returns: boolean }
       log_reminder: {
         Args: {
           p_channel?: string
@@ -421,7 +574,9 @@ export type Database = {
         Args: { p_invoice_id: string }
         Returns: undefined
       }
+      redeem_invite: { Args: { p_code: string }; Returns: string }
       remove_line_item: { Args: { p_line_item_id: string }; Returns: undefined }
+      revoke_invite: { Args: { p_invite_id: string }; Returns: undefined }
       send_invoice: { Args: { p_invoice_id: string }; Returns: undefined }
       session_amount_cents: {
         Args: {
