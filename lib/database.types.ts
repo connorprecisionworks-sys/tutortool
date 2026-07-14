@@ -222,6 +222,13 @@ export type Database = {
             foreignKeyName: "invoice_line_items_session_id_fkey"
             columns: ["session_id"]
             isOneToOne: false
+            referencedRelation: "parent_visible_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_line_items_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
             referencedRelation: "sessions"
             referencedColumns: ["id"]
           },
@@ -363,6 +370,58 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      session_notes: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          session_id: string
+          shared: boolean
+          tutor_id: string
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          session_id: string
+          shared?: boolean
+          tutor_id: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          session_id?: string
+          shared?: boolean
+          tutor_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_notes_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: true
+            referencedRelation: "parent_visible_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_notes_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: true
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_notes_tutor_id_fkey"
+            columns: ["tutor_id"]
+            isOneToOne: false
+            referencedRelation: "tutors"
             referencedColumns: ["id"]
           },
         ]
@@ -535,7 +594,60 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      parent_visible_sessions: {
+        Row: {
+          client_id: string | null
+          created_at: string | null
+          duration_minutes: number | null
+          id: string | null
+          location: string | null
+          occurred_on: string | null
+          start_time: string | null
+          status: Database["public"]["Enums"]["session_status"] | null
+          travel_minutes: number | null
+          tutor_id: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string | null
+          duration_minutes?: number | null
+          id?: string | null
+          location?: string | null
+          occurred_on?: string | null
+          start_time?: string | null
+          status?: Database["public"]["Enums"]["session_status"] | null
+          travel_minutes?: number | null
+          tutor_id?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string | null
+          duration_minutes?: number | null
+          id?: string | null
+          location?: string | null
+          occurred_on?: string | null
+          start_time?: string | null
+          status?: Database["public"]["Enums"]["session_status"] | null
+          travel_minutes?: number | null
+          tutor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sessions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessions_tutor_id_fkey"
+            columns: ["tutor_id"]
+            isOneToOne: false
+            referencedRelation: "tutors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       add_manual_line_item: {
@@ -556,6 +668,7 @@ export type Database = {
       }
       create_invite: { Args: { p_student_id: string }; Returns: string }
       current_tutor_id: { Args: never; Returns: string }
+      is_parent_of_session: { Args: { p_session_id: string }; Returns: boolean }
       is_parent_of_student: { Args: { p_student_id: string }; Returns: boolean }
       is_tutor_of_client: { Args: { p_client_id: string }; Returns: boolean }
       log_reminder: {
