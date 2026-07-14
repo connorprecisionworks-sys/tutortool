@@ -2,13 +2,22 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/lib/database.types";
 
-// Only /api/webhooks is public at the proxy layer: webhook routes (Stripe)
-// carry no Supabase session cookie and must not be redirected to /login.
-// Deliberately scoped to that one prefix, not all of /api — every other API
+// Only these two /api prefixes are public at the proxy layer: webhook
+// routes (Stripe) carry no Supabase session cookie, and the cron route
+// authenticates itself via CRON_SECRET, not a user session.
+// Deliberately scoped to exact prefixes, not all of /api — every other API
 // route still gets the default-deny session gate for free, same as pages.
 // If a new route needs to be public, add its exact prefix here explicitly;
 // don't widen this to a blanket "/api".
-const PUBLIC_PATHS = ["/", "/login", "/signup/tutor", "/signup/parent", "/auth", "/api/webhooks"];
+const PUBLIC_PATHS = [
+  "/",
+  "/login",
+  "/signup/tutor",
+  "/signup/parent",
+  "/auth",
+  "/api/webhooks",
+  "/api/cron",
+];
 
 function isPublicPath(pathname: string) {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));

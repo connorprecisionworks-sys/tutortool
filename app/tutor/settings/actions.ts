@@ -45,3 +45,40 @@ export async function updateTutorSettingsAction(
   revalidatePath("/tutor/settings");
   return { success: true };
 }
+
+export async function updateReminderTemplatesAction(
+  _prev: SettingsFormResult,
+  formData: FormData
+): Promise<SettingsFormResult> {
+  const tutor = await requireTutor();
+  const supabase = await createClient();
+
+  const templates = {
+    offset_0: {
+      subject: String(formData.get("offset_0_subject") ?? "").trim(),
+      body: String(formData.get("offset_0_body") ?? "").trim(),
+    },
+    offset_3: {
+      subject: String(formData.get("offset_3_subject") ?? "").trim(),
+      body: String(formData.get("offset_3_body") ?? "").trim(),
+    },
+    offset_7: {
+      subject: String(formData.get("offset_7_subject") ?? "").trim(),
+      body: String(formData.get("offset_7_body") ?? "").trim(),
+    },
+  };
+
+  for (const t of Object.values(templates)) {
+    if (!t.subject || !t.body) return { error: "Every template needs a subject and a body." };
+  }
+
+  const { error } = await supabase
+    .from("tutors")
+    .update({ reminder_templates: templates })
+    .eq("id", tutor.id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/tutor/settings");
+  return { success: true };
+}

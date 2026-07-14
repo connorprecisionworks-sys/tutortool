@@ -14,6 +14,7 @@ import {
   RegeneratePaymentLinkButton,
 } from "@/components/invoices/invoice-actions";
 import { isStripeConfigured } from "@/lib/stripe/client";
+import { ReminderControls } from "@/components/invoices/reminder-controls";
 
 export default async function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -34,6 +35,11 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
     .select("*")
     .eq("invoice_id", id)
     .order("created_at");
+
+  const { count: reminderCount } = await supabase
+    .from("reminders")
+    .select("id", { count: "exact", head: true })
+    .eq("invoice_id", id);
 
   const client = invoice.clients as unknown as {
     student_name: string;
@@ -156,6 +162,11 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
               </p>
             )}
             {isPayable && <MarkPaidControl invoiceId={invoice.id} />}
+            {isPayable && (
+              <div className="border-t border-border pt-3">
+                <ReminderControls invoiceId={invoice.id} reminderCount={reminderCount ?? 0} />
+              </div>
+            )}
             {canVoid && <VoidInvoiceButton invoiceId={invoice.id} />}
             {invoice.status === "paid" && <p className="text-sm text-text-secondary">Paid in full.</p>}
             {invoice.status === "void" && <p className="text-sm text-text-secondary">This invoice was voided.</p>}

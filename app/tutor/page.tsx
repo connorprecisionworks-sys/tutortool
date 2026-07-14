@@ -1,11 +1,135 @@
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
+import { requireTutor } from "@/lib/auth/tutor";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { formatCents } from "@/lib/money";
+import { computeValueGivenCents } from "@/lib/billing";
 
-export default function TutorDashboardPage() {
+function monthRange(): { start: string; end: string } {
+  const now = new Date();
+  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+  return { start: start.toISOString(), end: end.toISOString() };
+}
+
+export default async function TutorDashboardPage() {
+  const tutor = await requireTutor();
+  const supabase = await createClient();
+
+  const { start, end } = monthRange();
+
+  const [
+    { data: outstandingInvoices },
+    { count: overdueCount },
+    { count: totalInvoiceCount },
+    { data: billedThisMonth },
+    { data: sessions },
+  ] = await Promise.all([
+    supabase.from("invoices").select("total_cents").eq("tutor_id", tutor.id).in("status", ["sent", "overdue"]),
+    supabase
+      .from("invoices")
+      .select("id", { count: "exact", head: true })
+      .eq("tutor_id", tutor.id)
+      .eq("status", "overdue"),
+    supabase.from("invoices").select("id", { count: "exact", head: true }).eq("tutor_id", tutor.id),
+    supabase
+      .from("invoices")
+      .select("total_cents")
+      .eq("tutor_id", tutor.id)
+      .gte("sent_at", start)
+      .lt("sent_at", end)
+      .not("sent_at", "is", null),
+    supabase
+      .from("sessions")
+      .select("duration_minutes, effective_rate_cents, clients(is_philanthropic)")
+      .eq("tutor_id", tutor.id),
+  ]);
+
+  const outstandingCents = (outstandingInvoices ?? []).reduce((sum, i) => sum + i.total_cents, 0);
+  const billedThisMonthCents = (billedThisMonth ?? []).reduce((sum, i) => sum + i.total_cents, 0);
+
+  let philanthropicValueCents = 0;
+  let regularDiscountValueCents = 0;
+  for (const s of sessions ?? []) {
+    const isPhilanthropic = (s.clients as unknown as { is_philanthropic: boolean } | null)?.is_philanthropic ?? false;
+    const value = computeValueGivenCents(tutor.standard_rate_cents, s.effective_rate_cents, s.duration_minutes);
+    if (isPhilanthropic) philanthropicValueCents += value;
+    else regularDiscountValueCents += value;
+  }
+  const totalValueGivenCents = philanthropicValueCents + regularDiscountValueCents;
+
+  if (!totalInvoiceCount && !sessions?.length) {
+    return (
+      <div>
+        <PageHeader title="Dashboard" description="Outstanding balances, this month's billing, and quick actions." />
+        <EmptyState
+          message="Add your first student, then log a session to get started."
+          action={
+            <Link href="/tutor/students/new">
+              <Button>Add a student</Button>
+            </Link>
+          }
+        />
+      </div>
+    );
+  }
+
   return (
     <div>
-      <PageHeader title="Dashboard" description="Outstanding balances, this month's billing, and quick actions." />
-      <EmptyState message="Dashboard numbers land here once you've logged sessions and sent invoices." />
+      <PageHeader
+        title="Dashboard"
+        description="Outstanding balances, this month's billing, and quick actions."
+        action={
+          <div className="flex gap-2">
+            <Link href="/tutor/sessions/new">
+              <Button variant="secondary">Log session</Button>
+            </Link>
+            <Link href="/tutor/invoices/new">
+              <Button>New invoice</Button>
+            </Link>
+          </div>
+        }
+      />
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Card>
+          <p className="text-xs text-text-secondary">Outstanding</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums">{formatCents(outstandingCents)}</p>
+        </Card>
+        <Card>
+          <p className="text-xs text-text-secondary">Billed this month</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums">{formatCents(billedThisMonthCents)}</p>
+        </Card>
+        <Card>
+          <p className="text-xs text-text-secondary">Overdue invoices</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums">{overdueCount ?? 0}</p>
+        </Card>
+      </div>
+
+      <Card className="mt-6">
+        <h2 className="text-sm font-semibold">Value given</h2>
+        <p className="mt-1 text-xs text-text-tertiary">
+          Your own record of discounted and pro-bono tutoring — not a tax deduction. Only unreimbursed
+          out-of-pocket costs are deductible under US tax law; the value of donated services isn&apos;t.
+        </p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <div>
+            <p className="text-xs text-text-secondary">Community impact</p>
+            <p className="mt-1 text-xl font-semibold tabular-nums">{formatCents(philanthropicValueCents)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-text-secondary">Regular discounts</p>
+            <p className="mt-1 text-xl font-semibold tabular-nums">{formatCents(regularDiscountValueCents)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-text-secondary">Total value given</p>
+            <p className="mt-1 text-xl font-semibold tabular-nums">{formatCents(totalValueGivenCents)}</p>
+          </div>
+        </div>
+      </Card>
     </div>
   );
 }

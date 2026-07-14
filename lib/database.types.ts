@@ -212,6 +212,38 @@ export type Database = {
           },
         ]
       }
+      reminders: {
+        Row: {
+          channel: string
+          id: string
+          invoice_id: string
+          sent_at: string
+          template_key: string
+        }
+        Insert: {
+          channel?: string
+          id?: string
+          invoice_id: string
+          sent_at?: string
+          template_key: string
+        }
+        Update: {
+          channel?: string
+          id?: string
+          invoice_id?: string
+          sent_at?: string
+          template_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminders_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sessions: {
         Row: {
           bill_travel: boolean
@@ -316,6 +348,7 @@ export type Database = {
           invoice_terms: string
           name: string
           reminder_cadence: Json
+          reminder_templates: Json
           standard_rate_cents: number
           stripe_account_id: string | null
           travel_rate_cents: number | null
@@ -329,6 +362,7 @@ export type Database = {
           invoice_terms?: string
           name: string
           reminder_cadence?: Json
+          reminder_templates?: Json
           standard_rate_cents?: number
           stripe_account_id?: string | null
           travel_rate_cents?: number | null
@@ -342,6 +376,7 @@ export type Database = {
           invoice_terms?: string
           name?: string
           reminder_cadence?: Json
+          reminder_templates?: Json
           standard_rate_cents?: number
           stripe_account_id?: string | null
           travel_rate_cents?: number | null
@@ -370,6 +405,14 @@ export type Database = {
         Returns: string
       }
       current_tutor_id: { Args: never; Returns: string }
+      log_reminder: {
+        Args: {
+          p_channel?: string
+          p_invoice_id: string
+          p_template_key: string
+        }
+        Returns: string
+      }
       mark_invoice_paid: {
         Args: { p_invoice_id: string; p_method: string }
         Returns: undefined
