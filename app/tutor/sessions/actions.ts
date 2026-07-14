@@ -81,18 +81,8 @@ export async function updateSessionAction(
   const sessionId = String(formData.get("id") ?? "");
   if (!sessionId) return { error: "Missing session id." };
 
-  const tutor = await requireTutor();
+  await requireTutor();
   const supabase = await createClient();
-
-  const { data: existing } = await supabase
-    .from("sessions")
-    .select("*")
-    .eq("id", sessionId)
-    .eq("tutor_id", tutor.id)
-    .maybeSingle();
-
-  if (!existing) return { error: "Session not found." };
-  if (existing.status === "billed") return { error: "This session is already billed and can't be edited." };
 
   const occurredOn = String(formData.get("occurred_on") ?? "");
   const startTime = String(formData.get("start_time") ?? "").trim();
@@ -105,49 +95,41 @@ export async function updateSessionAction(
   if (!durationMinutes || durationMinutes <= 0) return { error: "Duration must be more than 0 minutes." };
   if (travelMinutes < 0) return { error: "Travel minutes can't be negative." };
 
-  // Re-resolve rate snapshot from the client's *current* rate rule — editing
-  // a logged session is treated as re-logging it, not preserving stale math.
-  const { data: client } = await supabase
-    .from("clients")
-    .select("*")
-    .eq("id", existing.client_id)
-    .single();
-
-  const effectiveRateCents = resolveEffectiveRateCents(
-    client!.rate_type as RateType,
-    client!.custom_rate_cents,
-    tutor.standard_rate_cents
-  );
-  const billTravel = resolveBillTravel(client!.bill_travel, tutor.bill_travel_default);
-  const travelRateCents = billTravel
-    ? resolveTravelRateCents(client!.travel_rate_cents, tutor.travel_rate_cents, effectiveRateCents)
-    : null;
-
-  const { error } = await supabase
-    .from("sessions")
-    .update({
-      occurred_on: occurredOn,
-      start_time: startTime || null,
-      duration_minutes: Math.round(durationMinutes),
-      travel_minutes: Math.round(travelMinutes),
-      location: location || null,
-      bill_travel: billTravel,
-      effective_rate_cents: effectiveRateCents,
-      travel_rate_cents: travelRateCents,
-      notes: notes || null,
-    })
-    .eq("id", sessionId);
+  // update_session (SECURITY DEFINER) re-resolves the rate snapshot from
+  // the client's *current* rate rule, blocks edits on a billed session, and
+  // — if this session is claimed onto a draft invoice — resyncs that
+  // invoice's line item + total in the same transaction.
+  const { error } = await supabase.rpc("update_session", {
+    p_session_id: sessionId,
+    p_occurred_on: occurredOn,
+    // The generated RPC arg types don't reflect that these Postgres params
+    // accept null (the type generator only sees the SQL types, not that
+    // the function body is fine with a null time/text) — Postgres itself
+    // accepts null here without issue.
+    p_start_time: (startTime || null) as unknown as string,
+    p_duration_minutes: Math.round(durationMinutes),
+    p_travel_minutes: Math.round(travelMinutes),
+    p_location: (location || null) as unknown as string,
+    p_notes: (notes || null) as unknown as string,
+  });
 
   if (error) return { error: error.message };
 
   revalidatePath("/tutor/sessions");
+  revalidatePath(`/tutor/sessions/${sessionId}`);
+  revalidatePath("/tutor/invoices");
   revalidatePath("/tutor");
   return {};
 }
 
-export async function deleteSessionAction(sessionId: string): Promise<void> {
+export async function deleteSessionAction(sessionId: string): Promise<SessionFormResult> {
   const supabase = await createClient();
-  await supabase.from("sessions").delete().eq("id", sessionId).eq("status", "logged");
+  const { error } = await supabase.rpc("delete_session", { p_session_id: sessionId });
+
+  if (error) return { error: error.message };
+
   revalidatePath("/tutor/sessions");
+  revalidatePath("/tutor/invoices");
   revalidatePath("/tutor");
+  return {};
 }

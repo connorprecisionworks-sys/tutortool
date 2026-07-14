@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { StatusDot } from "@/components/ui/status-dot";
 import { computeSessionAmountCents } from "@/lib/billing";
 import { formatCents } from "@/lib/money";
+import { DeleteSessionRowButton } from "@/components/sessions/delete-session-row-button";
 
 export default async function SessionsPage({
   searchParams,
@@ -95,6 +96,7 @@ export default async function SessionsPage({
                 <th className="px-5 py-3 font-medium">Travel</th>
                 <th className="px-5 py-3 text-right font-medium">Amount</th>
                 <th className="px-5 py-3 font-medium">Status</th>
+                <th className="px-5 py-3" />
               </tr>
             </thead>
             <tbody>
@@ -127,6 +129,9 @@ export default async function SessionsPage({
                     <td className="px-5 py-3 text-right tabular-nums">{formatCents(amount)}</td>
                     <td className="px-5 py-3">
                       <StatusDot status={s.status} />
+                    </td>
+                    <td className="px-5 py-3 text-right">
+                      {s.status === "logged" && <DeleteSessionRowButton sessionId={s.id} />}
                     </td>
                   </tr>
                 );

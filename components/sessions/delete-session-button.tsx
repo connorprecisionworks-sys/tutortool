@@ -1,28 +1,23 @@
 "use client";
 
-import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { deleteSessionAction } from "@/app/tutor/sessions/actions";
+import { useConfirmedAction } from "@/lib/hooks/use-confirmed-action";
 
 export function DeleteSessionButton({ sessionId }: { sessionId: string }) {
   const router = useRouter();
-  const [pending, startTransition] = useTransition();
+  const { run, pending, error } = useConfirmedAction(deleteSessionAction, "Delete this session? This can't be undone.", () => {
+    router.push("/tutor/sessions");
+    router.refresh();
+  });
 
   return (
-    <Button
-      variant="secondary"
-      disabled={pending}
-      onClick={() => {
-        if (!confirm("Delete this session? This can't be undone.")) return;
-        startTransition(async () => {
-          await deleteSessionAction(sessionId);
-          router.push("/tutor/sessions");
-          router.refresh();
-        });
-      }}
-    >
-      {pending ? "Deleting…" : "Delete"}
-    </Button>
+    <div>
+      <Button variant="secondary" disabled={pending} onClick={() => run(sessionId)}>
+        {pending ? "Deleting…" : "Delete"}
+      </Button>
+      {error && <p className="mt-2 text-sm text-text">{error}</p>}
+    </div>
   );
 }

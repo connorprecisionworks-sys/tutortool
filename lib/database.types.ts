@@ -246,6 +246,9 @@ export type Database = {
           created_at: string
           expires_at: string | null
           id: string
+          redeemed_by: string | null
+          redeemed_by_email: string | null
+          redeemed_by_name: string | null
           status: string
           student_id: string
           tutor_id: string
@@ -255,6 +258,9 @@ export type Database = {
           created_at?: string
           expires_at?: string | null
           id?: string
+          redeemed_by?: string | null
+          redeemed_by_email?: string | null
+          redeemed_by_name?: string | null
           status?: string
           student_id: string
           tutor_id: string
@@ -264,11 +270,21 @@ export type Database = {
           created_at?: string
           expires_at?: string | null
           id?: string
+          redeemed_by?: string | null
+          redeemed_by_email?: string | null
+          redeemed_by_name?: string | null
           status?: string
           student_id?: string
           tutor_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "invites_redeemed_by_fkey"
+            columns: ["redeemed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "invites_student_id_fkey"
             columns: ["student_id"]
@@ -807,6 +823,7 @@ export type Database = {
         Returns: string
       }
       approve_booking: { Args: { p_booking_id: string }; Returns: undefined }
+      cancel_booking: { Args: { p_booking_id: string }; Returns: undefined }
       create_booking: {
         Args: {
           p_duration_minutes: number
@@ -836,6 +853,12 @@ export type Database = {
       }
       current_tutor_id: { Args: never; Returns: string }
       decline_booking: { Args: { p_booking_id: string }; Returns: undefined }
+      delete_draft_invoice: {
+        Args: { p_invoice_id: string }
+        Returns: undefined
+      }
+      delete_session: { Args: { p_session_id: string }; Returns: undefined }
+      delete_student: { Args: { p_student_id: string }; Returns: undefined }
       is_parent_of_session: { Args: { p_session_id: string }; Returns: boolean }
       is_parent_of_student: { Args: { p_student_id: string }; Returns: boolean }
       is_tutor_of_client: { Args: { p_client_id: string }; Returns: boolean }
@@ -856,6 +879,7 @@ export type Database = {
         Returns: undefined
       }
       redeem_invite: { Args: { p_code: string }; Returns: string }
+      regenerate_invite: { Args: { p_invite_id: string }; Returns: string }
       remove_line_item: { Args: { p_line_item_id: string }; Returns: undefined }
       revoke_invite: { Args: { p_invite_id: string }; Returns: undefined }
       send_invoice: { Args: { p_invoice_id: string }; Returns: undefined }
@@ -874,6 +898,18 @@ export type Database = {
           p_invoice_id: string
           p_stripe_checkout_session_id: string
           p_stripe_payment_url: string
+        }
+        Returns: undefined
+      }
+      update_session: {
+        Args: {
+          p_duration_minutes: number
+          p_location: string
+          p_notes: string
+          p_occurred_on: string
+          p_session_id: string
+          p_start_time: string
+          p_travel_minutes: number
         }
         Returns: undefined
       }
