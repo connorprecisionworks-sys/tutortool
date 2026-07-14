@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { StatusDot } from "@/components/ui/status-dot";
 import { AvailabilityManager } from "@/components/schedule/availability-manager";
 import { BookingRequests, type PendingBooking } from "@/components/schedule/booking-requests";
+import { CancelBookingButton } from "@/components/schedule/cancel-booking-button";
 import { approveBookingAction, declineBookingAction } from "@/app/tutor/schedule/actions";
 import { formatBookingWhen, nowAsStoredWallClockIso } from "@/lib/scheduling";
 
@@ -74,7 +75,10 @@ export default async function SchedulePage() {
                     {formatBookingWhen(b.requested_start)} · {b.duration_minutes} min
                   </p>
                 </div>
-                <StatusDot status="confirmed" />
+                <div className="flex items-center gap-3">
+                  <StatusDot status="confirmed" />
+                  <CancelBookingButton bookingId={b.id} />
+                </div>
               </li>
             ))}
           </ul>

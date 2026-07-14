@@ -23,6 +23,7 @@ function RemoveButton({ availabilityId }: { availabilityId: string }) {
       type="button"
       disabled={pending}
       onClick={() => {
+        if (!confirm("Remove this availability window?")) return;
         startTransition(async () => {
           await removeAvailabilityAction(availabilityId);
           router.refresh();

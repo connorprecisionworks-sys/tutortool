@@ -67,3 +67,13 @@ export async function declineBookingAction(bookingId: string): Promise<{ error?:
   if (error) return { error: error.message };
   return {};
 }
+
+export async function cancelBookingAction(bookingId: string): Promise<{ error?: string }> {
+  await requireTutor();
+  const supabase = await createClient();
+
+  const { error } = await supabase.rpc("cancel_booking", { p_booking_id: bookingId });
+  revalidatePath("/tutor/schedule");
+  if (error) return { error: error.message };
+  return {};
+}
