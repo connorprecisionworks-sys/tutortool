@@ -1,15 +1,23 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/input";
-import { saveSessionNoteAction, type NoteFormResult } from "@/app/tutor/sessions/notes-actions";
+import {
+  saveSessionNoteAction,
+  deleteSessionNoteAction,
+  type NoteFormResult,
+} from "@/app/tutor/sessions/notes-actions";
 import type { Tables } from "@/lib/database.types";
 
 const initialState: NoteFormResult = {};
 
 export function NoteForm({ sessionId, note }: { sessionId: string; note: Tables<"session_notes"> | null }) {
+  const router = useRouter();
   const [state, formAction, pending] = useActionState(saveSessionNoteAction, initialState);
+  const [deletePending, startDeleteTransition] = useTransition();
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   return (
     <form action={formAction} className="space-y-3">
@@ -31,9 +39,34 @@ export function NoteForm({ sessionId, note }: { sessionId: string; note: Tables<
       </label>
       {state.error && <p className="text-sm text-text">{state.error}</p>}
       {state.success && <p className="text-sm text-text-secondary">Saved.</p>}
-      <Button type="submit" size="sm" disabled={pending}>
-        {pending ? "Saving…" : "Save note"}
-      </Button>
+      {deleteError && <p className="text-sm text-text">{deleteError}</p>}
+      <div className="flex gap-3">
+        <Button type="submit" size="sm" disabled={pending}>
+          {pending ? "Saving…" : "Save note"}
+        </Button>
+        {note && (
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            disabled={deletePending}
+            onClick={() => {
+              if (!confirm("Delete this note?")) return;
+              setDeleteError(null);
+              startDeleteTransition(async () => {
+                const result = await deleteSessionNoteAction(sessionId);
+                if (result.error) {
+                  setDeleteError(result.error);
+                  return;
+                }
+                router.refresh();
+              });
+            }}
+          >
+            {deletePending ? "Deleting…" : "Delete note"}
+          </Button>
+        )}
+      </div>
     </form>
   );
 }

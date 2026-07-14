@@ -36,3 +36,20 @@ export async function saveSessionNoteAction(
   revalidatePath("/parent/sessions");
   return { success: true };
 }
+
+export async function deleteSessionNoteAction(sessionId: string): Promise<NoteFormResult> {
+  const tutor = await requireTutor();
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("session_notes")
+    .delete()
+    .eq("session_id", sessionId)
+    .eq("tutor_id", tutor.id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/tutor/sessions/${sessionId}`);
+  revalidatePath("/parent/sessions");
+  return {};
+}
