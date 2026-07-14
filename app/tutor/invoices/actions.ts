@@ -4,6 +4,76 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireTutor } from "@/lib/auth/tutor";
 import { dollarsToCents } from "@/lib/money";
+import { getStripe, getStripeAccountStatus, isStripeConfigured } from "@/lib/stripe/client";
+import { appUrl } from "@/lib/env";
+
+/**
+ * Best-effort: create a Stripe Checkout Session (direct charge on the
+ * tutor's connected Express account) for a sent/overdue invoice and persist
+ * the link. Never throws — a Stripe hiccup shouldn't undo a successful send;
+ * the tutor still has the manual mark-as-paid fallback. Callable both right
+ * after send and on-demand to refresh an expired link (Checkout Session
+ * URLs expire ~24h after creation, well inside a net-7/14/30 invoice's
+ * life, so this needs to be re-callable, not just a one-shot at send time).
+ */
+async function tryCreateStripePaymentLink(invoiceId: string): Promise<{ error?: string }> {
+  if (!isStripeConfigured()) return {};
+
+  const supabase = await createClient();
+  const { data: invoice } = await supabase
+    .from("invoices")
+    .select("*, tutors(stripe_account_id), clients(payer_email, student_name)")
+    .eq("id", invoiceId)
+    .maybeSingle();
+
+  const tutorRow = invoice?.tutors as unknown as { stripe_account_id: string | null } | null;
+  const clientRow = invoice?.clients as unknown as { payer_email: string | null; student_name: string } | null;
+  if (!invoice || !tutorRow?.stripe_account_id) return {};
+
+  const status = await getStripeAccountStatus(tutorRow.stripe_account_id);
+  if (!status?.chargesEnabled) return {};
+
+  try {
+    const stripe = getStripe();
+    const session = await stripe.checkout.sessions.create(
+      {
+        mode: "payment",
+        line_items: [
+          {
+            price_data: {
+              currency: "usd",
+              product_data: { name: `Tutoring — ${clientRow?.student_name ?? "invoice"}` },
+              unit_amount: invoice.total_cents,
+            },
+            quantity: 1,
+          },
+        ],
+        customer_email: clientRow?.payer_email ?? undefined,
+        metadata: { invoice_id: invoiceId },
+        success_url: `${appUrl()}/tutor/invoices/${invoiceId}?stripe=success`,
+        cancel_url: `${appUrl()}/tutor/invoices/${invoiceId}?stripe=cancelled`,
+      },
+      { stripeAccount: tutorRow.stripe_account_id }
+    );
+
+    if (session.url) {
+      const { error } = await supabase.rpc("set_invoice_stripe_link", {
+        p_invoice_id: invoiceId,
+        p_stripe_checkout_session_id: session.id,
+        p_stripe_payment_url: session.url,
+      });
+      if (error) {
+        console.error(`set_invoice_stripe_link failed for invoice ${invoiceId}:`, error.message);
+        return { error: error.message };
+      }
+    }
+    return {};
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Stripe error creating the payment link.";
+    console.error(`tryCreateStripePaymentLink failed for invoice ${invoiceId}:`, message);
+    return { error: message };
+  }
+}
 
 export interface InvoiceFormResult {
   error?: string;
@@ -81,11 +151,27 @@ export async function sendInvoiceAction(invoiceId: string): Promise<{ error?: st
   await requireTutor();
   const supabase = await createClient();
   const { error } = await supabase.rpc("send_invoice", { p_invoice_id: invoiceId });
+
+  if (!error) {
+    await tryCreateStripePaymentLink(invoiceId);
+  }
+
   revalidatePath(`/tutor/invoices/${invoiceId}`);
   revalidatePath("/tutor/invoices");
   revalidatePath("/tutor/sessions");
   if (error) return { error: error.message };
   return {};
+}
+
+/** Manually (re)generate the Stripe payment link — covers an expired Checkout Session on a still-unpaid sent/overdue invoice. */
+export async function regeneratePaymentLinkAction(invoiceId: string): Promise<{ error?: string }> {
+  await requireTutor();
+  if (!isStripeConfigured()) {
+    return { error: "Stripe isn't configured yet. Ask your developer to add API keys." };
+  }
+  const result = await tryCreateStripePaymentLink(invoiceId);
+  revalidatePath(`/tutor/invoices/${invoiceId}`);
+  return result;
 }
 
 export async function markInvoicePaidAction(invoiceId: string, method: string): Promise<{ error?: string }> {

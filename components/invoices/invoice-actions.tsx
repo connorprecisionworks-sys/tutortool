@@ -4,7 +4,12 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/input";
-import { markInvoicePaidAction, sendInvoiceAction, voidInvoiceAction } from "@/app/tutor/invoices/actions";
+import {
+  markInvoicePaidAction,
+  regeneratePaymentLinkAction,
+  sendInvoiceAction,
+  voidInvoiceAction,
+} from "@/app/tutor/invoices/actions";
 
 export function SendInvoiceButton({ invoiceId, disabled }: { invoiceId: string; disabled?: boolean }) {
   const router = useRouter();
@@ -58,6 +63,32 @@ export function MarkPaidControl({ invoiceId }: { invoiceId: string }) {
         {pending ? "Marking paid…" : "Mark as paid"}
       </Button>
       {error && <p className="w-full text-sm text-text">{error}</p>}
+    </div>
+  );
+}
+
+export function RegeneratePaymentLinkButton({ invoiceId }: { invoiceId: string }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  return (
+    <div>
+      <Button
+        variant="ghost"
+        size="sm"
+        disabled={pending}
+        onClick={() =>
+          startTransition(async () => {
+            const result = await regeneratePaymentLinkAction(invoiceId);
+            if (result.error) setError(result.error);
+            else router.refresh();
+          })
+        }
+      >
+        {pending ? "Generating…" : "Generate/refresh payment link"}
+      </Button>
+      {error && <p className="mt-1 text-xs text-text">{error}</p>}
     </div>
   );
 }

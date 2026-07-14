@@ -1,8 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 type Theme = "light" | "dark";
+
+// The inline script in app/layout.tsx sets data-theme on <html> before
+// hydration, so the DOM attribute is the single source of truth here.
+// useSyncExternalStore (not useEffect+setState) is the idiomatic way to
+// read a browser-only value like this without a hydration mismatch.
+function subscribe(callback: () => void) {
+  const observer = new MutationObserver(callback);
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  return () => observer.disconnect();
+}
+
+function getSnapshot(): Theme {
+  return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+}
+
+function getServerSnapshot(): Theme {
+  return "light";
+}
 
 function applyTheme(theme: Theme) {
   document.documentElement.setAttribute("data-theme", theme);
@@ -10,26 +28,13 @@ function applyTheme(theme: Theme) {
 }
 
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme | null>(null);
-
-  useEffect(() => {
-    const stored = localStorage.getItem("tutortool-theme") as Theme | null;
-    const initial =
-      stored ?? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-    setTheme(initial);
-  }, []);
-
-  if (!theme) return <div className="h-9 w-9" aria-hidden />;
-
+  const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const next = theme === "light" ? "dark" : "light";
 
   return (
     <button
       type="button"
-      onClick={() => {
-        applyTheme(next);
-        setTheme(next);
-      }}
+      onClick={() => applyTheme(next)}
       aria-label={`Switch to ${next} mode`}
       className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-text-secondary hover:bg-hover"
     >

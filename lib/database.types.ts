@@ -288,6 +288,24 @@ export type Database = {
           },
         ]
       }
+      stripe_webhook_events: {
+        Row: {
+          event_type: string
+          id: string
+          processed_at: string
+        }
+        Insert: {
+          event_type: string
+          id: string
+          processed_at?: string
+        }
+        Update: {
+          event_type?: string
+          id?: string
+          processed_at?: string
+        }
+        Relationships: []
+      }
       tutors: {
         Row: {
           auth_user_id: string
@@ -371,6 +389,14 @@ export type Database = {
           p_travel_rate_cents: number
         }
         Returns: number
+      }
+      set_invoice_stripe_link: {
+        Args: {
+          p_invoice_id: string
+          p_stripe_checkout_session_id: string
+          p_stripe_payment_url: string
+        }
+        Returns: undefined
       }
       void_invoice: { Args: { p_invoice_id: string }; Returns: undefined }
     }

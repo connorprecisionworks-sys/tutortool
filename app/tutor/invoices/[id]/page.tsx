@@ -7,7 +7,13 @@ import { StatusDot } from "@/components/ui/status-dot";
 import { formatCents } from "@/lib/money";
 import { AddLineForm } from "@/components/invoices/add-line-form";
 import { RemoveLineButton } from "@/components/invoices/remove-line-button";
-import { SendInvoiceButton, MarkPaidControl, VoidInvoiceButton } from "@/components/invoices/invoice-actions";
+import {
+  SendInvoiceButton,
+  MarkPaidControl,
+  VoidInvoiceButton,
+  RegeneratePaymentLinkButton,
+} from "@/components/invoices/invoice-actions";
+import { isStripeConfigured } from "@/lib/stripe/client";
 
 export default async function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -121,13 +127,32 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
             {isDraft && (
               <SendInvoiceButton invoiceId={invoice.id} disabled={!lineItems || lineItems.length === 0} />
             )}
-            {invoice.status === "sent" && (
-              // TODO(connor): P4 wires a real Stripe payment link here. Until
-              // then this is the tutor's cue to collect payment off-platform
-              // and mark it paid manually.
+            {isPayable && invoice.stripe_payment_url && (
+              <div className="space-y-1">
+                <a
+                  href={invoice.stripe_payment_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block text-xs text-text underline underline-offset-2"
+                >
+                  View Stripe payment link ↗
+                </a>
+                <p className="text-xs text-text-tertiary">
+                  Links expire after about a day — generate a fresh one if it&apos;s gone stale.
+                </p>
+                <RegeneratePaymentLinkButton invoiceId={invoice.id} />
+              </div>
+            )}
+            {isPayable && !invoice.stripe_payment_url && isStripeConfigured() && (
+              <div className="space-y-1">
+                <p className="text-xs text-text-tertiary">No Stripe payment link on this invoice yet.</p>
+                <RegeneratePaymentLinkButton invoiceId={invoice.id} />
+              </div>
+            )}
+            {isPayable && !invoice.stripe_payment_url && !isStripeConfigured() && (
               <p className="text-xs text-text-tertiary">
-                Stripe payment links land in a later phase. For now, collect payment directly and mark this
-                paid below.
+                No Stripe payment link on this invoice — connect Stripe in Settings to generate one, or
+                collect payment directly and mark this paid below.
               </p>
             )}
             {isPayable && <MarkPaidControl invoiceId={invoice.id} />}
