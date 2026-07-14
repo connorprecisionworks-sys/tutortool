@@ -88,3 +88,9 @@ export function computeValueGivenCents(
   if (gap <= 0) return 0;
   return Math.round((gap * durationMinutes) / 60);
 }
+
+// Due-date math and line-item summation for invoices live in Postgres
+// (send_invoice / recompute_invoice_totals in
+// supabase/migrations/20260714000100_p3_invoice_functions.sql), not here —
+// those are the actual source of truth since invoice mutations only happen
+// through those SECURITY DEFINER functions, never from the client.

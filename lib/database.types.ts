@@ -98,6 +98,120 @@ export type Database = {
           },
         ]
       }
+      invoice_line_items: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          description: string
+          id: string
+          invoice_id: string
+          quantity_minutes: number | null
+          session_id: string | null
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          description: string
+          id?: string
+          invoice_id: string
+          quantity_minutes?: number | null
+          session_id?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          description?: string
+          id?: string
+          invoice_id?: string
+          quantity_minutes?: number | null
+          session_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_line_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_line_items_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          client_id: string
+          created_at: string
+          due_date: string | null
+          id: string
+          paid_at: string | null
+          paid_method: string | null
+          period_end: string
+          period_start: string
+          sent_at: string | null
+          status: Database["public"]["Enums"]["invoice_status"]
+          stripe_invoice_id: string | null
+          stripe_payment_url: string | null
+          subtotal_cents: number
+          total_cents: number
+          tutor_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          paid_at?: string | null
+          paid_method?: string | null
+          period_end: string
+          period_start: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"]
+          stripe_invoice_id?: string | null
+          stripe_payment_url?: string | null
+          subtotal_cents?: number
+          total_cents?: number
+          tutor_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          paid_at?: string | null
+          paid_method?: string | null
+          period_end?: string
+          period_start?: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"]
+          stripe_invoice_id?: string | null
+          stripe_payment_url?: string | null
+          subtotal_cents?: number
+          total_cents?: number
+          tutor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_tutor_id_fkey"
+            columns: ["tutor_id"]
+            isOneToOne: false
+            referencedRelation: "tutors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sessions: {
         Row: {
           bill_travel: boolean
@@ -159,6 +273,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "sessions_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "sessions_tutor_id_fkey"
             columns: ["tutor_id"]
             isOneToOne: false
@@ -214,9 +335,47 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      add_manual_line_item: {
+        Args: {
+          p_amount_cents: number
+          p_description: string
+          p_invoice_id: string
+        }
+        Returns: string
+      }
+      create_draft_invoice: {
+        Args: {
+          p_client_id: string
+          p_period_end: string
+          p_period_start: string
+        }
+        Returns: string
+      }
+      current_tutor_id: { Args: never; Returns: string }
+      mark_invoice_paid: {
+        Args: { p_invoice_id: string; p_method: string }
+        Returns: undefined
+      }
+      recompute_invoice_totals: {
+        Args: { p_invoice_id: string }
+        Returns: undefined
+      }
+      remove_line_item: { Args: { p_line_item_id: string }; Returns: undefined }
+      send_invoice: { Args: { p_invoice_id: string }; Returns: undefined }
+      session_amount_cents: {
+        Args: {
+          p_bill_travel: boolean
+          p_duration_minutes: number
+          p_effective_rate_cents: number
+          p_travel_minutes: number
+          p_travel_rate_cents: number
+        }
+        Returns: number
+      }
+      void_invoice: { Args: { p_invoice_id: string }; Returns: undefined }
     }
     Enums: {
+      invoice_status: "draft" | "sent" | "paid" | "overdue" | "void"
       rate_type:
         | "standard"
         | "professional_discount"
@@ -354,6 +513,7 @@ export const Constants = {
   },
   public: {
     Enums: {
+      invoice_status: ["draft", "sent", "paid", "overdue", "void"],
       rate_type: [
         "standard",
         "professional_discount",
