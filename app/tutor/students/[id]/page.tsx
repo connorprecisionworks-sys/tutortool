@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { StudentForm } from "@/components/students/student-form";
 import { updateStudentAction } from "@/app/tutor/students/actions";
 import { ArchiveToggleButton } from "@/components/students/archive-toggle-button";
+import { DeleteStudentButton } from "@/components/students/delete-student-button";
 import { InviteParentSection } from "@/components/students/invite-parent-section";
 
 export default async function StudentDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -25,7 +26,12 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
       <PageHeader
         title={student.student_name}
         description={student.archived ? "Archived — no new sessions or invoices." : "Edit rate rule and contact info."}
-        action={<ArchiveToggleButton studentId={student.id} archived={student.archived} />}
+        action={
+          <div className="flex gap-2">
+            <ArchiveToggleButton studentId={student.id} archived={student.archived} />
+            <DeleteStudentButton studentId={student.id} studentName={student.student_name} />
+          </div>
+        }
       />
       <div className="space-y-6">
         <Card className="max-w-2xl">

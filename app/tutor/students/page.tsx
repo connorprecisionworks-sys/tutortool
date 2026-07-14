@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { RATE_TYPE_LABELS, type RateType } from "@/lib/billing";
 import { formatCents } from "@/lib/money";
+import { DeleteStudentRowButton } from "@/components/students/delete-student-row-button";
 
 export default async function StudentsPage({
   searchParams,
@@ -77,6 +78,7 @@ export default async function StudentsPage({
                 <th className="px-5 py-3 font-medium">Payer</th>
                 <th className="px-5 py-3 font-medium">Rate</th>
                 <th className="px-5 py-3 font-medium">Effective rate</th>
+                <th className="px-5 py-3" />
               </tr>
             </thead>
             <tbody>
@@ -101,6 +103,9 @@ export default async function StudentsPage({
                     <td className="px-5 py-3 text-text-secondary">{s.payer_name ?? "—"}</td>
                     <td className="px-5 py-3 text-text-secondary">{RATE_TYPE_LABELS[rateType]}</td>
                     <td className="px-5 py-3 text-right tabular-nums">{formatCents(effective)}/hr</td>
+                    <td className="px-5 py-3 text-right">
+                      <DeleteStudentRowButton studentId={s.id} studentName={s.student_name} />
+                    </td>
                   </tr>
                 );
               })}

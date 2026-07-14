@@ -122,3 +122,21 @@ export async function setStudentArchivedAction(studentId: string, archived: bool
   await supabase.from("clients").update({ archived }).eq("id", studentId);
   revalidatePath("/tutor/students");
 }
+
+export interface DeleteStudentResult {
+  error?: string;
+}
+
+export async function deleteStudentAction(studentId: string): Promise<DeleteStudentResult> {
+  await requireTutor();
+  const supabase = await createClient();
+  // delete_student (SECURITY DEFINER) blocks the delete if this student
+  // has any non-draft invoice — real billing history — and directs the
+  // tutor to archive instead; otherwise it releases any draft invoices and
+  // cascades the rest (sessions, resources, invites, parent links).
+  const { error } = await supabase.rpc("delete_student", { p_student_id: studentId });
+
+  revalidatePath("/tutor/students");
+  if (error) return { error: error.message };
+  return {};
+}
