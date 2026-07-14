@@ -47,7 +47,15 @@ export function AppShell({
         </div>
         <nav className="flex-1 space-y-0.5 p-3">
           {navItems.map((item) => {
-            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            // Prefix-matching (so a nested route like /tutor/students/[id]
+            // still highlights "Students") must not apply to the shell's
+            // own root item (/tutor, /parent) — every other route is a
+            // path prefixed by it too, which made "Dashboard"/"Home"
+            // permanently show active alongside whichever page you were
+            // actually on.
+            const hrefSegments = item.href.split("/").filter(Boolean).length;
+            const active =
+              pathname === item.href || (hrefSegments > 1 && pathname.startsWith(`${item.href}/`));
             return (
               <Link
                 key={item.href}
