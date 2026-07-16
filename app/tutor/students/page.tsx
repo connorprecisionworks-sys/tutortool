@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { RATE_TYPE_LABELS, type RateType } from "@/lib/billing";
 import { formatCents } from "@/lib/money";
 import { DeleteStudentRowButton } from "@/components/students/delete-student-row-button";
+import { CopyStudentCodeButton } from "@/components/students/copy-student-code-button";
 
 export default async function StudentsPage({
   searchParams,
@@ -21,7 +22,7 @@ export default async function StudentsPage({
   const supabase = await createClient();
   const { data: students } = await supabase
     .from("clients")
-    .select("*")
+    .select("*, invites(code, status)")
     .eq("tutor_id", tutor.id)
     .eq("archived", showArchived)
     .order("student_name");
@@ -78,6 +79,7 @@ export default async function StudentsPage({
                 <th className="px-5 py-3 font-medium">Payer</th>
                 <th className="px-5 py-3 font-medium">Rate</th>
                 <th className="px-5 py-3 font-medium">Effective rate</th>
+                <th className="px-5 py-3 font-medium">Student Code</th>
                 <th className="px-5 py-3" />
               </tr>
             </thead>
@@ -90,6 +92,7 @@ export default async function StudentsPage({
                     : rateType === "standard"
                       ? tutor.standard_rate_cents
                       : (s.custom_rate_cents ?? tutor.standard_rate_cents);
+                const activeCode = s.invites?.find((inv) => inv.status === "active")?.code ?? null;
                 return (
                   <tr key={s.id} className="border-t border-border hover:bg-hover">
                     <td className="px-5 py-3">
@@ -103,6 +106,13 @@ export default async function StudentsPage({
                     <td className="px-5 py-3 text-text-secondary">{s.payer_name ?? "—"}</td>
                     <td className="px-5 py-3 text-text-secondary">{RATE_TYPE_LABELS[rateType]}</td>
                     <td className="px-5 py-3 text-right tabular-nums">{formatCents(effective)}/hr</td>
+                    <td className="px-5 py-3">
+                      {activeCode ? (
+                        <CopyStudentCodeButton code={activeCode} />
+                      ) : (
+                        <span className="text-xs text-text-tertiary">revoked</span>
+                      )}
+                    </td>
                     <td className="px-5 py-3 text-right">
                       <DeleteStudentRowButton studentId={s.id} studentName={s.student_name} />
                     </td>
