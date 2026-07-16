@@ -73,20 +73,22 @@ export async function sendInviteEmailAction(
 
   const supabase = await createClient();
 
-  const { data: student } = await supabase
+  const { data: student, error: studentError } = await supabase
     .from("clients")
     .select("student_name")
     .eq("id", studentId)
     .eq("tutor_id", tutor.id)
     .maybeSingle();
+  if (studentError) return { error: studentError.message };
   if (!student) return { error: "Student not found." };
 
-  const { data: invite } = await supabase
+  const { data: invite, error: inviteError } = await supabase
     .from("invites")
     .select("code")
     .eq("student_id", studentId)
     .eq("status", "active")
     .maybeSingle();
+  if (inviteError) return { error: inviteError.message };
   if (!invite) return { error: "No active Student Code — regenerate one first." };
 
   const link = studentJoinLink(invite.code);
