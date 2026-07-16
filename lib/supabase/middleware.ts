@@ -29,6 +29,16 @@ function isPublicPath(pathname: string) {
   return PUBLIC_PATHS.some((p) => matchesPrefix(pathname, p));
 }
 
+// NextResponse.redirect() builds a brand-new response, so any Supabase
+// session-cookie refresh already written onto `response` by the setAll()
+// callback below would otherwise be silently dropped on every redirect —
+// carry it over explicitly.
+function redirectWithCookies(url: URL, response: NextResponse) {
+  const redirect = NextResponse.redirect(url);
+  response.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
+  return redirect;
+}
+
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -61,7 +71,7 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("next", pathname);
-    return NextResponse.redirect(url);
+    return redirectWithCookies(url, response);
   }
 
   const isAuthRedirectPage = pathname === "/login" || pathname.startsWith("/signup");
@@ -88,7 +98,7 @@ export async function updateSession(request: NextRequest) {
     if (isAuthRedirectPage || isRoot) {
       const url = request.nextUrl.clone();
       url.pathname = role === "parent" ? "/parent" : "/tutor";
-      return NextResponse.redirect(url);
+      return redirectWithCookies(url, response);
     }
 
     // Cross-shell guard: a tutor hitting /parent/* or a parent hitting
@@ -98,12 +108,12 @@ export async function updateSession(request: NextRequest) {
     if (role === "parent" && !isParentShell) {
       const url = request.nextUrl.clone();
       url.pathname = "/parent";
-      return NextResponse.redirect(url);
+      return redirectWithCookies(url, response);
     }
     if (role !== "parent" && isParentShell) {
       const url = request.nextUrl.clone();
       url.pathname = "/tutor";
-      return NextResponse.redirect(url);
+      return redirectWithCookies(url, response);
     }
   }
 

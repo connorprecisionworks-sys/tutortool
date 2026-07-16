@@ -24,7 +24,11 @@ export const metadata: Metadata = {
 const THEME_INIT_SCRIPT = `
 (function () {
   try {
-    var stored = localStorage.getItem('slate-theme');
+    // Falls back to the pre-rebrand key so an existing user's saved theme
+    // choice survives the 'tutortool-theme' -> 'slate-theme' rename instead
+    // of silently reverting to the OS preference.
+    var stored = localStorage.getItem('slate-theme') || localStorage.getItem('tutortool-theme');
+    if (stored) localStorage.setItem('slate-theme', stored);
     var theme = stored || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     document.documentElement.setAttribute('data-theme', theme);
   } catch (e) {}
