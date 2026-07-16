@@ -46,7 +46,7 @@ export default function LoginPage() {
     <div className="flex min-h-full items-center justify-center px-4 py-16">
       <Card className="w-full max-w-sm">
         <h1 className="mb-1 text-xl font-semibold">Sign in</h1>
-        <p className="mb-6 text-sm text-text-secondary">Welcome back to TutorTool.</p>
+        <p className="mb-6 text-sm text-text-secondary">Welcome back to Slate.</p>
         <Suspense fallback={null}>
           <LoginForm />
         </Suspense>

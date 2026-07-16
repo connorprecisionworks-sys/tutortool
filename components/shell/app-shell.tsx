@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { ReactNode, useState } from "react";
 import clsx from "clsx";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Mark } from "@/components/brand/logo";
 import { createClient } from "@/lib/supabase/client";
 
 export interface NavItem {
@@ -42,7 +43,8 @@ export function AppShell({
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="flex h-14 items-center border-b border-border px-5">
+        <div className="flex h-14 items-center gap-2 border-b border-border px-5">
+          <Mark className="h-5 w-5" />
           <span className="text-sm font-semibold tracking-tight">{brand}</span>
         </div>
         <nav className="flex-1 space-y-0.5 p-3">

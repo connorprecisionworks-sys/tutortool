@@ -6,7 +6,7 @@ export default async function TutorLayout({ children }: { children: React.ReactN
   const tutor = await requireTutor();
 
   return (
-    <AppShell navItems={TUTOR_NAV} brand="TutorTool" userLabel={tutor.email}>
+    <AppShell navItems={TUTOR_NAV} brand="Slate" userLabel={tutor.email}>
       {children}
     </AppShell>
   );

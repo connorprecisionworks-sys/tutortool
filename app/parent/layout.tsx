@@ -6,7 +6,7 @@ export default async function ParentLayout({ children }: { children: React.React
   const parent = await requireParent();
 
   return (
-    <AppShell navItems={PARENT_NAV} brand="TutorTool" userLabel={parent.email}>
+    <AppShell navItems={PARENT_NAV} brand="Slate" userLabel={parent.email}>
       {children}
     </AppShell>
   );
