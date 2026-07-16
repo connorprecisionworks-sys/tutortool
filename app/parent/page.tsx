@@ -18,7 +18,7 @@ export default async function ParentHomePage() {
       <div>
         <PageHeader title="Home" description="Link your child's account to get started." />
         <EmptyState
-          message="Enter the invite code your tutor sent you to see your child's sessions, notes, resources, and invoices here."
+          message="Enter the Student Code your tutor sent you to see your child's sessions, notes, resources, and invoices here."
           action={
             <Suspense fallback={null}>
               <RedeemInviteForm />
@@ -45,7 +45,7 @@ export default async function ParentHomePage() {
       <div className="mt-6">
         <Suspense fallback={null}>
           <details className="text-sm text-text-secondary">
-            <summary className="cursor-pointer text-text">Have another invite code?</summary>
+            <summary className="cursor-pointer text-text">Have another Student Code?</summary>
             <div className="mt-3">
               <RedeemInviteForm />
             </div>

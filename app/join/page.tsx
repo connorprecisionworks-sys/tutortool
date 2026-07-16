@@ -56,7 +56,7 @@ export default async function JoinPage({
         ) : (
           <>
             <p className="mb-6 text-sm text-text-secondary">
-              {code ? `Code ${code} is ready — create an account or sign in to use it.` : "Enter the invite code your tutor sent you."}
+              {code ? `Code ${code} is ready — create an account or sign in to use it.` : "Enter the Student Code your tutor sent you."}
             </p>
             <div className="space-y-3">
               <Link href={code ? `/signup/parent?code=${code}` : "/signup/parent"}>

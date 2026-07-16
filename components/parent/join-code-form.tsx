@@ -22,7 +22,7 @@ export function JoinCodeForm({ code }: { code: string }) {
   return (
     <form action={formAction} className="space-y-4">
       <div>
-        <Label htmlFor="code">Invite code</Label>
+        <Label htmlFor="code">Student Code</Label>
         <Input
           id="code"
           name="code"

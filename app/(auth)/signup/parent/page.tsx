@@ -45,7 +45,7 @@ function ParentSignupForm() {
       <Card className="w-full max-w-sm text-center">
         <h1 className="mb-2 text-xl font-semibold">Check your email</h1>
         <p className="text-sm text-text-secondary">
-          We sent a confirmation link. Click it, sign in, then enter your invite code
+          We sent a confirmation link. Click it, sign in, then enter your Student Code
           {code ? ` (${code})` : ""} from the Home page.
         </p>
         <Link href="/login" className="mt-6 inline-block">
@@ -60,7 +60,7 @@ function ParentSignupForm() {
       <Card className="w-full max-w-sm text-center">
         <h1 className="mb-2 text-xl font-semibold">Account created</h1>
         <p className="text-sm text-text-secondary">
-          But the invite code didn&apos;t work: {redeemError}. You can try again from Home.
+          But the Student Code didn&apos;t work: {redeemError}. You can try again from Home.
         </p>
         <Button
           className="mt-6"
@@ -79,7 +79,7 @@ function ParentSignupForm() {
     <Card className="w-full max-w-sm">
       <h1 className="mb-1 text-xl font-semibold">Create your parent account</h1>
       <p className="mb-6 text-sm text-text-secondary">
-        Enter the invite code your tutor sent you to see your child&apos;s sessions and invoices.
+        Enter the Student Code your tutor sent you to see your child&apos;s sessions and invoices.
       </p>
       <form action={formAction} className="space-y-4">
         <div>
@@ -102,7 +102,7 @@ function ParentSignupForm() {
           />
         </div>
         <div>
-          <Label htmlFor="code">Invite code</Label>
+          <Label htmlFor="code">Student Code</Label>
           <Input
             id="code"
             value={code}

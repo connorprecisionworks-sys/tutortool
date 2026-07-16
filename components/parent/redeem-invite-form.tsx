@@ -16,7 +16,7 @@ export function RedeemInviteForm() {
   return (
     <form action={formAction} className="mx-auto flex max-w-sm flex-col gap-3">
       <div>
-        <Label htmlFor="code">Invite code</Label>
+        <Label htmlFor="code">Student Code</Label>
         <Input
           id="code"
           name="code"

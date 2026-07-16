@@ -18,7 +18,7 @@ export async function redeemInviteAction(
   const code = String(formData.get("code") ?? "")
     .trim()
     .toUpperCase();
-  if (!code) return { error: "Enter an invite code." };
+  if (!code) return { error: "Enter a Student Code." };
 
   const { error } = await supabase.rpc("redeem_invite", { p_code: code });
   if (error) return { error: error.message };
