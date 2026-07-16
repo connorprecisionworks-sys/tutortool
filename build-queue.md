@@ -88,7 +88,22 @@ Tutor sets a default; overrides per session. Default policy = roll-over credit.
 - Credits reduce the next invoice total and show as a line. Never let totals go negative silently; cap and carry.
 - Acceptance: cancel a paid session as roll-over -> a credit appears and reduces the next invoice; cancel as refund -> a Stripe refund is initiated (or clearly stubbed if no key).
 
-## Q5 — Prepay & packages  [ ]
+## Q5 — Prepay & packages  [x] (06f3c6e)
+
+packages table (SELECT-only + SECURITY DEFINER writes, tutor + parent
+visibility). Prepayment reuses the existing invoice/Stripe pipeline
+(create_package builds a normal draft invoice); create_session_with_package
+draws the balance down atomically; cancelling restores it on rollover, not
+on charge. Pay-before/pay-after as a tutor default + per-invoice field,
+'pay_before' forces an immediate due date. Reviewed (high effort; fixed a
+real privilege-escalation risk I caught myself before the review even ran
+— activate_package_for_invoice was callable directly by any tutor with an
+arbitrary invoice_id — plus an RLS gap on sessions.package_id, a missing
+payment_timing on package invoices, and a UI papercut where cancelling
+offered "Refund" on a package session that silently just restores the
+balance). TODO(connor): browser-level acceptance walkthrough (prepay a
+4-session package, draw 3, cancel one -> back to 2 remaining) deferred to
+the end-of-run QA pass.
 
 From "prepaying for a week or paying before or after."
 
