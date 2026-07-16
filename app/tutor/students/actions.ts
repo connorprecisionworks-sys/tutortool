@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireTutor } from "@/lib/auth/tutor";
 import { dollarsToCents } from "@/lib/money";
 import { RATE_TYPES_REQUIRING_CUSTOM_RATE, type RateType } from "@/lib/billing";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 export interface StudentFormResult {
   error?: string;
@@ -40,7 +41,7 @@ export async function createStudentAction(
   _prev: StudentFormResult,
   formData: FormData
 ): Promise<StudentFormResult> {
-  await requireTutor();
+  const tutor = await requireTutor();
   const supabase = await createClient();
 
   const studentName = String(formData.get("student_name") ?? "").trim();
@@ -78,6 +79,17 @@ export async function createStudentAction(
   });
 
   if (error) return { error: error.message };
+
+  const posthog = getPostHogClient();
+  posthog.capture({
+    distinctId: tutor.auth_user_id,
+    event: "student_added",
+    properties: {
+      rate_type: rateType,
+      is_philanthropic: formData.get("is_philanthropic") === "on",
+    },
+  });
+  await posthog.flush();
 
   revalidatePath("/tutor/students");
   return {};
@@ -144,6 +156,39 @@ export async function deleteStudentAction(studentId: string): Promise<DeleteStud
   // tutor to archive instead; otherwise it releases any draft invoices and
   // cascades the rest (sessions, resources, invites, parent links).
   const { error } = await supabase.rpc("delete_student", { p_student_id: studentId });
+
+  revalidatePath("/tutor/students");
+  if (error) return { error: error.message };
+  return {};
+}
+
+export interface PendingStudentResult {
+  error?: string;
+}
+
+export async function confirmPendingStudentAction(studentId: string): Promise<PendingStudentResult> {
+  await requireTutor();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("confirm_pending_student", { p_student_id: studentId });
+
+  revalidatePath("/tutor/students");
+  if (error) return { error: error.message };
+  return {};
+}
+
+export async function mergePendingStudentAction(
+  pendingStudentId: string,
+  targetStudentId: string
+): Promise<PendingStudentResult> {
+  await requireTutor();
+  const supabase = await createClient();
+  // merge_pending_student (SECURITY DEFINER) re-points the parent's link
+  // to the target student and discards the parent-created duplicate — only
+  // allowed while it's still pending review with no sessions/invoices yet.
+  const { error } = await supabase.rpc("merge_pending_student", {
+    p_pending_student_id: pendingStudentId,
+    p_target_student_id: targetStudentId,
+  });
 
   revalidatePath("/tutor/students");
   if (error) return { error: error.message };

@@ -9,6 +9,7 @@ import { RATE_TYPE_LABELS, type RateType } from "@/lib/billing";
 import { formatCents } from "@/lib/money";
 import { DeleteStudentRowButton } from "@/components/students/delete-student-row-button";
 import { CopyStudentCodeButton } from "@/components/students/copy-student-code-button";
+import { PendingStudentRow } from "@/components/students/pending-student-row";
 
 export default async function StudentsPage({
   searchParams,
@@ -20,12 +21,28 @@ export default async function StudentsPage({
 
   const tutor = await requireTutor();
   const supabase = await createClient();
-  const { data: students } = await supabase
-    .from("clients")
-    .select("*, invites(code, status)")
-    .eq("tutor_id", tutor.id)
-    .eq("archived", showArchived)
-    .order("student_name");
+  // Pending-review students are always freshly-created and never archived,
+  // so the "new from parent signups" card only ever makes sense on the
+  // active tab — fetching (and rendering) it on the archived tab too would
+  // show the exact same actionable card in a view a tutor expects to be
+  // read-only history.
+  const [{ data: students }, { data: pendingStudents }, { data: allActiveStudents }] = await Promise.all([
+    supabase
+      .from("clients")
+      .select("*, invites(code, status)")
+      .eq("tutor_id", tutor.id)
+      .eq("archived", showArchived)
+      .order("student_name"),
+    showArchived
+      ? Promise.resolve({ data: null })
+      : supabase
+          .from("clients")
+          .select("id, student_name")
+          .eq("tutor_id", tutor.id)
+          .eq("pending_parent_review", true)
+          .order("student_name"),
+    supabase.from("clients").select("id, student_name").eq("tutor_id", tutor.id).eq("archived", false).order("student_name"),
+  ]);
 
   return (
     <div>
@@ -38,6 +55,26 @@ export default async function StudentsPage({
           </Link>
         }
       />
+
+      {pendingStudents && pendingStudents.length > 0 && (
+        <Card className="mb-6">
+          <h2 className="mb-1 text-sm font-semibold">New from parent signups</h2>
+          <p className="mb-3 text-sm text-text-secondary">
+            A parent joined with your tutor code and added this child. Confirm it as a new student, or merge
+            it into an existing one if it&apos;s a duplicate.
+          </p>
+          <ul className="divide-y divide-border">
+            {pendingStudents.map((p) => (
+              <PendingStudentRow
+                key={p.id}
+                studentId={p.id}
+                studentName={p.student_name}
+                otherStudents={(allActiveStudents ?? []).filter((s) => s.id !== p.id)}
+              />
+            ))}
+          </ul>
+        </Card>
+      )}
 
       <div className="mb-4 flex gap-2 text-sm">
         <Link

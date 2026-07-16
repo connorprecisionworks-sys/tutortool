@@ -16,6 +16,7 @@ function ParentSignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [code, setCode] = useState(searchParams.get("code") ?? "");
+  const tutorCode = searchParams.get("tutor_code") ?? "";
   const [redeemError, setRedeemError] = useState<string | null>(null);
   const [accountCreated, setAccountCreated] = useState(false);
 
@@ -23,6 +24,15 @@ function ParentSignupForm() {
     const result = await signUpParentAction(formData);
     if (!result.error && !result.needsEmailConfirmation) {
       setAccountCreated(true);
+      // A tutor code needs its own setup step (child's name, or pick from
+      // the tutor's unclaimed roster) that a Student Code doesn't — send
+      // them to /join to finish that, now that they're authenticated,
+      // instead of auto-redeeming here the way a Student Code can.
+      if (tutorCode) {
+        router.push(`/join?tutor_code=${tutorCode}`);
+        router.refresh();
+        return result;
+      }
       const trimmedCode = code.trim();
       if (trimmedCode) {
         const fd = new FormData();
@@ -46,8 +56,9 @@ function ParentSignupForm() {
       <Card className="w-full max-w-sm text-center">
         <h1 className="mb-2 text-xl font-semibold">Check your email</h1>
         <p className="text-sm text-text-secondary">
-          We sent a confirmation link. Click it, sign in, then enter your Student Code
-          {code ? ` (${code})` : ""} from the Home page.
+          {tutorCode
+            ? "We sent a confirmation link. Click it, sign in, then finish adding your child from the join link your tutor sent."
+            : `We sent a confirmation link. Click it, sign in, then enter your Student Code${code ? ` (${code})` : ""} from the Home page.`}
         </p>
         <Link href="/login" className="mt-6 inline-block">
           <Button variant="secondary">Back to sign in</Button>
@@ -81,8 +92,21 @@ function ParentSignupForm() {
       <Mark className="mb-4 h-6" />
       <h1 className="mb-1 text-xl font-semibold">Create your parent account</h1>
       <p className="mb-6 text-sm text-text-secondary">
-        Enter the Student Code your tutor sent you to see your child&apos;s sessions and invoices.
+        {tutorCode
+          ? "Create your account, then add your child on the next step."
+          : "Enter the Student Code your tutor sent you to see your child's sessions and invoices."}
       </p>
+      {tutorCode && code && (
+        // Only reachable via a hand-edited/copy-pasted URL carrying both
+        // params at once — no link this app generates ever sets both. The
+        // tutor-code setup step takes priority (it's the richer flow: pick
+        // an existing student or add a new one); the Student Code field is
+        // hidden below, so make that explicit rather than silently
+        // dropping whatever code was in the URL.
+        <p className="mb-4 text-xs text-text-tertiary">
+          Using your tutor&apos;s join link — the Student Code in this URL will be ignored.
+        </p>
+      )}
       <form action={formAction} className="space-y-4">
         <div>
           <Label htmlFor="name">Your name</Label>
@@ -103,19 +127,21 @@ function ParentSignupForm() {
             required
           />
         </div>
-        <div>
-          <Label htmlFor="code">Student Code</Label>
-          <Input
-            id="code"
-            value={code}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
-            placeholder="e.g. A7BX92K"
-            className="uppercase"
-          />
-          <FieldHint>
-            Don&apos;t have one yet? You can create your account now and enter it later from Home.
-          </FieldHint>
-        </div>
+        {!tutorCode && (
+          <div>
+            <Label htmlFor="code">Student Code</Label>
+            <Input
+              id="code"
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              placeholder="e.g. A7BX92K"
+              className="uppercase"
+            />
+            <FieldHint>
+              Don&apos;t have one yet? You can create your account now and enter it later from Home.
+            </FieldHint>
+          </div>
+        )}
         {state.error && <p className="text-sm text-text">{state.error}</p>}
         <Button type="submit" className="w-full" disabled={pending}>
           {pending ? "Creating account…" : "Create account"}

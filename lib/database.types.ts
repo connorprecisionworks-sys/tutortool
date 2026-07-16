@@ -302,6 +302,7 @@ export type Database = {
           payer_email: string | null
           payer_name: string | null
           payer_phone: string | null
+          pending_parent_review: boolean
           rate_type: Database["public"]["Enums"]["rate_type"]
           scheduling_mode: string
           student_name: string
@@ -320,6 +321,7 @@ export type Database = {
           payer_email?: string | null
           payer_name?: string | null
           payer_phone?: string | null
+          pending_parent_review?: boolean
           rate_type?: Database["public"]["Enums"]["rate_type"]
           scheduling_mode?: string
           student_name: string
@@ -338,6 +340,7 @@ export type Database = {
           payer_email?: string | null
           payer_name?: string | null
           payer_phone?: string | null
+          pending_parent_review?: boolean
           rate_type?: Database["public"]["Enums"]["rate_type"]
           scheduling_mode?: string
           student_name?: string
@@ -1093,6 +1096,7 @@ export type Database = {
           stripe_account_id: string | null
           subjects: string | null
           travel_rate_cents: number | null
+          tutor_code: string
         }
         Insert: {
           auth_user_id: string
@@ -1117,6 +1121,7 @@ export type Database = {
           stripe_account_id?: string | null
           subjects?: string | null
           travel_rate_cents?: number | null
+          tutor_code?: string
         }
         Update: {
           auth_user_id?: string
@@ -1141,6 +1146,7 @@ export type Database = {
           stripe_account_id?: string | null
           subjects?: string | null
           travel_rate_cents?: number | null
+          tutor_code?: string
         }
         Relationships: []
       }
@@ -1261,6 +1267,10 @@ export type Database = {
         }
         Returns: string
       }
+      confirm_pending_student: {
+        Args: { p_student_id: string }
+        Returns: undefined
+      }
       create_booking: {
         Args: {
           p_duration_minutes: number
@@ -1348,6 +1358,7 @@ export type Database = {
           payer_email: string | null
           payer_name: string | null
           payer_phone: string | null
+          pending_parent_review: boolean
           rate_type: Database["public"]["Enums"]["rate_type"]
           scheduling_mode: string
           student_name: string
@@ -1370,8 +1381,14 @@ export type Database = {
       delete_service: { Args: { p_service_id: string }; Returns: undefined }
       delete_session: { Args: { p_session_id: string }; Returns: undefined }
       delete_student: { Args: { p_student_id: string }; Returns: undefined }
+      generate_tutor_code: { Args: never; Returns: string }
       get_booking_link_public: { Args: { p_token: string }; Returns: Json }
       get_public_tutor_profile: { Args: { p_handle: string }; Returns: Json }
+      get_tutor_name_for_code: { Args: { p_code: string }; Returns: string }
+      get_unclaimed_students_for_tutor_code: {
+        Args: { p_code: string }
+        Returns: Json
+      }
       is_parent_of_session: { Args: { p_session_id: string }; Returns: boolean }
       is_parent_of_student: { Args: { p_student_id: string }; Returns: boolean }
       is_tutor_of_client: { Args: { p_client_id: string }; Returns: boolean }
@@ -1396,11 +1413,23 @@ export type Database = {
         Args: { p_invoice_id: string; p_method: string }
         Returns: undefined
       }
+      merge_pending_student: {
+        Args: { p_pending_student_id: string; p_target_student_id: string }
+        Returns: undefined
+      }
       recompute_invoice_totals: {
         Args: { p_invoice_id: string }
         Returns: undefined
       }
       redeem_invite: { Args: { p_code: string }; Returns: string }
+      redeem_tutor_code: {
+        Args: {
+          p_child_name?: string
+          p_code: string
+          p_existing_student_id?: string
+        }
+        Returns: string
+      }
       regenerate_invite: { Args: { p_student_id: string }; Returns: string }
       remove_line_item: { Args: { p_line_item_id: string }; Returns: undefined }
       revoke_invite: { Args: { p_student_id: string }; Returns: undefined }

@@ -7,7 +7,9 @@ import { SettingsForm } from "@/components/settings/settings-form";
 import { StripeConnectSection } from "@/components/settings/stripe-connect-section";
 import { ReminderTemplatesForm } from "@/components/settings/reminder-templates-form";
 import { PublicProfileForm } from "@/components/settings/public-profile-form";
+import { CopyButton } from "@/components/ui/copy-button";
 import { getStripeAccountStatus, isStripeConfigured } from "@/lib/stripe/client";
+import { tutorCodeLink } from "@/lib/tutor-code-link";
 import type { ReminderTemplates } from "@/lib/reminders";
 
 export default async function SettingsPage() {
@@ -36,6 +38,18 @@ export default async function SettingsPage() {
                 Manage services
               </Button>
             </Link>
+          </div>
+        </Card>
+
+        <Card className="max-w-2xl">
+          <h2 className="mb-1 text-sm font-semibold">Tutor code</h2>
+          <p className="mb-4 text-sm text-text-secondary">
+            One link for any new parent — they join, add their child (or pick one of your unclaimed
+            students), and land in their portal. Per-student Student Codes still work too.
+          </p>
+          <div className="flex items-center gap-3 rounded-lg border border-border bg-surface-sunken px-4 py-3">
+            <code className="flex-1 truncate text-sm">{tutorCodeLink(tutor.tutor_code)}</code>
+            <CopyButton value={tutorCodeLink(tutor.tutor_code)} size="sm" />
           </div>
         </Card>
 
