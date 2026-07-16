@@ -1,5 +1,7 @@
+import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { requireTutor } from "@/lib/auth/tutor";
 import { SettingsForm } from "@/components/settings/settings-form";
 import { StripeConnectSection } from "@/components/settings/stripe-connect-section";
@@ -18,6 +20,22 @@ export default async function SettingsPage() {
       <div className="space-y-6">
         <Card className="max-w-2xl">
           <SettingsForm tutor={tutor} />
+        </Card>
+
+        <Card className="max-w-2xl">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-semibold">Services</h2>
+              <p className="mt-1 text-sm text-text-secondary">
+                Named, flat-priced offerings — e.g. a diagnostic assessment separate from your hourly rate.
+              </p>
+            </div>
+            <Link href="/tutor/settings/services">
+              <Button variant="secondary" size="sm">
+                Manage services
+              </Button>
+            </Link>
+          </div>
         </Card>
 
         <Card className="max-w-2xl">

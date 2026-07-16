@@ -3,7 +3,7 @@
 import { useActionState, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Input, Label, Select, Textarea } from "@/components/ui/input";
+import { Input, Label, Select, Textarea, FieldHint } from "@/components/ui/input";
 import { computeSessionAmountCents, resolveBillTravel, resolveTravelRateCents } from "@/lib/billing";
 import { formatCents } from "@/lib/money";
 import type { SessionFormResult } from "@/app/tutor/sessions/actions";
@@ -11,17 +11,21 @@ import type { Tables } from "@/lib/database.types";
 
 type Client = Tables<"clients">;
 type Session = Tables<"sessions">;
+type Service = Tables<"services">;
 
 const initialState: SessionFormResult = {};
+const NO_SERVICE = "";
 
 export function SessionForm({
   clients,
+  services,
   tutor,
   session,
   action,
   onSuccessPath,
 }: {
   clients: Client[];
+  services: Service[];
   tutor: Tables<"tutors">;
   session?: Session;
   action: (prev: SessionFormResult, formData: FormData) => Promise<SessionFormResult>;
@@ -29,6 +33,7 @@ export function SessionForm({
 }) {
   const router = useRouter();
   const [clientId, setClientId] = useState(session?.client_id ?? clients[0]?.id ?? "");
+  const [serviceId, setServiceId] = useState(session?.service_id ?? NO_SERVICE);
   const [duration, setDuration] = useState(session?.duration_minutes ?? 60);
   const [travel, setTravel] = useState(session?.travel_minutes ?? 0);
 
@@ -42,6 +47,18 @@ export function SessionForm({
   }, initialState);
 
   const selectedClient = clients.find((c) => c.id === clientId);
+  const selectedService = services.find((s) => s.id === serviceId);
+  // Editing an already-logged session never changes which service it's
+  // billed against (see update_session in the Q1 migration) — the picker is
+  // create-only; on edit we just show what was picked, read-only. Keyed off
+  // service_price_cents rather than service_id: deleting the service nulls
+  // service_id via an `on delete set null` FK, but service_price_cents (and
+  // the flat billing it drives) survives — session.service_id alone would
+  // wrongly read as "no service" and claim hourly billing here.
+  const isServicePriced = session ? session.service_price_cents != null : false;
+  const lockedServiceName = isServicePriced
+    ? (services.find((s) => s.id === session?.service_id)?.name ?? "a service no longer offered")
+    : null;
 
   const preview = useMemo(() => {
     if (!selectedClient) return null;
@@ -55,15 +72,17 @@ export function SessionForm({
     const travelRateCents = billTravel
       ? resolveTravelRateCents(selectedClient.travel_rate_cents, tutor.travel_rate_cents, effectiveRateCents)
       : 0;
+    const servicePriceCents = session ? session.service_price_cents : (selectedService?.price_cents ?? null);
     const amount = computeSessionAmountCents({
       durationMinutes: duration || 0,
       travelMinutes: travel || 0,
       effectiveRateCents,
       billTravel,
       travelRateCents,
+      servicePriceCents,
     });
     return { amount, billTravel };
-  }, [selectedClient, duration, travel, tutor]);
+  }, [selectedClient, selectedService, duration, travel, tutor, session]);
 
   return (
     <form action={formAction} className="space-y-6">
@@ -84,6 +103,40 @@ export function SessionForm({
             </option>
           ))}
         </Select>
+      </div>
+
+      <div>
+        <Label htmlFor="service_id">Service (optional)</Label>
+        {session ? (
+          <>
+            <input type="hidden" name="service_id" value={session.service_id ?? ""} />
+            <p className="flex h-9 items-center text-sm text-text-secondary">
+              {lockedServiceName ?? "None — billed at the student's hourly rate"}
+            </p>
+          </>
+        ) : (
+          <>
+            <Select
+              id="service_id"
+              name="service_id"
+              value={serviceId}
+              onChange={(e) => {
+                const value = e.target.value;
+                setServiceId(value);
+                const service = services.find((s) => s.id === value);
+                if (service) setDuration(service.duration_minutes);
+              }}
+            >
+              <option value={NO_SERVICE}>None — bill at the student&apos;s hourly rate</option>
+              {services.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name} — {formatCents(s.price_cents)}
+                </option>
+              ))}
+            </Select>
+            <FieldHint>Picking a service bills its flat price instead of the hourly rate.</FieldHint>
+          </>
+        )}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -114,8 +167,18 @@ export function SessionForm({
             step="1"
             value={duration}
             onChange={(e) => setDuration(Number(e.target.value))}
+            // readOnly, not disabled: the field still needs to submit its
+            // value in FormData (the server locks it to the original
+            // duration for a service-priced session either way, but a
+            // disabled field submits nothing and would fail the "duration
+            // required" check before the server even sees it).
+            readOnly={isServicePriced}
+            className={isServicePriced ? "bg-surface-sunken text-text-secondary" : undefined}
             required
           />
+          {isServicePriced && (
+            <FieldHint>Locked — {lockedServiceName} bills a flat price regardless of duration.</FieldHint>
+          )}
         </div>
         <div>
           <Label htmlFor="travel_minutes">Travel time (minutes)</Label>

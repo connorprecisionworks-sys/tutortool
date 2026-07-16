@@ -46,7 +46,7 @@ export default async function TutorDashboardPage() {
       .not("sent_at", "is", null),
     supabase
       .from("sessions")
-      .select("duration_minutes, effective_rate_cents, clients(is_philanthropic)")
+      .select("duration_minutes, effective_rate_cents, service_price_cents, clients(is_philanthropic)")
       .eq("tutor_id", tutor.id),
   ]);
 
@@ -56,6 +56,11 @@ export default async function TutorDashboardPage() {
   let philanthropicValueCents = 0;
   let regularDiscountValueCents = 0;
   for (const s of sessions ?? []) {
+    // A service-priced session (Q1) bills a flat price unrelated to the
+    // client's hourly rate rule, so "gap vs. standard rate" isn't a
+    // meaningful discount figure for it — skip rather than mix hourly-rate
+    // discount math with flat product pricing.
+    if (s.service_price_cents != null) continue;
     const isPhilanthropic = (s.clients as unknown as { is_philanthropic: boolean } | null)?.is_philanthropic ?? false;
     const value = computeValueGivenCents(tutor.standard_rate_cents, s.effective_rate_cents, s.duration_minutes);
     if (isPhilanthropic) philanthropicValueCents += value;

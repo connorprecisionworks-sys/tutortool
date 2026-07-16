@@ -81,6 +81,7 @@ export type Database = {
           id: string
           mode: Database["public"]["Enums"]["booking_mode"]
           requested_start: string
+          service_id: string | null
           session_id: string | null
           status: Database["public"]["Enums"]["booking_status"]
           student_id: string
@@ -92,6 +93,7 @@ export type Database = {
           id?: string
           mode: Database["public"]["Enums"]["booking_mode"]
           requested_start: string
+          service_id?: string | null
           session_id?: string | null
           status?: Database["public"]["Enums"]["booking_status"]
           student_id: string
@@ -103,12 +105,20 @@ export type Database = {
           id?: string
           mode?: Database["public"]["Enums"]["booking_mode"]
           requested_start?: string
+          service_id?: string | null
           session_id?: string | null
           status?: Database["public"]["Enums"]["booking_status"]
           student_id?: string
           tutor_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "bookings_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "bookings_session_id_fkey"
             columns: ["session_id"]
@@ -573,6 +583,47 @@ export type Database = {
           },
         ]
       }
+      services: {
+        Row: {
+          created_at: string
+          description: string | null
+          duration_minutes: number
+          id: string
+          is_active: boolean
+          name: string
+          price_cents: number
+          tutor_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          duration_minutes: number
+          id?: string
+          is_active?: boolean
+          name: string
+          price_cents: number
+          tutor_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          price_cents?: number
+          tutor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "services_tutor_id_fkey"
+            columns: ["tutor_id"]
+            isOneToOne: false
+            referencedRelation: "tutors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       session_notes: {
         Row: {
           body: string
@@ -637,6 +688,8 @@ export type Database = {
           location: string | null
           notes: string | null
           occurred_on: string
+          service_id: string | null
+          service_price_cents: number | null
           start_time: string | null
           status: Database["public"]["Enums"]["session_status"]
           travel_minutes: number
@@ -654,6 +707,8 @@ export type Database = {
           location?: string | null
           notes?: string | null
           occurred_on: string
+          service_id?: string | null
+          service_price_cents?: number | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["session_status"]
           travel_minutes?: number
@@ -671,6 +726,8 @@ export type Database = {
           location?: string | null
           notes?: string | null
           occurred_on?: string
+          service_id?: string | null
+          service_price_cents?: number | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["session_status"]
           travel_minutes?: number
@@ -690,6 +747,13 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessions_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
             referencedColumns: ["id"]
           },
           {
@@ -863,6 +927,7 @@ export type Database = {
         Args: {
           p_duration_minutes: number
           p_requested_start: string
+          p_service_id?: string
           p_student_id: string
         }
         Returns: string
@@ -881,6 +946,7 @@ export type Database = {
           p_client_id: string
           p_duration_minutes: number
           p_occurred_on: string
+          p_service_id?: string
           p_start_time: string
           p_tutor_id: string
         }
@@ -931,6 +997,7 @@ export type Database = {
         Args: { p_invoice_id: string }
         Returns: undefined
       }
+      delete_service: { Args: { p_service_id: string }; Returns: undefined }
       delete_session: { Args: { p_session_id: string }; Returns: undefined }
       delete_student: { Args: { p_student_id: string }; Returns: undefined }
       is_parent_of_session: { Args: { p_session_id: string }; Returns: boolean }
@@ -971,6 +1038,7 @@ export type Database = {
           p_bill_travel: boolean
           p_duration_minutes: number
           p_effective_rate_cents: number
+          p_service_price_cents?: number
           p_travel_minutes: number
           p_travel_rate_cents: number
         }

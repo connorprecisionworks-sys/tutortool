@@ -59,6 +59,12 @@ export function resolveTravelRateCents(
  * Session line amount = (duration/60 * effective rate) + (travel/60 * travel
  * rate, if billable). Summed as fractional cents and rounded exactly once at
  * the end so compounding rounding never drifts the total off by pennies.
+ *
+ * When servicePriceCents is set (the session is billed against a named
+ * Service, see Q1), it replaces the duration*rate portion with the
+ * service's flat price — travel still bills additively on top. Mirrors the
+ * SQL source of truth in session_amount_cents()
+ * (supabase/migrations/20260716130000_q1_services.sql).
  */
 export function computeSessionAmountCents(params: {
   durationMinutes: number;
@@ -66,9 +72,11 @@ export function computeSessionAmountCents(params: {
   effectiveRateCents: number;
   billTravel: boolean;
   travelRateCents: number;
+  servicePriceCents?: number | null;
 }): number {
-  const { durationMinutes, travelMinutes, effectiveRateCents, billTravel, travelRateCents } = params;
-  const sessionRaw = (durationMinutes / 60) * effectiveRateCents;
+  const { durationMinutes, travelMinutes, effectiveRateCents, billTravel, travelRateCents, servicePriceCents } =
+    params;
+  const sessionRaw = servicePriceCents != null ? servicePriceCents : (durationMinutes / 60) * effectiveRateCents;
   const travelRaw = billTravel ? (travelMinutes / 60) * travelRateCents : 0;
   return Math.round(sessionRaw + travelRaw);
 }
@@ -78,6 +86,10 @@ export function computeSessionAmountCents(params: {
  * would have cost at the standard rate and what it actually billed, based on
  * session duration only (travel is not part of the impact story). Zero if
  * billing at or above standard.
+ * Service-priced sessions (Q1) are excluded before this is ever called —
+ * see the `service_price_cents != null` skip in the dashboard rollup
+ * (app/tutor/page.tsx) — since "gap vs. standard rate" isn't meaningful for
+ * a flat product price.
  */
 export function computeValueGivenCents(
   standardRateCents: number,

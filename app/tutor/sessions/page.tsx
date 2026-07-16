@@ -23,7 +23,7 @@ export default async function SessionsPage({
 
   let query = supabase
     .from("sessions")
-    .select("*, clients(student_name)")
+    .select("*, clients(student_name), services(name)")
     .eq("tutor_id", tutor.id)
     .order("occurred_on", { ascending: false });
 
@@ -107,6 +107,7 @@ export default async function SessionsPage({
                   effectiveRateCents: s.effective_rate_cents,
                   billTravel: s.bill_travel,
                   travelRateCents: s.travel_rate_cents ?? 0,
+                  servicePriceCents: s.service_price_cents,
                 });
                 return (
                   <tr key={s.id} className="border-t border-border hover:bg-hover">
@@ -122,7 +123,14 @@ export default async function SessionsPage({
                     <td className="px-5 py-3 text-text-secondary">
                       {(s.clients as unknown as { student_name: string } | null)?.student_name ?? "—"}
                     </td>
-                    <td className="px-5 py-3 text-text-secondary">{s.duration_minutes} min</td>
+                    <td className="px-5 py-3 text-text-secondary">
+                      {s.duration_minutes} min
+                      {(s.services as unknown as { name: string } | null)?.name && (
+                        <span className="ml-1.5 text-xs text-text-tertiary">
+                          · {(s.services as unknown as { name: string }).name}
+                        </span>
+                      )}
+                    </td>
                     <td className="px-5 py-3 text-text-secondary">
                       {s.travel_minutes > 0 ? `${s.travel_minutes} min${s.bill_travel ? "" : " (unbilled)"}` : "—"}
                     </td>

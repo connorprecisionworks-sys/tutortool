@@ -22,8 +22,11 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
 
   if (!session) notFound();
 
-  const [{ data: clients }, { data: note }] = await Promise.all([
+  const [{ data: clients }, { data: services }, { data: note }] = await Promise.all([
     supabase.from("clients").select("*").eq("tutor_id", tutor.id).order("student_name"),
+    // Includes inactive services too — a past session may reference one
+    // that's since been turned off, and the form still needs its name.
+    supabase.from("services").select("*").eq("tutor_id", tutor.id).order("name"),
     supabase.from("session_notes").select("*").eq("session_id", id).maybeSingle(),
   ]);
 
@@ -43,6 +46,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
           ) : (
             <SessionForm
               clients={clients ?? []}
+              services={services ?? []}
               tutor={tutor}
               session={session}
               action={updateSessionAction}

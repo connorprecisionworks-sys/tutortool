@@ -12,12 +12,15 @@ export default async function NewSessionPage() {
   const tutor = await requireTutor();
   const supabase = await createClient();
 
-  const { data: clients } = await supabase
-    .from("clients")
-    .select("*")
-    .eq("tutor_id", tutor.id)
-    .eq("archived", false)
-    .order("student_name");
+  const [{ data: clients }, { data: services }] = await Promise.all([
+    supabase.from("clients").select("*").eq("tutor_id", tutor.id).eq("archived", false).order("student_name"),
+    supabase
+      .from("services")
+      .select("*")
+      .eq("tutor_id", tutor.id)
+      .eq("is_active", true)
+      .order("name"),
+  ]);
 
   if (!clients || clients.length === 0) {
     redirect("/tutor/students/new");
@@ -37,7 +40,13 @@ export default async function NewSessionPage() {
         }
       />
       <Card className="max-w-2xl">
-        <SessionForm clients={clients} tutor={tutor} action={createSessionAction} onSuccessPath="/tutor/sessions" />
+        <SessionForm
+          clients={clients}
+          services={services ?? []}
+          tutor={tutor}
+          action={createSessionAction}
+          onSuccessPath="/tutor/sessions"
+        />
       </Card>
     </div>
   );

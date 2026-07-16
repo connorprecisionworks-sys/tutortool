@@ -9,6 +9,7 @@ import {
   resolveTravelRateCents,
   type RateType,
 } from "@/lib/billing";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 export interface SessionFormResult {
   error?: string;
@@ -22,6 +23,7 @@ export async function createSessionAction(
   const supabase = await createClient();
 
   const clientId = String(formData.get("client_id") ?? "");
+  const serviceId = String(formData.get("service_id") ?? "").trim();
   const occurredOn = String(formData.get("occurred_on") ?? "");
   const startTime = String(formData.get("start_time") ?? "").trim();
   const durationMinutes = Number(formData.get("duration_minutes") ?? "0");
@@ -43,6 +45,22 @@ export async function createSessionAction(
 
   if (clientError || !client) return { error: "Student not found." };
 
+  // A service's price is snapshotted onto the session at log time, same
+  // rationale as effective_rate_cents — re-fetched and re-validated here
+  // (ownership + still active) rather than trusting a client-supplied price.
+  let servicePriceCents: number | null = null;
+  if (serviceId) {
+    const { data: service, error: serviceError } = await supabase
+      .from("services")
+      .select("price_cents")
+      .eq("id", serviceId)
+      .eq("tutor_id", tutor.id)
+      .eq("is_active", true)
+      .maybeSingle();
+    if (serviceError || !service) return { error: "Service not found or no longer offered." };
+    servicePriceCents = service.price_cents;
+  }
+
   const effectiveRateCents = resolveEffectiveRateCents(
     client.rate_type as RateType,
     client.custom_rate_cents,
@@ -56,6 +74,8 @@ export async function createSessionAction(
   const { error } = await supabase.from("sessions").insert({
     tutor_id: tutor.id,
     client_id: clientId,
+    service_id: serviceId || null,
+    service_price_cents: servicePriceCents,
     occurred_on: occurredOn,
     start_time: startTime || null,
     duration_minutes: Math.round(durationMinutes),
@@ -68,6 +88,20 @@ export async function createSessionAction(
   });
 
   if (error) return { error: error.message };
+
+  const posthog = getPostHogClient();
+  posthog.capture({
+    distinctId: tutor.auth_user_id,
+    event: "session_logged",
+    properties: {
+      duration_minutes: Math.round(durationMinutes),
+      travel_minutes: Math.round(travelMinutes),
+      bill_travel: billTravel,
+      has_location: Boolean(location),
+      has_notes: Boolean(notes),
+    },
+  });
+  await posthog.flush();
 
   revalidatePath("/tutor/sessions");
   revalidatePath("/tutor");
