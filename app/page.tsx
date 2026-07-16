@@ -9,7 +9,7 @@ import {
 } from "@/components/marketing/sections";
 
 export default function LandingPage() {
-  const calcomLink = process.env.CALCOM_LINK || "https://cal.com/";
+  const calcomLink = process.env.CALCOM_LINK || "https://cal.com/slatetutor";
 
   return (
     <div className="flex min-h-full flex-col">
