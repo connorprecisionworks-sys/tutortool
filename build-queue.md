@@ -66,7 +66,20 @@ The "pricing and scheduling pages" + public profile. Doubles as directory-ready 
 - Tutor controls what's public (toggle bio/prices visibility).
 - Acceptance: a tutor sets a handle and bio, publishes, and the public page renders their services and a working Book button.
 
-## Q4 — Cancellations (default policy + override)  [ ]
+## Q4 — Cancellations (default policy + override)  [x] (45ca1e3)
+
+credits table (SELECT-only + SECURITY DEFINER writes); cancel_session()
+resolves override/default/window, issues a rollover credit only when the
+session was already paid. create_draft_invoice auto-applies available
+credit as its own line item, capped at subtotal, remainder carried
+forward; void/delete restore it. Refund is a best-effort Stripe call
+capped at the charge's actual remaining refundable balance. Reviewed
+(high effort, twice — first pass caught a double-booking-style credit
+race + a cancel-blocked-on-draft-invoice bug + an over-refund risk, all
+fixed). TODO(connor): browser-level acceptance walkthrough (cancel a paid
+session as rollover -> credit reduces next invoice; cancel as refund ->
+Stripe call attempted/stubbed) deferred to the end-of-run QA pass per
+your instruction not to QA after every item.
 
 Tutor sets a default; overrides per session. Default policy = roll-over credit.
 
