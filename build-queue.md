@@ -44,7 +44,20 @@ The centerpiece from the tutor process: no back-and-forth, tutor sends dates, pa
 - Send the tutor a notification on booking (email if Resend set, otherwise in-app).
 - Acceptance: tutor offers 3 slots, opens the link in an incognito window as a parent, books one, and it appears as a confirmed session on the tutor side with no double-entry.
 
-## Q3 — Public tutor page (profile + pricing + scheduling)  [ ]
+## Q3 — Public tutor page (profile + pricing + scheduling)  [x] (d550561)
+
+/t/[handle], no login to view. get_public_tutor_profile() SECURITY DEFINER
+(never a public policy on `tutors`); show_bio/show_prices enforced
+server-side. "Book" reuses Q2: links to the tutor's newest open+unassigned
+booking link, excluding ones with only past slots or a deactivated
+service. Reviewed (high effort; fixed a handle-regex bug, a swallowed RPC
+error, and deduped the base-URL helper) and manually verified end-to-end
+before the fix pass (publish -> page renders services/bio -> Book routes
+into the working Q2 flow) plus is_public/show_prices/unknown-handle
+checked via the raw anon key. TODO(connor): a standing self-serve
+calendar (book any time inside weekly availability, no pre-set slots) is
+a reasonable future enhancement — deliberately not built here since it's
+a distinct feature from what Q2 shipped, not the polish of the same one.
 
 The "pricing and scheduling pages" + public profile. Doubles as directory-ready later (directory search itself is PARKED).
 
