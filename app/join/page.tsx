@@ -4,6 +4,7 @@ import { intendedRole } from "@/lib/auth/user";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { JoinCodeForm } from "@/components/parent/join-code-form";
+import { Mark } from "@/components/brand/logo";
 
 export default async function JoinPage({
   searchParams,
@@ -33,6 +34,7 @@ export default async function JoinPage({
   return (
     <div className="flex min-h-full items-center justify-center px-4 py-16">
       <Card className="w-full max-w-sm">
+        <Mark className="mb-4 h-6" />
         <h1 className="mb-1 text-xl font-semibold">Join as a parent</h1>
 
         {role === "tutor" ? (

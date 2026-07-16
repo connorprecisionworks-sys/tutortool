@@ -8,6 +8,7 @@ import { redeemInviteAction, type RedeemInviteResult } from "@/app/parent/action
 import { Button } from "@/components/ui/button";
 import { Input, Label, FieldHint } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { Mark } from "@/components/brand/logo";
 
 const initialState: AuthActionResult = {};
 
@@ -77,6 +78,7 @@ function ParentSignupForm() {
 
   return (
     <Card className="w-full max-w-sm">
+      <Mark className="mb-4 h-6" />
       <h1 className="mb-1 text-xl font-semibold">Create your parent account</h1>
       <p className="mb-6 text-sm text-text-secondary">
         Enter the Student Code your tutor sent you to see your child&apos;s sessions and invoices.
