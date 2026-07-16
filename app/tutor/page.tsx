@@ -63,31 +63,30 @@ export default async function TutorDashboardPage() {
   }
   const totalValueGivenCents = philanthropicValueCents + regularDiscountValueCents;
 
-  if (!onboarding.hasAnyData) {
-    return (
-      <div>
-        <WelcomeHero tutorName={tutor.name} />
-        <OnboardingChecklist tutorId={tutor.id} status={onboarding} />
-      </div>
-    );
-  }
-
+  // The welcome hero replaces the page header (not the stats below it) for
+  // a genuinely fresh account, so dismissing the checklist before finishing
+  // setup still leaves the normal dashboard visible underneath — never a
+  // blank page.
   return (
     <div>
-      <PageHeader
-        title="Dashboard"
-        description="Outstanding balances, this month's billing, and quick actions."
-        action={
-          <div className="flex gap-2">
-            <Link href="/tutor/sessions/new">
-              <Button variant="secondary">Log session</Button>
-            </Link>
-            <Link href="/tutor/invoices/new">
-              <Button>New invoice</Button>
-            </Link>
-          </div>
-        }
-      />
+      {onboarding.hasAnyData ? (
+        <PageHeader
+          title="Dashboard"
+          description="Outstanding balances, this month's billing, and quick actions."
+          action={
+            <div className="flex gap-2">
+              <Link href="/tutor/sessions/new">
+                <Button variant="secondary">Log session</Button>
+              </Link>
+              <Link href="/tutor/invoices/new">
+                <Button>New invoice</Button>
+              </Link>
+            </div>
+          }
+        />
+      ) : (
+        <WelcomeHero tutorName={tutor.name} />
+      )}
 
       <OnboardingChecklist tutorId={tutor.id} status={onboarding} className="mb-6" />
 
