@@ -133,7 +133,21 @@ Extend the existing invoice-reminder engine to sessions and bookings.
 - Gracefully no-op without Resend (log intent), same pattern as invoices.
 - Acceptance: a session 24h out generates a logged reminder; a new booking generates a logged confirmation.
 
-## Q7 — Tutor code + parent-side setup  [ ]
+## Q7 — Tutor code + parent-side setup  [x] (915b305)
+
+tutors.tutor_code (column DEFAULT function, not a trigger — kept the
+generated Insert type from breaking every existing tutors insert
+call-site). redeem_tutor_code creates-or-links a student + inline Student
+Code, mirroring Q2's confirm_booking_link pattern; unclaimed-roster
+picker requires a real parent account, not just the code. Tutor sees new
+parent-created students on the Students page, confirm/merge. Reviewed
+(high effort; fixed two missing archived-student checks, a users-row
+backfill gap on /join, and a pending-review card leaking onto the
+archived tab). TODO(connor): "email confirmation off" needs Supabase
+Dashboard access (Authentication > Providers > Email) this environment
+doesn't have a safe way to reach — the flow degrades acceptably with
+confirmation on, but that's the remaining piece for true "fewest taps."
+Browser-level acceptance walkthrough deferred to the end-of-run QA pass.
 
 Add a tutor-level join code alongside the per-student codes (keep student codes working).
 
