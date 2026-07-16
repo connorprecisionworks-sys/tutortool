@@ -65,6 +65,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   const isAuthRedirectPage = pathname === "/login" || pathname.startsWith("/signup");
+  const isRoot = pathname === "/";
   const isParentShell = matchesPrefix(pathname, "/parent");
   const isTutorShell = matchesPrefix(pathname, "/tutor");
 
@@ -74,7 +75,7 @@ export async function updateSession(request: NextRequest) {
   // no `users` row exists yet — e.g. a parent mid-email-confirmation who
   // hasn't been backfilled — rather than defaulting to "tutor", which would
   // permanently mis-provision them the moment requireTutor() runs.
-  if (user && (isAuthRedirectPage || isParentShell || isTutorShell)) {
+  if (user && (isAuthRedirectPage || isRoot || isParentShell || isTutorShell)) {
     const { data: userRow } = await supabase
       .from("users")
       .select("role")
@@ -82,7 +83,9 @@ export async function updateSession(request: NextRequest) {
       .maybeSingle();
     const role = userRow?.role ?? intendedRole(user);
 
-    if (isAuthRedirectPage) {
+    // Logged-in visitors never see the marketing landing page — bounce
+    // straight to their shell, same target as the post-login redirect.
+    if (isAuthRedirectPage || isRoot) {
       const url = request.nextUrl.clone();
       url.pathname = role === "parent" ? "/parent" : "/tutor";
       return NextResponse.redirect(url);
