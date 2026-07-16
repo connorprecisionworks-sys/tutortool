@@ -105,6 +105,22 @@ export function SettingsForm({ tutor }: { tutor: Tables<"tutors"> }) {
         </FieldHint>
       </div>
 
+      <div className="border-t border-border pt-6">
+        <h2 className="mb-4 text-sm font-semibold">Session reminders</h2>
+        <div>
+          <Label htmlFor="session_reminder_lead_hours">Remind parents this many hours before a session</Label>
+          <Input
+            id="session_reminder_lead_hours"
+            name="session_reminder_lead_hours"
+            type="number"
+            min="0"
+            step="1"
+            defaultValue={tutor.session_reminder_lead_hours}
+          />
+          <FieldHint>Sent once per session, along with a confirmation email as soon as it&apos;s booked.</FieldHint>
+        </div>
+      </div>
+
       {state.error && <p className="text-sm text-text">{state.error}</p>}
       {state.success && <p className="text-sm text-text-secondary">Saved.</p>}
 

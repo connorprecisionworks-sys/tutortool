@@ -760,22 +760,28 @@ export type Database = {
         Row: {
           channel: string
           id: string
-          invoice_id: string
+          invoice_id: string | null
+          kind: string
           sent_at: string
+          session_id: string | null
           template_key: string
         }
         Insert: {
           channel?: string
           id?: string
-          invoice_id: string
+          invoice_id?: string | null
+          kind?: string
           sent_at?: string
+          session_id?: string | null
           template_key: string
         }
         Update: {
           channel?: string
           id?: string
-          invoice_id?: string
+          invoice_id?: string | null
+          kind?: string
           sent_at?: string
+          session_id?: string | null
           template_key?: string
         }
         Relationships: [
@@ -784,6 +790,20 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminders_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "parent_visible_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminders_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
             referencedColumns: ["id"]
           },
         ]
@@ -1066,6 +1086,7 @@ export type Database = {
           name: string
           reminder_cadence: Json
           reminder_templates: Json
+          session_reminder_lead_hours: number
           show_bio: boolean
           show_prices: boolean
           standard_rate_cents: number
@@ -1089,6 +1110,7 @@ export type Database = {
           name: string
           reminder_cadence?: Json
           reminder_templates?: Json
+          session_reminder_lead_hours?: number
           show_bio?: boolean
           show_prices?: boolean
           standard_rate_cents?: number
@@ -1112,6 +1134,7 @@ export type Database = {
           name?: string
           reminder_cadence?: Json
           reminder_templates?: Json
+          session_reminder_lead_hours?: number
           show_bio?: boolean
           show_prices?: boolean
           standard_rate_cents?: number

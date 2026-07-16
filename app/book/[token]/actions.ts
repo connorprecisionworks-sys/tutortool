@@ -6,6 +6,7 @@ import { isEmailConfigured, sendEmail } from "@/lib/email";
 import { buildBookingConfirmedEmailHtml } from "@/lib/booking-link-email";
 import { formatBookingWhen } from "@/lib/scheduling";
 import { appUrl } from "@/lib/env";
+import { interpolateTemplate, type ReminderTemplates } from "@/lib/reminders";
 
 export interface ConfirmBookingResult {
   error?: string;
@@ -41,23 +42,28 @@ export async function confirmBookingLinkAction(
 
   if (error) return { error: error.message };
 
-  // Best-effort tutor notification — never block the parent's confirmation
-  // on it. Needs the admin client since, same as above, there's no user
-  // session here to read the tutor's row through RLS (matches the existing
-  // "invite redemption that must bypass RLS deliberately" precedent
-  // documented on lib/supabase/admin.ts).
+  // Best-effort tutor notification + parent confirmation — never block the
+  // parent's confirmation on either. Needs the admin client since, same as
+  // above, there's no user session here to read the tutor's row through
+  // RLS (matches the existing "invite redemption that must bypass RLS
+  // deliberately" precedent documented on lib/supabase/admin.ts). Also the
+  // insert-to-claim for the confirmation reminder row (Q6) — this action
+  // has no tutor session to call a SECURITY DEFINER function with, so it
+  // uses the same admin client the cron job uses for its own reminder rows.
   try {
     const admin = createAdminClient();
     const { data: link } = await admin
       .from("booking_links")
-      .select("tutor_id, session_id, tutors(name, email), clients(student_name)")
+      .select("tutor_id, session_id, tutors(name, email, reminder_templates), clients(student_name)")
       .eq("id", bookingLinkId)
       .maybeSingle();
 
-    const tutor = link?.tutors as unknown as { name: string; email: string } | null;
+    const tutor = link?.tutors as unknown as
+      | { name: string; email: string; reminder_templates: ReminderTemplates }
+      | null;
     const student = link?.clients as unknown as { student_name: string } | null;
 
-    if (tutor?.email && link?.session_id) {
+    if (tutor && link?.session_id) {
       const { data: session } = await admin
         .from("sessions")
         .select("occurred_on, start_time")
@@ -67,27 +73,63 @@ export async function confirmBookingLinkAction(
       const whenText = session
         ? formatBookingWhen(`${session.occurred_on}T${session.start_time ?? "00:00:00"}.000Z`)
         : "the booked time";
+      const studentName = student?.student_name ?? "a student";
 
-      if (isEmailConfigured()) {
-        await sendEmail({
-          to: tutor.email,
-          subject: `New booking: ${student?.student_name ?? "a student"}`,
-          html: buildBookingConfirmedEmailHtml({
-            tutorName: tutor.name,
-            studentName: student?.student_name ?? "a student",
-            parentName: parentName || null,
-            whenText,
-            sessionsUrl: `${appUrl()}/tutor/sessions`,
-            logoUrl: `${appUrl()}/brand/logo/slate-logo-on-light.png`,
-          }),
-        });
-      } else {
-        // No Resend key configured — same no-op-and-log pattern as every
-        // other email in this app (see lib/email.ts). The booking still
-        // shows up next time the tutor opens Booking Links or Sessions,
-        // which is the "in-app" half of "email if Resend set, otherwise
-        // in-app" — there's no separate notification inbox in this MVP.
-        console.log(`[booking notification] ${tutor.email}: new booking for ${student?.student_name}`);
+      if (tutor.email) {
+        if (isEmailConfigured()) {
+          await sendEmail({
+            to: tutor.email,
+            subject: `New booking: ${studentName}`,
+            html: buildBookingConfirmedEmailHtml({
+              tutorName: tutor.name,
+              studentName,
+              parentName: parentName || null,
+              whenText,
+              sessionsUrl: `${appUrl()}/tutor/sessions`,
+              logoUrl: `${appUrl()}/brand/logo/slate-logo-on-light.png`,
+            }),
+          });
+        } else {
+          // No Resend key configured — same no-op-and-log pattern as every
+          // other email in this app (see lib/email.ts). The booking still
+          // shows up next time the tutor opens Booking Links or Sessions,
+          // which is the "in-app" half of "email if Resend set, otherwise
+          // in-app" — there's no separate notification inbox in this MVP.
+          console.log(`[booking notification] ${tutor.email}: new booking for ${studentName}`);
+        }
+      }
+
+      // Confirmation to the parent — checked and rendered BEFORE claiming
+      // (unlike the tutor notification above, this one is dedup-guarded):
+      // claiming first and only then discovering there's no template would
+      // permanently burn the one-per-session claim slot for nothing. Once
+      // claimed, the send result is checked and logged — a claimed-but-
+      // unsent row can't be retried (same "never double-send over always
+      // eventually deliver" tradeoff as the cron job), so a silent failure
+      // here would otherwise vanish with no trail anywhere.
+      const template = tutor.reminder_templates?.booking_confirmation;
+      if (template) {
+        const { error: claimError } = await admin
+          .from("reminders")
+          .insert({ session_id: link.session_id, kind: "booking_confirmation", channel: "email", template_key: "booking_confirmation" });
+
+        if (!claimError) {
+          const filled = interpolateTemplate(template, { student: studentName, tutor: tutor.name, when: whenText });
+          if (isEmailConfigured()) {
+            const sendResult = await sendEmail({
+              to: parentEmail,
+              subject: filled.subject,
+              html: `<p>${filled.body.replace(/\n/g, "<br/>")}</p>`,
+            });
+            if (sendResult.error) {
+              console.error(`Booking confirmation send failed for session ${link.session_id}:`, sendResult.error);
+            }
+          } else {
+            console.log(`[booking confirmation] ${parentEmail}: ${filled.subject}`);
+          }
+        }
+        // A claimError here (e.g. 23505 from a retried submission) just
+        // means a confirmation was already logged for this session.
       }
     }
   } catch {
