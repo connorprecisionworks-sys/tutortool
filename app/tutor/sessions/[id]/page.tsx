@@ -15,6 +15,16 @@ const HANDLING_LABELS: Record<string, string> = {
   charge: "charged in full",
 };
 
+// A package session shares the "rollover"/"charge" handling values with
+// non-package cancellations (see cancel-session-button.tsx's option
+// labels), but means something different — the session is restored to (or
+// kept drawn from) the package's balance rather than credited/charged in
+// dollars. Same value, different label depending on session.package_id.
+const PACKAGE_HANDLING_LABELS: Record<string, string> = {
+  rollover: "restored to the package",
+  charge: "kept drawn from the package",
+};
+
 export default async function SessionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const tutor = await requireTutor();
@@ -70,7 +80,13 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
         {isCancelled && (
           <Card className="max-w-2xl border-border-strong">
             <p className="text-sm">
-              Cancelled — {HANDLING_LABELS[session.cancellation_handling ?? ""] ?? session.cancellation_handling}.
+              Cancelled —{" "}
+              {(session.package_id != null
+                ? PACKAGE_HANDLING_LABELS[session.cancellation_handling ?? ""]
+                : undefined) ??
+                HANDLING_LABELS[session.cancellation_handling ?? ""] ??
+                session.cancellation_handling}
+              .
             </p>
           </Card>
         )}
