@@ -8,8 +8,7 @@ export type StatusKind =
   | "void"
   | "logged"
   | "billed"
-  | "open"
-  | "used"
+  | "active"
   | "revoked"
   | "requested"
   | "confirmed"
@@ -24,8 +23,7 @@ const LABELS: Record<StatusKind, string> = {
   void: "Void",
   logged: "Logged",
   billed: "Billed",
-  open: "Open",
-  used: "Used",
+  active: "Active",
   revoked: "Revoked",
   requested: "Requested",
   confirmed: "Confirmed",
@@ -33,8 +31,8 @@ const LABELS: Record<StatusKind, string> = {
   cancelled: "Cancelled",
 };
 
-const FILLED: StatusKind[] = ["paid", "confirmed", "billed", "used"];
-const HOLLOW: StatusKind[] = ["draft", "open", "requested"];
+const FILLED: StatusKind[] = ["paid", "confirmed", "billed", "active"];
+const HOLLOW: StatusKind[] = ["draft", "requested"];
 const BOLD: StatusKind[] = ["overdue", "declined", "revoked", "cancelled"];
 
 export function StatusDot({ status, label }: { status: StatusKind; label?: string }) {

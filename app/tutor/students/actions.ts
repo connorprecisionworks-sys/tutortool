@@ -40,7 +40,7 @@ export async function createStudentAction(
   _prev: StudentFormResult,
   formData: FormData
 ): Promise<StudentFormResult> {
-  const tutor = await requireTutor();
+  await requireTutor();
   const supabase = await createClient();
 
   const studentName = String(formData.get("student_name") ?? "").trim();
@@ -53,19 +53,28 @@ export async function createStudentAction(
     return { error: "This rate type needs an hourly rate." };
   }
 
-  const { error } = await supabase.from("clients").insert({
-    tutor_id: tutor.id,
-    student_name: studentName,
-    payer_name: String(formData.get("payer_name") ?? "").trim() || null,
-    payer_email: String(formData.get("payer_email") ?? "").trim() || null,
-    payer_phone: String(formData.get("payer_phone") ?? "").trim() || null,
-    rate_type: rateType,
-    custom_rate_cents: rateType === "standard" || rateType === "pro_bono" ? null : customRateCents,
-    bill_travel: parseTriState(formData.get("bill_travel")),
-    travel_rate_cents: parseOptionalCents(formData.get("travel_rate_cents")),
-    is_philanthropic: formData.get("is_philanthropic") === "on",
-    scheduling_mode: parseSchedulingMode(formData.get("scheduling_mode")),
-    notes: String(formData.get("notes") ?? "").trim() || null,
+  // create_student (SECURITY DEFINER) inserts the student and issues its
+  // first Student Code in one transaction, so a student can never end up
+  // without a code.
+  //
+  // The generated RPC arg types don't reflect that several of these
+  // Postgres params accept null (the type generator only sees the SQL
+  // types, not that the function body is fine with a null value) —
+  // Postgres itself accepts null here without issue.
+  const { error } = await supabase.rpc("create_student", {
+    p_student_name: studentName,
+    p_payer_name: (String(formData.get("payer_name") ?? "").trim() || null) as unknown as string,
+    p_payer_email: (String(formData.get("payer_email") ?? "").trim() || null) as unknown as string,
+    p_payer_phone: (String(formData.get("payer_phone") ?? "").trim() || null) as unknown as string,
+    p_rate_type: rateType,
+    p_custom_rate_cents: (rateType === "standard" || rateType === "pro_bono"
+      ? null
+      : customRateCents) as unknown as number,
+    p_bill_travel: parseTriState(formData.get("bill_travel")) as unknown as boolean,
+    p_travel_rate_cents: parseOptionalCents(formData.get("travel_rate_cents")) as unknown as number,
+    p_is_philanthropic: formData.get("is_philanthropic") === "on",
+    p_scheduling_mode: parseSchedulingMode(formData.get("scheduling_mode")),
+    p_notes: (String(formData.get("notes") ?? "").trim() || null) as unknown as string,
   });
 
   if (error) return { error: error.message };
