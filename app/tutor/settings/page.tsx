@@ -10,6 +10,7 @@ import { PublicProfileForm } from "@/components/settings/public-profile-form";
 import { CopyButton } from "@/components/ui/copy-button";
 import { getStripeAccountStatus, isStripeConfigured } from "@/lib/stripe/client";
 import { tutorCodeLink } from "@/lib/tutor-code-link";
+import { isSmsConfigured } from "@/lib/sms";
 import type { ReminderTemplates } from "@/lib/reminders";
 
 export default async function SettingsPage() {
@@ -22,7 +23,7 @@ export default async function SettingsPage() {
       <PageHeader title="Settings" description="Standard rate, travel rule, invoice terms, payments, and reminders." />
       <div className="space-y-6">
         <Card className="max-w-2xl">
-          <SettingsForm tutor={tutor} />
+          <SettingsForm tutor={tutor} smsConfigured={isSmsConfigured()} />
         </Card>
 
         <Card className="max-w-2xl">

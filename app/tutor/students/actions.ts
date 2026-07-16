@@ -6,6 +6,7 @@ import { requireTutor } from "@/lib/auth/tutor";
 import { dollarsToCents } from "@/lib/money";
 import { RATE_TYPES_REQUIRING_CUSTOM_RATE, type RateType } from "@/lib/billing";
 import { getPostHogClient } from "@/lib/posthog-server";
+import { isSmsConfigured } from "@/lib/sms";
 
 export interface StudentFormResult {
   error?: string;
@@ -76,6 +77,9 @@ export async function createStudentAction(
     p_is_philanthropic: formData.get("is_philanthropic") === "on",
     p_scheduling_mode: parseSchedulingMode(formData.get("scheduling_mode")),
     p_notes: (String(formData.get("notes") ?? "").trim() || null) as unknown as string,
+    // Re-checked server-side (not just trusting the form field) so SMS
+    // can't be opted into via a raw POST while it's platform-wide disabled.
+    p_sms_opt_in: isSmsConfigured() && formData.get("sms_opt_in") === "on",
   });
 
   if (error) return { error: error.message };
@@ -114,13 +118,33 @@ export async function updateStudentAction(
     return { error: "This rate type needs an hourly rate." };
   }
 
+  const payerPhone = String(formData.get("payer_phone") ?? "").trim() || null;
+
+  // sms_opt_in needs care here: the consent checkbox only renders when SMS
+  // is configured, so a plain `formData.get(...) === "on"` would silently
+  // wipe previously-granted consent to false on every edit made while SMS
+  // happens to be unconfigured (e.g. Twilio keys rotated out temporarily).
+  // And consent was only ever given for a specific number, so if the phone
+  // number itself changed in this same edit, that consent doesn't carry
+  // over to the new number — require it to be re-granted.
+  const { data: existing } = await supabase
+    .from("clients")
+    .select("payer_phone, sms_opt_in")
+    .eq("id", studentId)
+    .single();
+
+  let smsOptIn = existing?.sms_opt_in ?? false;
+  if (isSmsConfigured()) {
+    smsOptIn = payerPhone !== (existing?.payer_phone ?? null) ? false : formData.get("sms_opt_in") === "on";
+  }
+
   const { error } = await supabase
     .from("clients")
     .update({
       student_name: studentName,
       payer_name: String(formData.get("payer_name") ?? "").trim() || null,
       payer_email: String(formData.get("payer_email") ?? "").trim() || null,
-      payer_phone: String(formData.get("payer_phone") ?? "").trim() || null,
+      payer_phone: payerPhone,
       rate_type: rateType,
       custom_rate_cents: rateType === "standard" || rateType === "pro_bono" ? null : customRateCents,
       bill_travel: parseTriState(formData.get("bill_travel")),
@@ -128,6 +152,7 @@ export async function updateStudentAction(
       is_philanthropic: formData.get("is_philanthropic") === "on",
       scheduling_mode: parseSchedulingMode(formData.get("scheduling_mode")),
       notes: String(formData.get("notes") ?? "").trim() || null,
+      sms_opt_in: smsOptIn,
     })
     .eq("id", studentId);
 

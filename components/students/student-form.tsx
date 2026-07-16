@@ -20,10 +20,12 @@ export function StudentForm({
   student,
   action,
   onSuccessPath,
+  smsConfigured = false,
 }: {
   student?: Client;
   action: (prev: StudentFormResult, formData: FormData) => Promise<StudentFormResult>;
   onSuccessPath: string;
+  smsConfigured?: boolean;
 }) {
   const router = useRouter();
   const [rateType, setRateType] = useState<RateType>((student?.rate_type as RateType) ?? "standard");
@@ -76,6 +78,18 @@ export function StudentForm({
           <Input id="payer_phone" name="payer_phone" type="tel" defaultValue={student?.payer_phone ?? ""} />
         </div>
       </div>
+
+      {smsConfigured && (
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="sms_opt_in"
+            defaultChecked={student?.sms_opt_in ?? false}
+            className="h-4 w-4 rounded border-border"
+          />
+          Parent has agreed to receive text reminders at this number
+        </label>
+      )}
 
       <div className="border-t border-border pt-6">
         <h2 className="mb-4 text-sm font-semibold">Rate rule</h2>

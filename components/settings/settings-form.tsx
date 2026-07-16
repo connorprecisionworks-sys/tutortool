@@ -8,7 +8,7 @@ import type { Tables } from "@/lib/database.types";
 
 const initialState: SettingsFormResult = {};
 
-export function SettingsForm({ tutor }: { tutor: Tables<"tutors"> }) {
+export function SettingsForm({ tutor, smsConfigured }: { tutor: Tables<"tutors">; smsConfigured: boolean }) {
   const [state, formAction, pending] = useActionState(updateTutorSettingsAction, initialState);
 
   return (
@@ -120,6 +120,24 @@ export function SettingsForm({ tutor }: { tutor: Tables<"tutors"> }) {
           <FieldHint>Sent once per session, along with a confirmation email as soon as it&apos;s booked.</FieldHint>
         </div>
       </div>
+
+      {smsConfigured && (
+        <div className="border-t border-border pt-6">
+          <h2 className="mb-4 text-sm font-semibold">SMS reminders</h2>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              name="sms_enabled"
+              defaultChecked={tutor.sms_enabled}
+              className="h-4 w-4 rounded border-border"
+            />
+            Also send reminders by text message
+          </label>
+          <FieldHint>
+            Only sent to students with a phone number and SMS opt-in checked on their profile.
+          </FieldHint>
+        </div>
+      )}
 
       {state.error && <p className="text-sm text-text">{state.error}</p>}
       {state.success && <p className="text-sm text-text-secondary">Saved.</p>}

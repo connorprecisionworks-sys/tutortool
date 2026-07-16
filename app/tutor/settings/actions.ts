@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireTutor } from "@/lib/auth/tutor";
 import { dollarsToCents } from "@/lib/money";
 import { SESSION_REMINDER_MAX_LEAD_HOURS } from "@/lib/reminders";
+import { isSmsConfigured } from "@/lib/sms";
 
 export interface SettingsFormResult {
   error?: string;
@@ -51,6 +52,11 @@ export async function updateTutorSettingsAction(
     return { error: `Session reminder lead time must be between 0 and ${SESSION_REMINDER_MAX_LEAD_HOURS} hours.` };
   }
 
+  // Ignored (stays false) unless Twilio is actually configured platform-
+  // wide — the form field is hidden in that case anyway, but re-checked
+  // here rather than trusting the client not to submit it regardless.
+  const smsEnabled = isSmsConfigured() && formData.get("sms_enabled") === "on";
+
   const { error } = await supabase
     .from("tutors")
     .update({
@@ -63,6 +69,7 @@ export async function updateTutorSettingsAction(
       cancellation_window_hours: Math.round(cancellationWindowHours),
       default_payment_timing: paymentTiming,
       session_reminder_lead_hours: Math.round(sessionReminderLeadHours),
+      sms_enabled: smsEnabled,
     })
     .eq("id", tutor.id);
 

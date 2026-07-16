@@ -305,6 +305,7 @@ export type Database = {
           pending_parent_review: boolean
           rate_type: Database["public"]["Enums"]["rate_type"]
           scheduling_mode: string
+          sms_opt_in: boolean
           student_name: string
           travel_rate_cents: number | null
           tutor_id: string
@@ -324,6 +325,7 @@ export type Database = {
           pending_parent_review?: boolean
           rate_type?: Database["public"]["Enums"]["rate_type"]
           scheduling_mode?: string
+          sms_opt_in?: boolean
           student_name: string
           travel_rate_cents?: number | null
           tutor_id: string
@@ -343,6 +345,7 @@ export type Database = {
           pending_parent_review?: boolean
           rate_type?: Database["public"]["Enums"]["rate_type"]
           scheduling_mode?: string
+          sms_opt_in?: boolean
           student_name?: string
           travel_rate_cents?: number | null
           tutor_id?: string
@@ -1092,6 +1095,7 @@ export type Database = {
           session_reminder_lead_hours: number
           show_bio: boolean
           show_prices: boolean
+          sms_enabled: boolean
           standard_rate_cents: number
           stripe_account_id: string | null
           subjects: string | null
@@ -1117,6 +1121,7 @@ export type Database = {
           session_reminder_lead_hours?: number
           show_bio?: boolean
           show_prices?: boolean
+          sms_enabled?: boolean
           standard_rate_cents?: number
           stripe_account_id?: string | null
           subjects?: string | null
@@ -1142,6 +1147,7 @@ export type Database = {
           session_reminder_lead_hours?: number
           show_bio?: boolean
           show_prices?: boolean
+          sms_enabled?: boolean
           standard_rate_cents?: number
           stripe_account_id?: string | null
           subjects?: string | null
@@ -1343,6 +1349,7 @@ export type Database = {
           p_payer_phone: string
           p_rate_type: Database["public"]["Enums"]["rate_type"]
           p_scheduling_mode: string
+          p_sms_opt_in: boolean
           p_student_name: string
           p_travel_rate_cents: number
         }
@@ -1361,6 +1368,7 @@ export type Database = {
           pending_parent_review: boolean
           rate_type: Database["public"]["Enums"]["rate_type"]
           scheduling_mode: string
+          sms_opt_in: boolean
           student_name: string
           travel_rate_cents: number | null
           tutor_id: string

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail } from "@/lib/email";
+import { isSmsConfigured, maskPhone, normalizePhoneToE164, sendSms } from "@/lib/sms";
 import { formatCents } from "@/lib/money";
 import { formatBookingWhen, nowAsStoredWallClockIso } from "@/lib/scheduling";
 import {
@@ -14,6 +15,43 @@ import {
 } from "@/lib/reminders";
 
 export const runtime = "nodejs";
+
+type Admin = ReturnType<typeof createAdminClient>;
+
+/**
+ * Shared claim-then-send for both the email and SMS channel, used by both
+ * loops below. The two channels are independent — a failed/skipped email
+ * claim never blocks the SMS attempt (and vice versa) — each has its own
+ * claim row under the widened (…, channel) unique constraint, so callers
+ * run both concurrently via Promise.all rather than sequentially.
+ */
+async function claimAndSend(
+  admin: Admin,
+  claim: { invoice_id?: string; session_id?: string; kind?: string; channel: "email" | "sms"; template_key: string },
+  send: () => Promise<{ error?: string }>,
+  logLabel: string
+): Promise<"sent" | "skipped" | "failed"> {
+  const { error: claimError } = await admin.from("reminders").insert(claim);
+
+  if (claimError) {
+    if (claimError.code !== "23505") {
+      console.error(`Reminder claim failed for ${logLabel}:`, claimError.message);
+    }
+    // Already sent (by this run or a concurrent one), or a real claim
+    // error — either way, don't send.
+    return "skipped";
+  }
+
+  const result = await send();
+  if (result.error) {
+    // The claim row stays — we deliberately favor "never double-send" over
+    // "always eventually deliver" here (no retry queue in this build).
+    // Logged loudly so a real failure is visible in cron run output.
+    console.error(`Reminder send failed for ${logLabel}:`, result.error);
+    return "failed";
+  }
+  return "sent";
+}
 
 /**
  * Daily reminder job. vercel.json already has a cron entry pointing here
@@ -83,12 +121,12 @@ async function runReminderJob(request: NextRequest): Promise<NextResponse> {
   const [{ data: invoices }, { data: upcomingSessions }] = await Promise.all([
     admin
       .from("invoices")
-      .select("id, due_date, total_cents, stripe_payment_url, tutor_id, tutors(reminder_cadence, reminder_templates, name), clients(payer_email, student_name)")
+      .select("id, due_date, total_cents, stripe_payment_url, tutor_id, tutors(reminder_cadence, reminder_templates, name, sms_enabled), clients(payer_email, student_name, payer_phone, sms_opt_in)")
       .in("status", ["sent", "overdue"])
       .not("due_date", "is", null),
     admin
       .from("sessions")
-      .select("id, occurred_on, start_time, tutor_id, tutors(name, session_reminder_lead_hours, reminder_templates), clients(payer_email, student_name)")
+      .select("id, occurred_on, start_time, tutor_id, tutors(name, session_reminder_lead_hours, reminder_templates, sms_enabled), clients(payer_email, student_name, payer_phone, sms_opt_in)")
       .is("cancelled_at", null)
       .not("start_time", "is", null)
       .gte("occurred_on", today)
@@ -103,10 +141,16 @@ async function runReminderJob(request: NextRequest): Promise<NextResponse> {
       reminder_cadence: { offsets_days?: number[] } | null;
       reminder_templates: ReminderTemplates;
       name: string;
+      sms_enabled: boolean;
     } | null;
-    const client = invoice.clients as unknown as { payer_email: string | null; student_name: string } | null;
+    const client = invoice.clients as unknown as {
+      payer_email: string | null;
+      student_name: string;
+      payer_phone: string | null;
+      sms_opt_in: boolean;
+    } | null;
 
-    if (!tutor || !client?.payer_email || !invoice.due_date) continue;
+    if (!tutor || !invoice.due_date) continue;
 
     const offsets = tutor.reminder_cadence?.offsets_days ?? DEFAULT_OFFSETS_DAYS;
     const daysPastDue = daysBetween(invoice.due_date, today);
@@ -117,45 +161,51 @@ async function runReminderJob(request: NextRequest): Promise<NextResponse> {
     const template = tutor.reminder_templates?.[key];
     if (!template) continue;
 
-    // Claim first: the unique constraint on (invoice_id, template_key)
-    // means a concurrent/overlapping cron run racing on the same
-    // invoice+offset gets a 23505 here and skips, instead of both runs
-    // independently deciding "not yet sent" and both emailing the client.
-    const { error: claimError } = await admin
-      .from("reminders")
-      .insert({ invoice_id: invoice.id, channel: "email", template_key: key });
-
-    if (claimError) {
-      if (claimError.code !== "23505") {
-        console.error(`Reminder claim failed for invoice ${invoice.id}/${key}:`, claimError.message);
-      }
-      continue; // already sent (by this run or a concurrent one), or a real error — either way, don't send
-    }
+    const smsPhone =
+      tutor.sms_enabled && isSmsConfigured() && client?.sms_opt_in
+        ? normalizePhoneToE164(client.payer_phone ?? "")
+        : null;
+    const hasEmail = Boolean(client?.payer_email);
+    const hasSms = Boolean(smsPhone);
+    // No deliverable channel for this client — nothing to claim or send.
+    if (!hasEmail && !hasSms) continue;
 
     const filled = interpolateTemplate(template, {
-      student: client.student_name,
+      student: client!.student_name,
       tutor: tutor.name,
       amount: formatCents(invoice.total_cents),
       due_date: invoice.due_date,
       link: invoice.stripe_payment_url ?? "",
     });
 
-    const sendResult = await sendEmail({
-      to: client.payer_email,
-      subject: filled.subject,
-      html: `<p>${filled.body.replace(/\n/g, "<br/>")}</p>`,
-    });
+    const outcomes = await Promise.all([
+      hasEmail
+        ? claimAndSend(
+            admin,
+            { invoice_id: invoice.id, channel: "email", template_key: key },
+            () =>
+              sendEmail({
+                to: client!.payer_email!,
+                subject: filled.subject,
+                html: `<p>${filled.body.replace(/\n/g, "<br/>")}</p>`,
+              }),
+            `invoice ${invoice.id}/${key} (email)`
+          )
+        : Promise.resolve(null),
+      hasSms
+        ? claimAndSend(
+            admin,
+            { invoice_id: invoice.id, channel: "sms", template_key: key },
+            () => sendSms({ to: smsPhone!, body: filled.body }),
+            `invoice ${invoice.id}/${key} (sms, ${maskPhone(smsPhone!)})`
+          )
+        : Promise.resolve(null),
+    ]);
 
-    if (sendResult.error) {
-      // The claim row stays — we deliberately favor "never double-send" over
-      // "always eventually deliver" here (no retry queue in this build).
-      // Logged loudly so a real failure is visible in cron run output.
-      console.error(`Reminder send failed for invoice ${invoice.id}/${key}:`, sendResult.error);
-      sendFailures += 1;
-      continue;
+    for (const outcome of outcomes) {
+      if (outcome === "sent") remindersSent += 1;
+      else if (outcome === "failed") sendFailures += 1;
     }
-
-    remindersSent += 1;
   }
 
   let sessionRemindersSent = 0;
@@ -173,10 +223,16 @@ async function runReminderJob(request: NextRequest): Promise<NextResponse> {
       name: string;
       session_reminder_lead_hours: number;
       reminder_templates: ReminderTemplates;
+      sms_enabled: boolean;
     } | null;
-    const client = session.clients as unknown as { payer_email: string | null; student_name: string } | null;
+    const client = session.clients as unknown as {
+      payer_email: string | null;
+      student_name: string;
+      payer_phone: string | null;
+      sms_opt_in: boolean;
+    } | null;
 
-    if (!tutor || !client?.payer_email || !session.start_time) continue;
+    if (!tutor || !session.start_time) continue;
 
     // Wall-clock-stamped-as-UTC convention, same as everywhere else
     // scheduling touches a date+time (see the TODO in
@@ -194,40 +250,52 @@ async function runReminderJob(request: NextRequest): Promise<NextResponse> {
     const template = tutor.reminder_templates?.session_reminder;
     if (!template) continue;
 
-    // Same insert-to-claim dedup shape as the invoice loop above, scoped
-    // by the partial unique index on (session_id, kind) instead of
-    // (invoice_id, template_key) — a session gets at most one
-    // session_reminder ever, no cadence sequence to step through.
-    const { error: claimError } = await admin
-      .from("reminders")
-      .insert({ session_id: session.id, kind: "session_reminder", channel: "email", template_key: "session_reminder" });
-
-    if (claimError) {
-      if (claimError.code !== "23505") {
-        console.error(`Session reminder claim failed for session ${session.id}:`, claimError.message);
-      }
-      continue;
-    }
+    const smsPhone =
+      tutor.sms_enabled && isSmsConfigured() && client?.sms_opt_in
+        ? normalizePhoneToE164(client.payer_phone ?? "")
+        : null;
+    const hasEmail = Boolean(client?.payer_email);
+    const hasSms = Boolean(smsPhone);
+    if (!hasEmail && !hasSms) continue;
 
     const filled = interpolateTemplate(template, {
-      student: client.student_name,
+      student: client!.student_name,
       tutor: tutor.name,
       when: formatBookingWhen(`${session.occurred_on}T${session.start_time}.000Z`),
     });
 
-    const sendResult = await sendEmail({
-      to: client.payer_email,
-      subject: filled.subject,
-      html: `<p>${filled.body.replace(/\n/g, "<br/>")}</p>`,
-    });
+    // Same insert-to-claim dedup shape as the invoice loop above, scoped
+    // by the partial unique index on (session_id, kind, channel) instead of
+    // (invoice_id, template_key, channel) — a session gets at most one
+    // session_reminder per channel ever, no cadence sequence to step through.
+    const outcomes = await Promise.all([
+      hasEmail
+        ? claimAndSend(
+            admin,
+            { session_id: session.id, kind: "session_reminder", channel: "email", template_key: "session_reminder" },
+            () =>
+              sendEmail({
+                to: client!.payer_email!,
+                subject: filled.subject,
+                html: `<p>${filled.body.replace(/\n/g, "<br/>")}</p>`,
+              }),
+            `session ${session.id} (email)`
+          )
+        : Promise.resolve(null),
+      hasSms
+        ? claimAndSend(
+            admin,
+            { session_id: session.id, kind: "session_reminder", channel: "sms", template_key: "session_reminder" },
+            () => sendSms({ to: smsPhone!, body: filled.body }),
+            `session ${session.id} (sms, ${maskPhone(smsPhone!)})`
+          )
+        : Promise.resolve(null),
+    ]);
 
-    if (sendResult.error) {
-      console.error(`Session reminder send failed for session ${session.id}:`, sendResult.error);
-      sendFailures += 1;
-      continue;
+    for (const outcome of outcomes) {
+      if (outcome === "sent") sessionRemindersSent += 1;
+      else if (outcome === "failed") sendFailures += 1;
     }
-
-    sessionRemindersSent += 1;
   }
 
   return NextResponse.json({

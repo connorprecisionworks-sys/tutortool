@@ -11,6 +11,7 @@ import { InviteParentSection } from "@/components/students/invite-parent-section
 import { studentJoinLink } from "@/lib/invite-link";
 import { generateJoinQrSvg } from "@/lib/qrcode";
 import { isEmailConfigured } from "@/lib/email";
+import { isSmsConfigured } from "@/lib/sms";
 import { formatCents } from "@/lib/money";
 
 export default async function StudentDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -93,7 +94,12 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
         )}
 
         <Card className="max-w-2xl">
-          <StudentForm student={student} action={updateStudentAction} onSuccessPath={`/tutor/students/${student.id}`} />
+          <StudentForm
+            student={student}
+            action={updateStudentAction}
+            onSuccessPath={`/tutor/students/${student.id}`}
+            smsConfigured={isSmsConfigured()}
+          />
         </Card>
 
         <Card className="max-w-2xl">
