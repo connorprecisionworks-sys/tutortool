@@ -46,12 +46,7 @@ export async function getOnboardingStatus(tutor: TutorRow): Promise<OnboardingSt
   const studentCount = students?.length ?? 0;
   const firstStudent = students?.find((s) => !s.archived) ?? students?.[0] ?? null;
 
-  const stripeStatus =
-    isStripeConfigured() && tutor.stripe_account_id
-      ? await getStripeAccountStatus(tutor.stripe_account_id)
-      : null;
-
-  const steps: OnboardingStep[] = [
+  const requiredSteps: Omit<OnboardingStep, "optional">[] = [
     {
       key: "rates",
       label: "Set your rates",
@@ -84,6 +79,23 @@ export async function getOnboardingStatus(tutor: TutorRow): Promise<OnboardingSt
       cta: "Log session",
       done: (sessionCount ?? 0) > 0,
     },
+  ];
+
+  const requiredDone = requiredSteps.filter((s) => s.done).length;
+  const allRequiredDone = requiredDone === requiredSteps.length;
+
+  // The Stripe step is optional, so it never affects allRequiredDone — and
+  // once the required steps are all done the checklist stops rendering
+  // entirely, so nothing ever reads this step's `done` value. Skipping the
+  // Stripe API round-trip in that case keeps a live external call off the
+  // dashboard's hot path for every already-set-up tutor's every visit.
+  const stripeStatus =
+    !allRequiredDone && isStripeConfigured() && tutor.stripe_account_id
+      ? await getStripeAccountStatus(tutor.stripe_account_id)
+      : null;
+
+  const steps: OnboardingStep[] = [
+    ...requiredSteps,
     {
       key: "stripe",
       label: "Connect Stripe to get paid",
@@ -95,14 +107,11 @@ export async function getOnboardingStatus(tutor: TutorRow): Promise<OnboardingSt
     },
   ];
 
-  const required = steps.filter((s) => !s.optional);
-  const requiredDone = required.filter((s) => s.done).length;
-
   return {
     steps,
     requiredDone,
-    requiredTotal: required.length,
-    allRequiredDone: requiredDone === required.length,
+    requiredTotal: requiredSteps.length,
+    allRequiredDone,
     hasAnyData: studentCount > 0 || (sessionCount ?? 0) > 0,
   };
 }
