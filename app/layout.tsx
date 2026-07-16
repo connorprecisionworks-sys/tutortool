@@ -1,21 +1,30 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const inter = Inter({
+const inter = localFont({
+  src: "../public/brand/fonts/Inter-Variable.ttf",
   variable: "--font-inter",
-  subsets: ["latin"],
+  weight: "100 900",
+  display: "swap",
+});
+
+const interTight = localFont({
+  src: "../public/brand/fonts/InterTight-Variable.ttf",
+  variable: "--font-inter-tight",
+  weight: "100 900",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "TutorTool",
+  title: "Slate",
   description: "The back office that runs the money side of independent tutoring.",
 };
 
 const THEME_INIT_SCRIPT = `
 (function () {
   try {
-    var stored = localStorage.getItem('tutortool-theme');
+    var stored = localStorage.getItem('slate-theme');
     var theme = stored || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     document.documentElement.setAttribute('data-theme', theme);
   } catch (e) {}
@@ -28,7 +37,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
+    <html
+      lang="en"
+      className={`${inter.variable} ${interTight.variable} h-full antialiased`}
+      suppressHydrationWarning
+    >
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>

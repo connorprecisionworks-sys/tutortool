@@ -24,7 +24,7 @@ function getServerSnapshot(): Theme {
 
 function applyTheme(theme: Theme) {
   document.documentElement.setAttribute("data-theme", theme);
-  localStorage.setItem("tutortool-theme", theme);
+  localStorage.setItem("slate-theme", theme);
 }
 
 export function ThemeToggle() {

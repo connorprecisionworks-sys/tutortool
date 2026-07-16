@@ -1,6 +1,19 @@
-# TutorTool — Design System (ChatGPT-style monochrome)
+# Slate — Design System
 
-Locked look: black and white, minimal, premium. Reads like the ChatGPT app, not a vibecoded SaaS. One typeface, hairline borders, black as the only accent, lots of whitespace, real dark mode. No color, no gradients, no drop shadows doing decoration.
+SUPERSEDED palette note (2026-07-13): the official Slate Brand Kit is now the source of truth (`Brand Kit/brand-guidelines.md`, copied into the repo as `BRAND.md` + assets in `public/brand/`). The earlier "black-only accent, one typeface" spec is replaced by the brand below. Keep the minimal/editorial spirit; apply the real palette + type.
+
+## Brand (from the Slate Brand Kit)
+
+- **Accent (the one color):** Slate blue `#5F728C` — primary buttons, links, the mark, highlights. Everything else stays grayscale so the blue carries the brand.
+- **Palette:** near-black `#161616` (dark bg / ink on light), dark gray `#202020` (cards on dark), charcoal `#2A2A2A` (borders/dividers on dark), light slate `#A8B8CC` (muted/secondary text on dark), off-white `#F7F7F7` (light bg / ink on dark).
+- **Type:** Inter Tight (Bold/Semibold) for headings + display; Inter (Regular/Medium) for body/UI. Both shipped as variable TTFs in `public/brand/fonts/`; also on Google Fonts.
+- **Logo:** folded-S mark. Horizontal lockup (mark + SLATE + "BACK OFFICE FOR TUTORS") in the site header; mark-only for tight spaces; icon (S on rounded square) for favicon/PWA/avatar. on-light for light bg, on-dark for dark bg. SVG on web. Files in `public/brand/logo/`. Clear space >= S height; don't recolor/skew/shadow.
+- **Voice:** warm but crisp, a sharp assistant not a bank. Positioning: "Back office for tutors." Slogan: "Run your business. Focus on what matters." What we do: "We handle the money side so you can focus on teaching."
+- **Look:** clean, minimal, editorial. Generous whitespace, strong type hierarchy, thin slate-blue rules, restrained grayscale. Premium, not busy.
+
+## Original minimal spec (still applies, minus the palette)
+
+Locked look: minimal, premium, editorial. Hairline borders, lots of whitespace, real dark mode. No gradients, no decorative drop shadows. Slate blue is the only color; everything else grayscale.
 
 ## Principles
 
