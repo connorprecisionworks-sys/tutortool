@@ -1,0 +1,27 @@
+import { createClient } from "@/lib/supabase/server";
+import { requireTutor } from "@/lib/auth/tutor";
+import { PageHeader } from "@/components/ui/page-header";
+import { Card } from "@/components/ui/card";
+import { BookingLinkForm } from "@/components/booking-links/booking-link-form";
+
+export default async function NewBookingLinkPage() {
+  const tutor = await requireTutor();
+  const supabase = await createClient();
+
+  const [{ data: clients }, { data: services }] = await Promise.all([
+    supabase.from("clients").select("*").eq("tutor_id", tutor.id).eq("archived", false).order("student_name"),
+    supabase.from("services").select("*").eq("tutor_id", tutor.id).eq("is_active", true).order("name"),
+  ]);
+
+  return (
+    <div>
+      <PageHeader
+        title="New booking link"
+        description="Offer a few time slots. The parent opens the link, picks one, and it lands on your schedule — no back-and-forth."
+      />
+      <Card className="max-w-2xl">
+        <BookingLinkForm clients={clients ?? []} services={services ?? []} />
+      </Card>
+    </div>
+  );
+}

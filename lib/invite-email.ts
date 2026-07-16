@@ -1,19 +1,4 @@
-/**
- * Every value below (tutor name, student name, parent name) is text a
- * tutor typed into a form — never trusted as safe HTML. Without escaping,
- * a name like `</p><a href="http://evil.example">Join Slate</a>` would
- * break out of its tag and let a malicious/compromised tutor account
- * plant a convincing phishing link inside an email a real parent trusts
- * because it came from Slate.
- */
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
+import { escapeHtml } from "@/lib/html-escape";
 
 /**
  * Inline-styled HTML for the invite email — email clients don't load

@@ -74,6 +74,117 @@ export type Database = {
           },
         ]
       }
+      booking_link_slots: {
+        Row: {
+          booking_link_id: string
+          created_at: string
+          duration_minutes: number
+          id: string
+          start_ts: string
+        }
+        Insert: {
+          booking_link_id: string
+          created_at?: string
+          duration_minutes: number
+          id?: string
+          start_ts: string
+        }
+        Update: {
+          booking_link_id?: string
+          created_at?: string
+          duration_minutes?: number
+          id?: string
+          start_ts?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_link_slots_booking_link_id_fkey"
+            columns: ["booking_link_id"]
+            isOneToOne: false
+            referencedRelation: "booking_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      booking_links: {
+        Row: {
+          chosen_slot_id: string | null
+          created_at: string
+          id: string
+          service_id: string | null
+          session_id: string | null
+          status: string
+          student_id: string | null
+          token: string
+          tutor_id: string
+        }
+        Insert: {
+          chosen_slot_id?: string | null
+          created_at?: string
+          id?: string
+          service_id?: string | null
+          session_id?: string | null
+          status?: string
+          student_id?: string | null
+          token: string
+          tutor_id: string
+        }
+        Update: {
+          chosen_slot_id?: string | null
+          created_at?: string
+          id?: string
+          service_id?: string | null
+          session_id?: string | null
+          status?: string
+          student_id?: string | null
+          token?: string
+          tutor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_links_chosen_slot_id_fkey"
+            columns: ["chosen_slot_id"]
+            isOneToOne: false
+            referencedRelation: "booking_link_slots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_links_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_links_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "parent_visible_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_links_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_links_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_links_tutor_id_fkey"
+            columns: ["tutor_id"]
+            isOneToOne: false
+            referencedRelation: "tutors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookings: {
         Row: {
           created_at: string
@@ -923,11 +1034,34 @@ export type Database = {
       }
       approve_booking: { Args: { p_booking_id: string }; Returns: undefined }
       cancel_booking: { Args: { p_booking_id: string }; Returns: undefined }
+      cancel_booking_link: {
+        Args: { p_booking_link_id: string }
+        Returns: undefined
+      }
+      confirm_booking_link: {
+        Args: {
+          p_parent_email: string
+          p_parent_name: string
+          p_slot_id: string
+          p_student_name?: string
+          p_token: string
+        }
+        Returns: string
+      }
       create_booking: {
         Args: {
           p_duration_minutes: number
           p_requested_start: string
           p_service_id?: string
+          p_student_id: string
+        }
+        Returns: string
+      }
+      create_booking_link: {
+        Args: {
+          p_duration_minutes: number
+          p_service_id: string
+          p_slot_starts: string[]
           p_student_id: string
         }
         Returns: string
@@ -1000,6 +1134,7 @@ export type Database = {
       delete_service: { Args: { p_service_id: string }; Returns: undefined }
       delete_session: { Args: { p_session_id: string }; Returns: undefined }
       delete_student: { Args: { p_student_id: string }; Returns: undefined }
+      get_booking_link_public: { Args: { p_token: string }; Returns: Json }
       is_parent_of_session: { Args: { p_session_id: string }; Returns: boolean }
       is_parent_of_student: { Args: { p_student_id: string }; Returns: boolean }
       is_tutor_of_client: { Args: { p_client_id: string }; Returns: boolean }

@@ -6,6 +6,7 @@ export const TUTOR_NAV: NavItem[] = [
   { href: "/tutor/sessions", label: "Sessions" },
   { href: "/tutor/invoices", label: "Invoices" },
   { href: "/tutor/schedule", label: "Schedule" },
+  { href: "/tutor/booking-links", label: "Booking Links" },
   { href: "/tutor/resources", label: "Resources" },
   { href: "/tutor/settings", label: "Settings" },
 ];

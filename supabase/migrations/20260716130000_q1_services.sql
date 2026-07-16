@@ -523,10 +523,10 @@ begin
 end;
 $$;
 
--- delete_service is the sole sanctioned delete path for services (the
--- services_delete_own RLS policy still exists for defense in depth, but the
--- app now always calls this instead of a direct client delete). A straight
--- RLS-only delete would let the FK's `on delete set null` silently strip
+-- delete_service is the sole sanctioned delete path for services — there is
+-- no direct-delete RLS policy on the table at all (see the note above the
+-- table definition). A straight RLS-only delete would let the FK's
+-- `on delete set null` silently strip
 -- service_id off every referencing row: a *pending* (requested, not yet
 -- approved) booking would lose its flat pricing and fall back to the
 -- client's hourly rate the moment it's confirmed, and historical

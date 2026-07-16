@@ -16,6 +16,7 @@ const PUBLIC_PATHS = [
   "/signup/tutor",
   "/signup/parent",
   "/join",
+  "/book",
   "/auth",
   "/api/webhooks",
   "/api/cron",
