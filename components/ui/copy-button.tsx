@@ -10,6 +10,7 @@ export function CopyButton({
   variant = "ghost",
   size = "sm",
   className,
+  onCopied,
 }: {
   value: string;
   label?: string;
@@ -17,6 +18,7 @@ export function CopyButton({
   variant?: "primary" | "secondary" | "ghost" | "danger";
   size?: "sm" | "md";
   className?: string;
+  onCopied?: () => void;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -25,6 +27,7 @@ export function CopyButton({
       await navigator.clipboard.writeText(value);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
+      onCopied?.();
     } catch {
       // Clipboard access can be blocked; the value is still visible to select manually.
     }
