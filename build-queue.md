@@ -156,7 +156,7 @@ Add a tutor-level join code alongside the per-student codes (keep student codes 
 - Polish the parent-side account setup so a parent goes from code to a working portal in the fewest taps (email confirmation off).
 - Acceptance: a parent joins with the tutor code, adds their child, and the tutor sees the new linked student to confirm.
 
-## Q8 — SMS reminders (research + build, key-gated)  [ ]
+## Q8 — SMS reminders (research + build, key-gated)  [x] a9cec23 — SMS channel wired into both reminder loops (independent of email, concurrent send), key-gated via lib/sms.ts; no live Twilio account to test the "keys set" branch.
 
 "Look into SMS reminders."
 
