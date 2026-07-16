@@ -240,6 +240,51 @@ export type Database = {
           },
         ]
       }
+      invite_sends: {
+        Row: {
+          channel: string
+          id: string
+          parent_email: string
+          parent_name: string | null
+          sent_at: string
+          student_id: string
+          tutor_id: string
+        }
+        Insert: {
+          channel: string
+          id?: string
+          parent_email: string
+          parent_name?: string | null
+          sent_at?: string
+          student_id: string
+          tutor_id: string
+        }
+        Update: {
+          channel?: string
+          id?: string
+          parent_email?: string
+          parent_name?: string | null
+          sent_at?: string
+          student_id?: string
+          tutor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invite_sends_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invite_sends_tutor_id_fkey"
+            columns: ["tutor_id"]
+            isOneToOne: false
+            referencedRelation: "tutors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invites: {
         Row: {
           code: string
@@ -891,6 +936,15 @@ export type Database = {
       is_parent_of_session: { Args: { p_session_id: string }; Returns: boolean }
       is_parent_of_student: { Args: { p_student_id: string }; Returns: boolean }
       is_tutor_of_client: { Args: { p_client_id: string }; Returns: boolean }
+      log_invite_send: {
+        Args: {
+          p_channel: string
+          p_parent_email: string
+          p_parent_name: string
+          p_student_id: string
+        }
+        Returns: undefined
+      }
       log_reminder: {
         Args: {
           p_channel?: string
