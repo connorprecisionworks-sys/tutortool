@@ -6,7 +6,14 @@ import { Card } from "@/components/ui/card";
 import { SessionForm } from "@/components/sessions/session-form";
 import { updateSessionAction } from "@/app/tutor/sessions/actions";
 import { DeleteSessionButton } from "@/components/sessions/delete-session-button";
+import { CancelSessionButton } from "@/components/sessions/cancel-session-button";
 import { NoteForm } from "@/components/sessions/note-form";
+
+const HANDLING_LABELS: Record<string, string> = {
+  rollover: "rolled over to a credit",
+  refund: "refunded",
+  charge: "charged in full",
+};
 
 export default async function SessionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -15,7 +22,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
 
   const { data: session } = await supabase
     .from("sessions")
-    .select("*")
+    .select("*, invoices(status)")
     .eq("id", id)
     .eq("tutor_id", tutor.id)
     .maybeSingle();
@@ -30,19 +37,49 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
     supabase.from("session_notes").select("*").eq("session_id", id).maybeSingle(),
   ]);
 
+  const invoiceStatus = (session.invoices as unknown as { status: string } | null)?.status ?? null;
+  const isCancelled = session.cancelled_at != null;
+  // Mirrors cancel_session's own guard: only a *sent*/overdue invoice
+  // blocks cancellation (mid-collection on a live invoice) — void that
+  // first, same rule as any other edit to a billed session. No invoice,
+  // a draft invoice, and a paid invoice are all fine (cancel_session
+  // detaches a draft-invoice line item itself).
+  const canCancel = !isCancelled && invoiceStatus !== "sent" && invoiceStatus !== "overdue";
+
   return (
     <div>
       <PageHeader
         title="Edit session"
-        description={session.status === "billed" ? "This session is billed and locked." : "Update the details below."}
-        action={session.status === "logged" && <DeleteSessionButton sessionId={session.id} />}
+        description={
+          isCancelled
+            ? "This session was cancelled."
+            : session.status === "billed"
+              ? "This session is billed and locked."
+              : "Update the details below."
+        }
+        action={
+          <div className="flex gap-2">
+            {session.status === "logged" && !isCancelled && <DeleteSessionButton sessionId={session.id} />}
+            {canCancel && <CancelSessionButton sessionId={session.id} />}
+          </div>
+        }
       />
       <div className="space-y-6">
+        {isCancelled && (
+          <Card className="max-w-2xl border-border-strong">
+            <p className="text-sm">
+              Cancelled — {HANDLING_LABELS[session.cancellation_handling ?? ""] ?? session.cancellation_handling}.
+            </p>
+          </Card>
+        )}
+
         <Card className="max-w-2xl">
           {session.status === "billed" ? (
             <p className="text-sm text-text-secondary">
               Billed sessions can&apos;t be edited or deleted. Void the invoice first if this needs to change.
             </p>
+          ) : isCancelled ? (
+            <p className="text-sm text-text-secondary">Cancelled sessions keep their record as-is.</p>
           ) : (
             <SessionForm
               clients={clients ?? []}

@@ -67,6 +67,35 @@ export function SettingsForm({ tutor }: { tutor: Tables<"tutors"> }) {
         </Select>
       </div>
 
+      <div className="border-t border-border pt-6">
+        <h2 className="mb-4 text-sm font-semibold">Cancellations</h2>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <Label htmlFor="default_cancellation_policy">Default handling</Label>
+            <Select id="default_cancellation_policy" name="default_cancellation_policy" defaultValue={tutor.default_cancellation_policy}>
+              <option value="rollover">Roll over to a credit</option>
+              <option value="refund">Refund</option>
+              <option value="charge">Charge in full</option>
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor="cancellation_window_hours">Cancellation window (hours)</Label>
+            <Input
+              id="cancellation_window_hours"
+              name="cancellation_window_hours"
+              type="number"
+              min="0"
+              step="1"
+              defaultValue={tutor.cancellation_window_hours}
+            />
+          </div>
+        </div>
+        <FieldHint>
+          Cancelling inside the window (less notice than this) always charges in full. Outside it, your
+          default handling applies — either can be overridden per cancellation.
+        </FieldHint>
+      </div>
+
       {state.error && <p className="text-sm text-text">{state.error}</p>}
       {state.success && <p className="text-sm text-text-secondary">Saved.</p>}
 

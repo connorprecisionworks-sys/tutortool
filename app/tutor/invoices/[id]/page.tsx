@@ -73,19 +73,35 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
               </tr>
             </thead>
             <tbody>
-              {lineItems?.map((li) => (
-                <tr key={li.id} className="border-t border-border">
-                  <td className="px-5 py-3">{li.description}</td>
-                  <td className="px-5 py-3 text-right tabular-nums">{formatCents(li.amount_cents)}</td>
-                  {isDraft && (
-                    <td className="px-5 py-3 text-right">
-                      <RemoveLineButton lineItemId={li.id} invoiceId={invoice.id} />
+              {lineItems?.map((li) => {
+                const isCredit = li.line_type === "credit";
+                return (
+                  <tr key={li.id} className="border-t border-border">
+                    <td className="px-5 py-3">{li.description}</td>
+                    <td className={`px-5 py-3 text-right tabular-nums ${isCredit ? "text-text-secondary" : ""}`}>
+                      {isCredit ? "−" : ""}
+                      {formatCents(li.amount_cents)}
                     </td>
-                  )}
-                </tr>
-              ))}
+                    {isDraft && (
+                      <td className="px-5 py-3 text-right">
+                        {/* Credit lines are system-managed — void and rebuild the
+                            draft instead of removing them directly (remove_line_item
+                            rejects it server-side too). */}
+                        {!isCredit && <RemoveLineButton lineItemId={li.id} invoiceId={invoice.id} />}
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
             </tbody>
             <tfoot>
+              {invoice.subtotal_cents !== invoice.total_cents && (
+                <tr className="border-t border-border text-text-secondary">
+                  <td className="px-5 py-3">Subtotal</td>
+                  <td className="px-5 py-3 text-right tabular-nums">{formatCents(invoice.subtotal_cents)}</td>
+                  {isDraft && <td />}
+                </tr>
+              )}
               <tr className="border-t border-border-strong font-medium">
                 <td className="px-5 py-3">Total</td>
                 <td className="px-5 py-3 text-right tabular-nums">{formatCents(invoice.total_cents)}</td>

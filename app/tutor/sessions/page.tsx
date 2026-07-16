@@ -109,10 +109,11 @@ export default async function SessionsPage({
                   travelRateCents: s.travel_rate_cents ?? 0,
                   servicePriceCents: s.service_price_cents,
                 });
+                const isCancelled = s.cancelled_at != null;
                 return (
                   <tr key={s.id} className="border-t border-border hover:bg-hover">
                     <td className="px-5 py-3">
-                      {s.status === "logged" ? (
+                      {s.status === "logged" || isCancelled ? (
                         <Link href={`/tutor/sessions/${s.id}`} className="font-medium">
                           {s.occurred_on}
                         </Link>
@@ -136,10 +137,10 @@ export default async function SessionsPage({
                     </td>
                     <td className="px-5 py-3 text-right tabular-nums">{formatCents(amount)}</td>
                     <td className="px-5 py-3">
-                      <StatusDot status={s.status} />
+                      <StatusDot status={isCancelled ? "cancelled" : s.status} />
                     </td>
                     <td className="px-5 py-3 text-right">
-                      {s.status === "logged" && <DeleteSessionRowButton sessionId={s.id} />}
+                      {s.status === "logged" && !isCancelled && <DeleteSessionRowButton sessionId={s.id} />}
                     </td>
                   </tr>
                 );

@@ -10,6 +10,7 @@ import {
   type RateType,
 } from "@/lib/billing";
 import { getPostHogClient } from "@/lib/posthog-server";
+import { getStripe, isStripeConfigured } from "@/lib/stripe/client";
 
 export interface SessionFormResult {
   error?: string;
@@ -165,5 +166,121 @@ export async function deleteSessionAction(sessionId: string): Promise<SessionFor
   revalidatePath("/tutor/sessions");
   revalidatePath("/tutor/invoices");
   revalidatePath("/tutor");
+  return {};
+}
+
+interface CancelSessionRpcResult {
+  handling: "rollover" | "refund" | "charge";
+  was_paid: boolean;
+  invoice_id: string | null;
+  amount_cents: number;
+  client_id: string;
+}
+
+/**
+ * Best-effort Stripe refund for a cancelled, already-paid session — never
+ * throws, same pattern as tryCreateStripePaymentLink in
+ * app/tutor/invoices/actions.ts. A partial refund (this session's amount,
+ * not the whole invoice, since other sessions on the same invoice may be
+ * unaffected) against the PaymentIntent behind the original Checkout
+ * Session. TODO(connor): unexercised against a live Stripe account, same
+ * caveat as every other Stripe path in this build (no test keys provided).
+ */
+async function tryRefundStripeSession(invoiceId: string, amountCents: number): Promise<{ error?: string }> {
+  if (!isStripeConfigured()) return {};
+
+  const supabase = await createClient();
+  const { data: invoice } = await supabase
+    .from("invoices")
+    .select("stripe_invoice_id, tutors(stripe_account_id)")
+    .eq("id", invoiceId)
+    .maybeSingle();
+
+  const tutorRow = invoice?.tutors as unknown as { stripe_account_id: string | null } | null;
+  if (!invoice?.stripe_invoice_id || !tutorRow?.stripe_account_id) {
+    return { error: "No Stripe payment on file for this invoice — refund manually." };
+  }
+
+  try {
+    const stripe = getStripe();
+    // invoices.stripe_invoice_id actually stores the Checkout Session id
+    // (see set_invoice_stripe_link) — the PaymentIntent (and its charge)
+    // has to be looked up from there since the webhook never stored it
+    // directly. Nested expand pulls both in one call.
+    const checkoutSession = await stripe.checkout.sessions.retrieve(
+      invoice.stripe_invoice_id,
+      { expand: ["payment_intent.latest_charge"] },
+      { stripeAccount: tutorRow.stripe_account_id }
+    );
+    const paymentIntent =
+      typeof checkoutSession.payment_intent === "string" ? null : checkoutSession.payment_intent;
+    if (!paymentIntent) return { error: "Could not find the original payment to refund." };
+    const charge = typeof paymentIntent.latest_charge === "string" ? null : paymentIntent.latest_charge;
+
+    // amountCents is this ONE session's value, but the invoice it was
+    // billed on may cover other sessions too (and may have had a credit
+    // applied, so less was captured than the raw subtotal) — cap the
+    // request at what's actually still refundable on this specific
+    // charge, rather than trusting amountCents blindly and having Stripe
+    // reject an over-refund after the session is already marked cancelled.
+    const capturedCents = charge?.amount ?? paymentIntent.amount_received ?? paymentIntent.amount;
+    const alreadyRefundedCents = charge?.amount_refunded ?? 0;
+    const remainingRefundableCents = capturedCents - alreadyRefundedCents;
+    if (remainingRefundableCents <= 0) {
+      return { error: "Nothing left to refund on this payment — it may already be fully refunded." };
+    }
+    const refundCents = Math.min(amountCents, remainingRefundableCents);
+
+    await stripe.refunds.create(
+      { payment_intent: paymentIntent.id, amount: refundCents },
+      { stripeAccount: tutorRow.stripe_account_id }
+    );
+    return {};
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Stripe error issuing the refund.";
+    console.error(`tryRefundStripeSession failed for invoice ${invoiceId}:`, message);
+    return { error: message };
+  }
+}
+
+export interface CancelSessionResult {
+  error?: string;
+}
+
+export async function cancelSessionAction(
+  sessionId: string,
+  overrideHandling: string | null
+): Promise<CancelSessionResult> {
+  await requireTutor();
+  const supabase = await createClient();
+
+  // cancel_session (SECURITY DEFINER) resolves the effective handling
+  // (override, or the tutor's default/window rule), stamps the session
+  // cancelled, and — for a rollover on an already-paid session — issues
+  // the credit. A Stripe refund can't happen in SQL, so for 'refund' the
+  // RPC just reports what needs refunding and this action makes the call.
+  const { data, error } = await supabase.rpc("cancel_session", {
+    p_session_id: sessionId,
+    p_override_handling: (overrideHandling || null) as unknown as string,
+  });
+
+  if (error) return { error: error.message };
+
+  const result = data as unknown as CancelSessionRpcResult;
+
+  revalidatePath("/tutor/sessions");
+  revalidatePath(`/tutor/sessions/${sessionId}`);
+  revalidatePath("/tutor/invoices");
+  revalidatePath("/tutor");
+
+  if (result.handling === "refund" && result.was_paid && result.invoice_id) {
+    const refundResult = await tryRefundStripeSession(result.invoice_id, result.amount_cents);
+    if (refundResult.error) {
+      // The cancellation itself already succeeded — surface the refund
+      // failure as its own message rather than implying the cancel failed.
+      return { error: `Session cancelled, but the refund needs a manual follow-up: ${refundResult.error}` };
+    }
+  }
+
   return {};
 }

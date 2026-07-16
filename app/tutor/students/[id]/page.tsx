@@ -11,28 +11,33 @@ import { InviteParentSection } from "@/components/students/invite-parent-section
 import { studentJoinLink } from "@/lib/invite-link";
 import { generateJoinQrSvg } from "@/lib/qrcode";
 import { isEmailConfigured } from "@/lib/email";
+import { formatCents } from "@/lib/money";
 
 export default async function StudentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const tutor = await requireTutor();
   const supabase = await createClient();
 
-  const [{ data: student }, { data: invites }, { data: redemptions }, { data: sends }] = await Promise.all([
-    supabase.from("clients").select("*").eq("id", id).eq("tutor_id", tutor.id).maybeSingle(),
-    supabase.from("invites").select("*").eq("student_id", id).order("created_at", { ascending: false }).limit(1),
-    supabase
-      .from("parent_students")
-      .select("id, parent_name, parent_email, created_at")
-      .eq("student_id", id)
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("invite_sends")
-      .select("id, parent_name, parent_email, sent_at")
-      .eq("student_id", id)
-      .order("sent_at", { ascending: false }),
-  ]);
+  const [{ data: student }, { data: invites }, { data: redemptions }, { data: sends }, { data: credits }] =
+    await Promise.all([
+      supabase.from("clients").select("*").eq("id", id).eq("tutor_id", tutor.id).maybeSingle(),
+      supabase.from("invites").select("*").eq("student_id", id).order("created_at", { ascending: false }).limit(1),
+      supabase
+        .from("parent_students")
+        .select("id, parent_name, parent_email, created_at")
+        .eq("student_id", id)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("invite_sends")
+        .select("id, parent_name, parent_email, sent_at")
+        .eq("student_id", id)
+        .order("sent_at", { ascending: false }),
+      supabase.from("credits").select("remaining_cents").eq("client_id", id).gt("remaining_cents", 0),
+    ]);
 
   if (!student) notFound();
+
+  const availableCreditCents = (credits ?? []).reduce((sum, c) => sum + c.remaining_cents, 0);
 
   // At most one row per student can have status='active' (partial unique
   // index) and revoke/regenerate always leave the newest row as either
@@ -61,6 +66,15 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
         }
       />
       <div className="space-y-6">
+        {availableCreditCents > 0 && (
+          <Card className="max-w-2xl">
+            <p className="text-sm">
+              <span className="font-medium">{formatCents(availableCreditCents)}</span>{" "}
+              <span className="text-text-secondary">in credit — applied automatically to their next invoice.</span>
+            </p>
+          </Card>
+        )}
+
         <Card className="max-w-2xl">
           <StudentForm student={student} action={updateStudentAction} onSuccessPath={`/tutor/students/${student.id}`} />
         </Card>

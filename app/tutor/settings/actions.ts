@@ -29,6 +29,15 @@ export async function updateTutorSettingsAction(
 
   if (!name) return { error: "Name is required." };
 
+  const cancellationPolicy = String(formData.get("default_cancellation_policy") ?? "rollover");
+  if (!["rollover", "refund", "charge"].includes(cancellationPolicy)) {
+    return { error: "Invalid cancellation policy." };
+  }
+  const cancellationWindowHours = Number(formData.get("cancellation_window_hours") ?? "24");
+  if (Number.isNaN(cancellationWindowHours) || cancellationWindowHours < 0) {
+    return { error: "Cancellation window must be a positive number of hours." };
+  }
+
   const { error } = await supabase
     .from("tutors")
     .update({
@@ -37,6 +46,8 @@ export async function updateTutorSettingsAction(
       travel_rate_cents: travelRateRaw ? dollarsToCents(Number(travelRateRaw)) : null,
       bill_travel_default: billTravelDefault,
       invoice_terms: invoiceTerms,
+      default_cancellation_policy: cancellationPolicy,
+      cancellation_window_hours: Math.round(cancellationWindowHours),
     })
     .eq("id", tutor.id);
 

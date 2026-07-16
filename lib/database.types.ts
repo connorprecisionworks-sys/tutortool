@@ -361,6 +361,68 @@ export type Database = {
           },
         ]
       }
+      credits: {
+        Row: {
+          amount_cents: number
+          client_id: string
+          created_at: string
+          id: string
+          reason: string | null
+          remaining_cents: number
+          session_id: string | null
+          tutor_id: string
+        }
+        Insert: {
+          amount_cents: number
+          client_id: string
+          created_at?: string
+          id?: string
+          reason?: string | null
+          remaining_cents: number
+          session_id?: string | null
+          tutor_id: string
+        }
+        Update: {
+          amount_cents?: number
+          client_id?: string
+          created_at?: string
+          id?: string
+          reason?: string | null
+          remaining_cents?: number
+          session_id?: string | null
+          tutor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credits_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credits_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "parent_visible_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credits_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credits_tutor_id_fkey"
+            columns: ["tutor_id"]
+            isOneToOne: false
+            referencedRelation: "tutors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invite_sends: {
         Row: {
           channel: string
@@ -458,6 +520,7 @@ export type Database = {
           description: string
           id: string
           invoice_id: string
+          line_type: string
           quantity_minutes: number | null
           session_id: string | null
         }
@@ -467,6 +530,7 @@ export type Database = {
           description: string
           id?: string
           invoice_id: string
+          line_type?: string
           quantity_minutes?: number | null
           session_id?: string | null
         }
@@ -476,6 +540,7 @@ export type Database = {
           description?: string
           id?: string
           invoice_id?: string
+          line_type?: string
           quantity_minutes?: number | null
           session_id?: string | null
         }
@@ -790,6 +855,8 @@ export type Database = {
       sessions: {
         Row: {
           bill_travel: boolean
+          cancellation_handling: string | null
+          cancelled_at: string | null
           client_id: string
           created_at: string
           duration_minutes: number
@@ -809,6 +876,8 @@ export type Database = {
         }
         Insert: {
           bill_travel: boolean
+          cancellation_handling?: string | null
+          cancelled_at?: string | null
           client_id: string
           created_at?: string
           duration_minutes: number
@@ -828,6 +897,8 @@ export type Database = {
         }
         Update: {
           bill_travel?: boolean
+          cancellation_handling?: string | null
+          cancelled_at?: string | null
           client_id?: string
           created_at?: string
           duration_minutes?: number
@@ -899,7 +970,9 @@ export type Database = {
           auth_user_id: string
           bill_travel_default: boolean
           bio: string | null
+          cancellation_window_hours: number
           created_at: string
+          default_cancellation_policy: string
           email: string
           handle: string | null
           id: string
@@ -919,7 +992,9 @@ export type Database = {
           auth_user_id: string
           bill_travel_default?: boolean
           bio?: string | null
+          cancellation_window_hours?: number
           created_at?: string
+          default_cancellation_policy?: string
           email: string
           handle?: string | null
           id?: string
@@ -939,7 +1014,9 @@ export type Database = {
           auth_user_id?: string
           bill_travel_default?: boolean
           bio?: string | null
+          cancellation_window_hours?: number
           created_at?: string
+          default_cancellation_policy?: string
           email?: string
           handle?: string | null
           id?: string
@@ -1055,6 +1132,10 @@ export type Database = {
       cancel_booking_link: {
         Args: { p_booking_link_id: string }
         Returns: undefined
+      }
+      cancel_session: {
+        Args: { p_override_handling?: string; p_session_id: string }
+        Returns: Json
       }
       confirm_booking_link: {
         Args: {
