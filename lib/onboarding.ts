@@ -32,7 +32,7 @@ export async function getOnboardingStatus(tutor: TutorRow): Promise<OnboardingSt
   const [{ data: students }, { count: sessionCount }, { data: parentLinks }] = await Promise.all([
     supabase
       .from("clients")
-      .select("id, archived, created_at")
+      .select("id, archived, created_at, rate_type")
       .eq("tutor_id", tutor.id)
       .order("created_at", { ascending: true }),
     supabase.from("sessions").select("id", { count: "exact", head: true }).eq("tutor_id", tutor.id),
@@ -45,6 +45,13 @@ export async function getOnboardingStatus(tutor: TutorRow): Promise<OnboardingSt
 
   const studentCount = students?.length ?? 0;
   const firstStudent = students?.find((s) => !s.archived) ?? students?.[0] ?? null;
+  // A student on a non-"standard" rate type (professional discount, friend,
+  // low-income, pro bono) has an independently configured rate rule rather
+  // than inheriting the tutor-level default — so a tutor who bills every
+  // student a custom or pro-bono rate has genuinely finished this step even
+  // if standard_rate_cents (which only matters for "standard"-rate
+  // students) is still its unset default of 0.
+  const hasStudentWithConfiguredRate = (students ?? []).some((s) => s.rate_type !== "standard");
 
   const requiredSteps: Omit<OnboardingStep, "optional">[] = [
     {
@@ -53,7 +60,7 @@ export async function getOnboardingStatus(tutor: TutorRow): Promise<OnboardingSt
       description: "Standard hourly rate and travel rule.",
       href: "/tutor/settings",
       cta: "Set rates",
-      done: tutor.standard_rate_cents > 0,
+      done: tutor.standard_rate_cents > 0 || hasStudentWithConfiguredRate,
     },
     {
       key: "student",
