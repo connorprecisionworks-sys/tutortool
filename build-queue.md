@@ -24,7 +24,17 @@ Foundation for booking and public pages. Tutors offer named, priced services.
 - Sessions and bookings get an optional `service_id`; when set, the line item uses the service price; when not, fall back to the existing rate math.
 - Acceptance: a tutor creates a "Diagnostic assessment" at a custom price, books/logs it, and the invoice line uses that price, not the hourly rate.
 
-## Q2 — Native booking link ("send a link, parent picks")  [ ]
+## Q2 — Native booking link ("send a link, parent picks")  [x] (32f7b82)
+
+/book/TOKEN, no login to view/book. booking_links + booking_link_slots,
+get_booking_link_public/confirm_booking_link granted to the anon role
+(only fully-anonymous write path in the app). Confirming creates the
+client + Student Code inline when the link was left open, and a
+`sessions` row directly — no double-entry. Reviewed (high effort; fixed a
+deactivated-service-still-billable gap) and QA'd end-to-end via the raw
+anon key (bypassing all cookies) plus the full browser flow: 3 slots
+offered, booked via a $45 flat-priced service, landed as a logged $45
+session with no manual step.
 
 The centerpiece from the tutor process: no back-and-forth, tutor sends dates, parent picks.
 
