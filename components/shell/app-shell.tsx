@@ -44,7 +44,7 @@ export function AppShell({
         )}
       >
         <div className="flex h-14 items-center gap-2 border-b border-border px-5">
-          <Mark className="h-5 w-5" />
+          <Mark className="h-5" />
           <span className="text-sm font-semibold tracking-tight">{brand}</span>
         </div>
         <nav className="flex-1 space-y-0.5 p-3">
