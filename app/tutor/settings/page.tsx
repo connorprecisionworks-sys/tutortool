@@ -6,6 +6,7 @@ import { requireTutor } from "@/lib/auth/tutor";
 import { SettingsForm } from "@/components/settings/settings-form";
 import { StripeConnectSection } from "@/components/settings/stripe-connect-section";
 import { ReminderTemplatesForm } from "@/components/settings/reminder-templates-form";
+import { PublicProfileForm } from "@/components/settings/public-profile-form";
 import { getStripeAccountStatus, isStripeConfigured } from "@/lib/stripe/client";
 import type { ReminderTemplates } from "@/lib/reminders";
 
@@ -36,6 +37,14 @@ export default async function SettingsPage() {
               </Button>
             </Link>
           </div>
+        </Card>
+
+        <Card className="max-w-2xl">
+          <h2 className="mb-1 text-sm font-semibold">Public profile</h2>
+          <p className="mb-4 text-sm text-text-secondary">
+            A shareable page with your bio, subjects, and services. No login required to view.
+          </p>
+          <PublicProfileForm tutor={tutor} />
         </Card>
 
         <Card className="max-w-2xl">

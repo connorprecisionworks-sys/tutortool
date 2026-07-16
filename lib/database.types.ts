@@ -898,43 +898,61 @@ export type Database = {
         Row: {
           auth_user_id: string
           bill_travel_default: boolean
+          bio: string | null
           created_at: string
           email: string
+          handle: string | null
           id: string
           invoice_terms: string
+          is_public: boolean
           name: string
           reminder_cadence: Json
           reminder_templates: Json
+          show_bio: boolean
+          show_prices: boolean
           standard_rate_cents: number
           stripe_account_id: string | null
+          subjects: string | null
           travel_rate_cents: number | null
         }
         Insert: {
           auth_user_id: string
           bill_travel_default?: boolean
+          bio?: string | null
           created_at?: string
           email: string
+          handle?: string | null
           id?: string
           invoice_terms?: string
+          is_public?: boolean
           name: string
           reminder_cadence?: Json
           reminder_templates?: Json
+          show_bio?: boolean
+          show_prices?: boolean
           standard_rate_cents?: number
           stripe_account_id?: string | null
+          subjects?: string | null
           travel_rate_cents?: number | null
         }
         Update: {
           auth_user_id?: string
           bill_travel_default?: boolean
+          bio?: string | null
           created_at?: string
           email?: string
+          handle?: string | null
           id?: string
           invoice_terms?: string
+          is_public?: boolean
           name?: string
           reminder_cadence?: Json
           reminder_templates?: Json
+          show_bio?: boolean
+          show_prices?: boolean
           standard_rate_cents?: number
           stripe_account_id?: string | null
+          subjects?: string | null
           travel_rate_cents?: number | null
         }
         Relationships: []
@@ -1135,6 +1153,7 @@ export type Database = {
       delete_session: { Args: { p_session_id: string }; Returns: undefined }
       delete_student: { Args: { p_student_id: string }; Returns: undefined }
       get_booking_link_public: { Args: { p_token: string }; Returns: Json }
+      get_public_tutor_profile: { Args: { p_handle: string }; Returns: Json }
       is_parent_of_session: { Args: { p_session_id: string }; Returns: boolean }
       is_parent_of_student: { Args: { p_student_id: string }; Returns: boolean }
       is_tutor_of_client: { Args: { p_client_id: string }; Returns: boolean }
