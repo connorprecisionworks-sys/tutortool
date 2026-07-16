@@ -135,7 +135,9 @@ export default async function SessionsPage({
                     <td className="px-5 py-3 text-text-secondary">
                       {s.travel_minutes > 0 ? `${s.travel_minutes} min${s.bill_travel ? "" : " (unbilled)"}` : "—"}
                     </td>
-                    <td className="px-5 py-3 text-right tabular-nums">{formatCents(amount)}</td>
+                    <td className="px-5 py-3 text-right tabular-nums">
+                      {s.package_id ? <span className="text-text-tertiary">Package</span> : formatCents(amount)}
+                    </td>
                     <td className="px-5 py-3">
                       <StatusDot status={isCancelled ? "cancelled" : s.status} />
                     </td>

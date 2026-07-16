@@ -12,13 +12,16 @@ import type { Tables } from "@/lib/database.types";
 type Client = Tables<"clients">;
 type Session = Tables<"sessions">;
 type Service = Tables<"services">;
+type Package = Tables<"packages">;
 
 const initialState: SessionFormResult = {};
 const NO_SERVICE = "";
+const NO_PACKAGE = "";
 
 export function SessionForm({
   clients,
   services,
+  packages = [],
   tutor,
   session,
   action,
@@ -26,6 +29,7 @@ export function SessionForm({
 }: {
   clients: Client[];
   services: Service[];
+  packages?: Package[];
   tutor: Tables<"tutors">;
   session?: Session;
   action: (prev: SessionFormResult, formData: FormData) => Promise<SessionFormResult>;
@@ -34,8 +38,10 @@ export function SessionForm({
   const router = useRouter();
   const [clientId, setClientId] = useState(session?.client_id ?? clients[0]?.id ?? "");
   const [serviceId, setServiceId] = useState(session?.service_id ?? NO_SERVICE);
+  const [packageId, setPackageId] = useState(session?.package_id ?? NO_PACKAGE);
   const [duration, setDuration] = useState(session?.duration_minutes ?? 60);
   const [travel, setTravel] = useState(session?.travel_minutes ?? 0);
+  const clientPackages = packages.filter((p) => p.client_id === clientId);
 
   const [state, formAction, pending] = useActionState(async (prev: SessionFormResult, formData: FormData) => {
     const result = await action(prev, formData);
@@ -60,8 +66,10 @@ export function SessionForm({
     ? (services.find((s) => s.id === session?.service_id)?.name ?? "a service no longer offered")
     : null;
 
+  const isPackageSession = session ? session.package_id != null : Boolean(packageId);
+
   const preview = useMemo(() => {
-    if (!selectedClient) return null;
+    if (!selectedClient || isPackageSession) return null;
     const effectiveRateCents =
       selectedClient.rate_type === "pro_bono"
         ? 0
@@ -82,7 +90,7 @@ export function SessionForm({
       servicePriceCents,
     });
     return { amount, billTravel };
-  }, [selectedClient, selectedService, duration, travel, tutor, session]);
+  }, [selectedClient, selectedService, duration, travel, tutor, session, isPackageSession]);
 
   return (
     <form action={formAction} className="space-y-6">
@@ -105,6 +113,38 @@ export function SessionForm({
         </Select>
       </div>
 
+      {(session ? session.package_id != null : clientPackages.length > 0) && (
+        <div>
+          <Label htmlFor="package_id">Package (optional)</Label>
+          {session ? (
+            <>
+              <input type="hidden" name="package_id" value={session.package_id ?? ""} />
+              <p className="flex h-9 items-center text-sm text-text-secondary">
+                {packages.find((p) => p.id === session.package_id)?.name ?? "a package no longer available"}
+              </p>
+            </>
+          ) : (
+            <>
+              <Select
+                id="package_id"
+                name="package_id"
+                value={packageId}
+                onChange={(e) => setPackageId(e.target.value)}
+              >
+                <option value={NO_PACKAGE}>None — bill normally</option>
+                {clientPackages.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} — {p.remaining_sessions} left
+                  </option>
+                ))}
+              </Select>
+              <FieldHint>Draws down a prepaid package instead of billing this session separately.</FieldHint>
+            </>
+          )}
+        </div>
+      )}
+
+      {!isPackageSession && (
       <div>
         <Label htmlFor="service_id">Service (optional)</Label>
         {session ? (
@@ -138,6 +178,7 @@ export function SessionForm({
           </>
         )}
       </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
@@ -203,6 +244,12 @@ export function SessionForm({
         <Label htmlFor="notes">Notes (optional)</Label>
         <Textarea id="notes" name="notes" defaultValue={session?.notes ?? ""} rows={3} />
       </div>
+
+      {isPackageSession && (
+        <div className="rounded-lg border border-border bg-surface-sunken px-4 py-3 text-sm text-text-secondary">
+          Drawing from a prepaid package — no separate charge.
+        </div>
+      )}
 
       {preview && (
         <div className="rounded-lg border border-border bg-surface-sunken px-4 py-3 text-sm">

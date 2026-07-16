@@ -29,11 +29,13 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
 
   if (!session) notFound();
 
-  const [{ data: clients }, { data: services }, { data: note }] = await Promise.all([
+  const [{ data: clients }, { data: services }, { data: packages }, { data: note }] = await Promise.all([
     supabase.from("clients").select("*").eq("tutor_id", tutor.id).order("student_name"),
     // Includes inactive services too — a past session may reference one
     // that's since been turned off, and the form still needs its name.
     supabase.from("services").select("*").eq("tutor_id", tutor.id).order("name"),
+    // Includes non-active packages too, for the same reason.
+    supabase.from("packages").select("*").eq("tutor_id", tutor.id).order("created_at"),
     supabase.from("session_notes").select("*").eq("session_id", id).maybeSingle(),
   ]);
 
@@ -60,7 +62,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
         action={
           <div className="flex gap-2">
             {session.status === "logged" && !isCancelled && <DeleteSessionButton sessionId={session.id} />}
-            {canCancel && <CancelSessionButton sessionId={session.id} />}
+            {canCancel && <CancelSessionButton sessionId={session.id} isPackageSession={session.package_id != null} />}
           </div>
         }
       />
@@ -84,6 +86,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
             <SessionForm
               clients={clients ?? []}
               services={services ?? []}
+              packages={packages ?? []}
               tutor={tutor}
               session={session}
               action={updateSessionAction}

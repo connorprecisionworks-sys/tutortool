@@ -12,7 +12,7 @@ export default async function NewSessionPage() {
   const tutor = await requireTutor();
   const supabase = await createClient();
 
-  const [{ data: clients }, { data: services }] = await Promise.all([
+  const [{ data: clients }, { data: services }, { data: packages }] = await Promise.all([
     supabase.from("clients").select("*").eq("tutor_id", tutor.id).eq("archived", false).order("student_name"),
     supabase
       .from("services")
@@ -20,6 +20,13 @@ export default async function NewSessionPage() {
       .eq("tutor_id", tutor.id)
       .eq("is_active", true)
       .order("name"),
+    supabase
+      .from("packages")
+      .select("*")
+      .eq("tutor_id", tutor.id)
+      .eq("status", "active")
+      .gt("remaining_sessions", 0)
+      .order("created_at"),
   ]);
 
   if (!clients || clients.length === 0) {
@@ -43,6 +50,7 @@ export default async function NewSessionPage() {
         <SessionForm
           clients={clients}
           services={services ?? []}
+          packages={packages ?? []}
           tutor={tutor}
           action={createSessionAction}
           onSuccessPath="/tutor/sessions"

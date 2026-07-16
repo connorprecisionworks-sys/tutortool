@@ -67,6 +67,15 @@ export function SettingsForm({ tutor }: { tutor: Tables<"tutors"> }) {
         </Select>
       </div>
 
+      <div>
+        <Label htmlFor="default_payment_timing">Default payment timing</Label>
+        <Select id="default_payment_timing" name="default_payment_timing" defaultValue={tutor.default_payment_timing}>
+          <option value="pay_after">Pay after — bill once sessions have happened</option>
+          <option value="pay_before">Pay before — due immediately, regardless of terms above</option>
+        </Select>
+        <FieldHint>Each invoice can override this when it&apos;s built.</FieldHint>
+      </div>
+
       <div className="border-t border-border pt-6">
         <h2 className="mb-4 text-sm font-semibold">Cancellations</h2>
         <div className="grid gap-4 sm:grid-cols-2">

@@ -576,6 +576,7 @@ export type Database = {
           id: string
           paid_at: string | null
           paid_method: string | null
+          payment_timing: string
           period_end: string
           period_start: string
           sent_at: string | null
@@ -593,6 +594,7 @@ export type Database = {
           id?: string
           paid_at?: string | null
           paid_method?: string | null
+          payment_timing?: string
           period_end: string
           period_start: string
           sent_at?: string | null
@@ -610,6 +612,7 @@ export type Database = {
           id?: string
           paid_at?: string | null
           paid_method?: string | null
+          payment_timing?: string
           period_end?: string
           period_start?: string
           sent_at?: string | null
@@ -630,6 +633,77 @@ export type Database = {
           },
           {
             foreignKeyName: "invoices_tutor_id_fkey"
+            columns: ["tutor_id"]
+            isOneToOne: false
+            referencedRelation: "tutors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      packages: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          name: string
+          price_cents: number
+          purchase_invoice_id: string | null
+          remaining_sessions: number
+          service_id: string | null
+          status: string
+          total_sessions: number
+          tutor_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          name: string
+          price_cents: number
+          purchase_invoice_id?: string | null
+          remaining_sessions?: number
+          service_id?: string | null
+          status?: string
+          total_sessions: number
+          tutor_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          price_cents?: number
+          purchase_invoice_id?: string | null
+          remaining_sessions?: number
+          service_id?: string | null
+          status?: string
+          total_sessions?: number
+          tutor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "packages_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "packages_purchase_invoice_id_fkey"
+            columns: ["purchase_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "packages_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "packages_tutor_id_fkey"
             columns: ["tutor_id"]
             isOneToOne: false
             referencedRelation: "tutors"
@@ -866,6 +940,7 @@ export type Database = {
           location: string | null
           notes: string | null
           occurred_on: string
+          package_id: string | null
           service_id: string | null
           service_price_cents: number | null
           start_time: string | null
@@ -887,6 +962,7 @@ export type Database = {
           location?: string | null
           notes?: string | null
           occurred_on: string
+          package_id?: string | null
           service_id?: string | null
           service_price_cents?: number | null
           start_time?: string | null
@@ -908,6 +984,7 @@ export type Database = {
           location?: string | null
           notes?: string | null
           occurred_on?: string
+          package_id?: string | null
           service_id?: string | null
           service_price_cents?: number | null
           start_time?: string | null
@@ -929,6 +1006,13 @@ export type Database = {
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessions_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
             referencedColumns: ["id"]
           },
           {
@@ -973,6 +1057,7 @@ export type Database = {
           cancellation_window_hours: number
           created_at: string
           default_cancellation_policy: string
+          default_payment_timing: string
           email: string
           handle: string | null
           id: string
@@ -995,6 +1080,7 @@ export type Database = {
           cancellation_window_hours?: number
           created_at?: string
           default_cancellation_policy?: string
+          default_payment_timing?: string
           email: string
           handle?: string | null
           id?: string
@@ -1017,6 +1103,7 @@ export type Database = {
           cancellation_window_hours?: number
           created_at?: string
           default_cancellation_policy?: string
+          default_payment_timing?: string
           email?: string
           handle?: string | null
           id?: string
@@ -1119,6 +1206,10 @@ export type Database = {
       }
     }
     Functions: {
+      activate_package_for_invoice: {
+        Args: { p_invoice_id: string }
+        Returns: undefined
+      }
       add_manual_line_item: {
         Args: {
           p_amount_cents: number
@@ -1174,6 +1265,16 @@ export type Database = {
         Returns: string
       }
       create_invite: { Args: { p_student_id: string }; Returns: string }
+      create_package: {
+        Args: {
+          p_client_id: string
+          p_name: string
+          p_price_cents: number
+          p_service_id: string
+          p_total_sessions: number
+        }
+        Returns: string
+      }
       create_session_for_booking: {
         Args: {
           p_client_id: string
@@ -1182,6 +1283,19 @@ export type Database = {
           p_service_id?: string
           p_start_time: string
           p_tutor_id: string
+        }
+        Returns: string
+      }
+      create_session_with_package: {
+        Args: {
+          p_client_id: string
+          p_duration_minutes: number
+          p_location: string
+          p_notes: string
+          p_occurred_on: string
+          p_package_id: string
+          p_start_time: string
+          p_travel_minutes: number
         }
         Returns: string
       }

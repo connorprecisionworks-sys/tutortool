@@ -18,7 +18,7 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
   const tutor = await requireTutor();
   const supabase = await createClient();
 
-  const [{ data: student }, { data: invites }, { data: redemptions }, { data: sends }, { data: credits }] =
+  const [{ data: student }, { data: invites }, { data: redemptions }, { data: sends }, { data: credits }, { data: packages }] =
     await Promise.all([
       supabase.from("clients").select("*").eq("id", id).eq("tutor_id", tutor.id).maybeSingle(),
       supabase.from("invites").select("*").eq("student_id", id).order("created_at", { ascending: false }).limit(1),
@@ -33,6 +33,7 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
         .eq("student_id", id)
         .order("sent_at", { ascending: false }),
       supabase.from("credits").select("remaining_cents").eq("client_id", id).gt("remaining_cents", 0),
+      supabase.from("packages").select("*").eq("client_id", id).eq("status", "active").order("created_at"),
     ]);
 
   if (!student) notFound();
@@ -72,6 +73,22 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
               <span className="font-medium">{formatCents(availableCreditCents)}</span>{" "}
               <span className="text-text-secondary">in credit — applied automatically to their next invoice.</span>
             </p>
+          </Card>
+        )}
+
+        {packages && packages.length > 0 && (
+          <Card className="max-w-2xl">
+            <h2 className="mb-2 text-sm font-semibold">Active packages</h2>
+            <ul className="space-y-1 text-sm">
+              {packages.map((p) => (
+                <li key={p.id} className="flex justify-between">
+                  <span>{p.name}</span>
+                  <span className="text-text-secondary">
+                    {p.remaining_sessions} of {p.total_sessions} left
+                  </span>
+                </li>
+              ))}
+            </ul>
           </Card>
         )}
 

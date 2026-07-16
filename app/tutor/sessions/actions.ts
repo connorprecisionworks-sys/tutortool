@@ -25,6 +25,7 @@ export async function createSessionAction(
 
   const clientId = String(formData.get("client_id") ?? "");
   const serviceId = String(formData.get("service_id") ?? "").trim();
+  const packageId = String(formData.get("package_id") ?? "").trim();
   const occurredOn = String(formData.get("occurred_on") ?? "");
   const startTime = String(formData.get("start_time") ?? "").trim();
   const durationMinutes = Number(formData.get("duration_minutes") ?? "0");
@@ -36,6 +37,30 @@ export async function createSessionAction(
   if (!occurredOn) return { error: "Date is required." };
   if (!durationMinutes || durationMinutes <= 0) return { error: "Duration must be more than 0 minutes." };
   if (travelMinutes < 0) return { error: "Travel minutes can't be negative." };
+
+  // A package session draws down a prepaid balance instead of billing
+  // separately — create_session_with_package (SECURITY DEFINER) locks the
+  // package row, re-validates it's active with sessions left, and
+  // decrements it atomically in the same transaction as the insert.
+  if (packageId) {
+    const { error: packageSessionError } = await supabase.rpc("create_session_with_package", {
+      p_client_id: clientId,
+      p_package_id: packageId,
+      p_occurred_on: occurredOn,
+      p_start_time: (startTime || null) as unknown as string,
+      p_duration_minutes: Math.round(durationMinutes),
+      p_travel_minutes: Math.round(travelMinutes),
+      p_location: (location || null) as unknown as string,
+      p_notes: (notes || null) as unknown as string,
+    });
+    if (packageSessionError) return { error: packageSessionError.message };
+
+    revalidatePath("/tutor/sessions");
+    revalidatePath("/tutor/packages");
+    revalidatePath(`/tutor/students/${clientId}`);
+    revalidatePath("/tutor");
+    return {};
+  }
 
   const { data: client, error: clientError } = await supabase
     .from("clients")

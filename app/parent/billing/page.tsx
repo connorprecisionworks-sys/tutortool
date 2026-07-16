@@ -26,15 +26,33 @@ export default async function ParentBillingPage() {
   const studentIds = students.map((s) => s.id);
   const studentNames = new Map(students.map((s) => [s.id, s.name]));
 
-  const { data: invoices } = await supabase
-    .from("invoices")
-    .select("*")
-    .in("client_id", studentIds)
-    .order("period_start", { ascending: false });
+  const [{ data: invoices }, { data: packages }] = await Promise.all([
+    supabase.from("invoices").select("*").in("client_id", studentIds).order("period_start", { ascending: false }),
+    supabase.from("packages").select("*").in("client_id", studentIds).eq("status", "active").order("created_at"),
+  ]);
 
   return (
     <div>
       <PageHeader title="Billing" description="Your invoices and payments." />
+
+      {packages && packages.length > 0 && (
+        <Card className="mb-6">
+          <h2 className="mb-2 text-sm font-semibold">Package balance</h2>
+          <ul className="space-y-1 text-sm">
+            {packages.map((p) => (
+              <li key={p.id} className="flex justify-between">
+                <span>
+                  {studentNames.get(p.client_id) ?? "—"} — {p.name}
+                </span>
+                <span className="text-text-secondary">
+                  {p.remaining_sessions} of {p.total_sessions} left
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
       {!invoices || invoices.length === 0 ? (
         <EmptyState message="No invoices yet. Your tutor will send one after your child's next billing period." />
       ) : (

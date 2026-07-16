@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import Stripe from "stripe";
 import { getStripe } from "@/lib/stripe/client";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 export const runtime = "nodejs";
 
@@ -70,12 +71,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // that invoice paid.
   const { data: invoice } = await admin
     .from("invoices")
-    .select("id, status, tutors(stripe_account_id)")
+    .select("id, status, total_cents, tutors(stripe_account_id, auth_user_id)")
     .eq("id", invoiceId)
     .maybeSingle();
 
-  const owningStripeAccountId = (invoice?.tutors as unknown as { stripe_account_id: string | null } | null)
-    ?.stripe_account_id;
+  const tutorRow = invoice?.tutors as unknown as { stripe_account_id: string | null; auth_user_id: string } | null;
+  const owningStripeAccountId = tutorRow?.stripe_account_id;
 
   if (!invoice || !owningStripeAccountId || owningStripeAccountId !== event.account) {
     console.error(
@@ -99,6 +100,38 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (updateError) {
     console.error(`Stripe webhook: failed to mark invoice ${invoiceId} paid:`, updateError.message);
     return NextResponse.json({ error: updateError.message }, { status: 500 });
+  }
+
+  // Activates a package (Q5) whose prepayment invoice this is — mirrors
+  // mark_invoice_paid()'s equivalent block for the manual-mark-paid path.
+  // activate_package_for_invoice does `remaining_sessions = total_sessions`
+  // as one atomic SQL statement (Supabase's query builder can't reference
+  // another column of the same row in a plain .update() call); its own
+  // status='pending_payment' WHERE clause makes it naturally idempotent
+  // for a redelivered event, same as the invoice update above.
+  //
+  // Returns 500 on failure (not just logging it) so Stripe redelivers —
+  // the invoice is already marked paid at this point, and a package stuck
+  // at pending_payment with a paid purchase invoice has no other path to
+  // ever get fixed; a non-2xx response is the only retry mechanism here.
+  const { error: packageError } = await admin.rpc("activate_package_for_invoice", { p_invoice_id: invoiceId });
+  if (packageError) {
+    console.error(`Stripe webhook: failed to activate package for invoice ${invoiceId}:`, packageError.message);
+    return NextResponse.json({ error: packageError.message }, { status: 500 });
+  }
+
+  if (tutorRow?.auth_user_id) {
+    const posthog = getPostHogClient();
+    posthog.capture({
+      distinctId: tutorRow.auth_user_id,
+      event: "invoice_paid",
+      properties: {
+        invoice_id: invoiceId,
+        payment_method: "stripe",
+        total_cents: (invoice as { total_cents?: number }).total_cents,
+      },
+    });
+    await posthog.flush();
   }
 
   const { error: insertError } = await admin

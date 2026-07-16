@@ -3,12 +3,18 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Select, Label } from "@/components/ui/input";
+import { Select, Label, FieldHint } from "@/components/ui/input";
 import { cancelSessionAction } from "@/app/tutor/sessions/actions";
 
 const NO_OVERRIDE = "";
 
-export function CancelSessionButton({ sessionId }: { sessionId: string }) {
+export function CancelSessionButton({
+  sessionId,
+  isPackageSession = false,
+}: {
+  sessionId: string;
+  isPackageSession?: boolean;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [handling, setHandling] = useState(NO_OVERRIDE);
@@ -29,10 +35,17 @@ export function CancelSessionButton({ sessionId }: { sessionId: string }) {
         <Label htmlFor="cancel-handling">How should this be handled?</Label>
         <Select id="cancel-handling" value={handling} onChange={(e) => setHandling(e.target.value)}>
           <option value={NO_OVERRIDE}>Use my default (per Settings)</option>
-          <option value="rollover">Roll over to a credit</option>
-          <option value="refund">Refund</option>
-          <option value="charge">Charge in full</option>
+          {/* A package session was paid for as part of a lump-sum package
+              purchase — there's no separate per-session charge to refund,
+              so "Refund" isn't offered here; picking the equivalent option
+              below restores this session to the package's balance instead. */}
+          <option value="rollover">{isPackageSession ? "Restore to the package" : "Roll over to a credit"}</option>
+          {!isPackageSession && <option value="refund">Refund</option>}
+          <option value="charge">{isPackageSession ? "Keep drawn from the package" : "Charge in full"}</option>
         </Select>
+        {isPackageSession && (
+          <FieldHint>This session was prepaid through a package — there&apos;s no separate charge to refund.</FieldHint>
+        )}
       </div>
       {error && <p className="text-sm text-text">{error}</p>}
       <div className="flex gap-2">

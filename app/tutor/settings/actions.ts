@@ -37,6 +37,10 @@ export async function updateTutorSettingsAction(
   if (Number.isNaN(cancellationWindowHours) || cancellationWindowHours < 0) {
     return { error: "Cancellation window must be a positive number of hours." };
   }
+  const paymentTiming = String(formData.get("default_payment_timing") ?? "pay_after");
+  if (!["pay_before", "pay_after"].includes(paymentTiming)) {
+    return { error: "Invalid payment timing." };
+  }
 
   const { error } = await supabase
     .from("tutors")
@@ -48,6 +52,7 @@ export async function updateTutorSettingsAction(
       invoice_terms: invoiceTerms,
       default_cancellation_policy: cancellationPolicy,
       cancellation_window_hours: Math.round(cancellationWindowHours),
+      default_payment_timing: paymentTiming,
     })
     .eq("id", tutor.id);
 
