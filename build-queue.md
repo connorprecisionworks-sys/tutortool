@@ -111,7 +111,20 @@ From "prepaying for a week or paying before or after."
 - Packages: tutor sells N sessions (or a week block) upfront; parent prepays; sessions draw down the balance; remaining balance visible to both sides. A cancellation on a package restores the session to the balance (ties to Q4 roll-over).
 - Acceptance: parent prepays a 4-session package, three sessions draw it to 1 remaining, a cancelled one restores it to 2.
 
-## Q6 — Automatic session reminders (email)  [ ]
+## Q6 — Automatic session reminders (email)  [x] (faf5454)
+
+Extends the existing invoice-reminder engine (table, dedup, templates)
+rather than a parallel system: reminders.session_id + kind, partial
+unique index for dedup. Booking confirmation sent from Q2's
+confirm_booking_link flow specifically (matches spec's "(Q2)" scoping,
+not P9's separate flow); upcoming-session reminder from the daily cron
+once within the tutor's lead-time setting. Reviewed (high effort; fixed a
+real HTML-injection path — anonymous booking-form input reached parent
+emails unescaped — plus a claim-before-verify ordering bug, an unbounded
+lead-hours setting vs. the cron's 14-day cap, and a timezone
+inconsistency). TODO(connor): browser-level acceptance walkthrough
+(a session 24h out generates a logged reminder; a new booking generates a
+logged confirmation) deferred to the end-of-run QA pass.
 
 Extend the existing invoice-reminder engine to sessions and bookings.
 
