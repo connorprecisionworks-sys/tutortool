@@ -246,9 +246,6 @@ export type Database = {
           created_at: string
           expires_at: string | null
           id: string
-          redeemed_by: string | null
-          redeemed_by_email: string | null
-          redeemed_by_name: string | null
           status: string
           student_id: string
           tutor_id: string
@@ -258,9 +255,6 @@ export type Database = {
           created_at?: string
           expires_at?: string | null
           id?: string
-          redeemed_by?: string | null
-          redeemed_by_email?: string | null
-          redeemed_by_name?: string | null
           status?: string
           student_id: string
           tutor_id: string
@@ -270,21 +264,11 @@ export type Database = {
           created_at?: string
           expires_at?: string | null
           id?: string
-          redeemed_by?: string | null
-          redeemed_by_email?: string | null
-          redeemed_by_name?: string | null
           status?: string
           student_id?: string
           tutor_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "invites_redeemed_by_fkey"
-            columns: ["redeemed_by"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "invites_student_id_fkey"
             columns: ["student_id"]
@@ -426,6 +410,8 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          parent_email: string
+          parent_name: string
           parent_user_id: string
           relationship: string | null
           student_id: string
@@ -433,6 +419,8 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          parent_email: string
+          parent_name: string
           parent_user_id: string
           relationship?: string | null
           student_id: string
@@ -440,6 +428,8 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          parent_email?: string
+          parent_name?: string
           parent_user_id?: string
           relationship?: string | null
           student_id?: string
@@ -851,6 +841,45 @@ export type Database = {
         }
         Returns: string
       }
+      create_student: {
+        Args: {
+          p_bill_travel: boolean
+          p_custom_rate_cents: number
+          p_is_philanthropic: boolean
+          p_notes: string
+          p_payer_email: string
+          p_payer_name: string
+          p_payer_phone: string
+          p_rate_type: Database["public"]["Enums"]["rate_type"]
+          p_scheduling_mode: string
+          p_student_name: string
+          p_travel_rate_cents: number
+        }
+        Returns: {
+          archived: boolean
+          bill_travel: boolean | null
+          class_id: string | null
+          created_at: string
+          custom_rate_cents: number | null
+          id: string
+          is_philanthropic: boolean
+          notes: string | null
+          payer_email: string | null
+          payer_name: string | null
+          payer_phone: string | null
+          rate_type: Database["public"]["Enums"]["rate_type"]
+          scheduling_mode: string
+          student_name: string
+          travel_rate_cents: number | null
+          tutor_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "clients"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       current_tutor_id: { Args: never; Returns: string }
       decline_booking: { Args: { p_booking_id: string }; Returns: undefined }
       delete_draft_invoice: {
@@ -879,9 +908,9 @@ export type Database = {
         Returns: undefined
       }
       redeem_invite: { Args: { p_code: string }; Returns: string }
-      regenerate_invite: { Args: { p_invite_id: string }; Returns: string }
+      regenerate_invite: { Args: { p_student_id: string }; Returns: string }
       remove_line_item: { Args: { p_line_item_id: string }; Returns: undefined }
-      revoke_invite: { Args: { p_invite_id: string }; Returns: undefined }
+      revoke_invite: { Args: { p_student_id: string }; Returns: undefined }
       send_invoice: { Args: { p_invoice_id: string }; Returns: undefined }
       session_amount_cents: {
         Args: {
