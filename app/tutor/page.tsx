@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireTutor } from "@/lib/auth/tutor";
+import { getOnboardingStatus } from "@/lib/onboarding";
 import { PageHeader } from "@/components/ui/page-header";
-import { EmptyState } from "@/components/ui/empty-state";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { WelcomeHero } from "@/components/dashboard/welcome-hero";
+import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist";
 import { formatCents } from "@/lib/money";
 import { computeValueGivenCents } from "@/lib/billing";
 
@@ -22,19 +24,19 @@ export default async function TutorDashboardPage() {
   const { start, end } = monthRange();
 
   const [
+    onboarding,
     { data: outstandingInvoices },
     { count: overdueCount },
-    { count: totalInvoiceCount },
     { data: billedThisMonth },
     { data: sessions },
   ] = await Promise.all([
+    getOnboardingStatus(tutor),
     supabase.from("invoices").select("total_cents").eq("tutor_id", tutor.id).in("status", ["sent", "overdue"]),
     supabase
       .from("invoices")
       .select("id", { count: "exact", head: true })
       .eq("tutor_id", tutor.id)
       .eq("status", "overdue"),
-    supabase.from("invoices").select("id", { count: "exact", head: true }).eq("tutor_id", tutor.id),
     supabase
       .from("invoices")
       .select("total_cents")
@@ -61,18 +63,11 @@ export default async function TutorDashboardPage() {
   }
   const totalValueGivenCents = philanthropicValueCents + regularDiscountValueCents;
 
-  if (!totalInvoiceCount && !sessions?.length) {
+  if (!onboarding.hasAnyData) {
     return (
       <div>
-        <PageHeader title="Dashboard" description="Outstanding balances, this month's billing, and quick actions." />
-        <EmptyState
-          message="Add your first student, then log a session to get started."
-          action={
-            <Link href="/tutor/students/new">
-              <Button>Add a student</Button>
-            </Link>
-          }
-        />
+        <WelcomeHero tutorName={tutor.name} />
+        <OnboardingChecklist tutorId={tutor.id} status={onboarding} />
       </div>
     );
   }
@@ -93,6 +88,8 @@ export default async function TutorDashboardPage() {
           </div>
         }
       />
+
+      <OnboardingChecklist tutorId={tutor.id} status={onboarding} className="mb-6" />
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
