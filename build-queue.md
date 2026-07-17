@@ -207,7 +207,7 @@ The original ask from Beth's first meeting: track the deductible business side f
 - New "Expenses" area in the tutor nav; surface a small year-to-date expenses figure on the dashboard.
 - Acceptance: add a supplies expense with a receipt image and a mileage trip; the tax summary totals them by category and the mileage line equals miles times the set rate.
 
-## B2 — Recurring / standing weekly sessions  [x] (pending commit)
+## B2 — Recurring / standing weekly sessions  [x] (6e259a2)
 
 `recurring_sessions` is the template only; every occurrence is a normal
 `sessions` row (`recurring_session_id` link), so billing/reminders/
