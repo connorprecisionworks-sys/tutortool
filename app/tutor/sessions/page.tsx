@@ -118,13 +118,12 @@ export default async function SessionsPage({
                 return (
                   <tr key={s.id} className="border-t border-border hover:bg-hover">
                     <td className="px-5 py-3">
-                      {s.status === "logged" || isCancelled ? (
-                        <Link href={`/tutor/sessions/${s.id}`} className="font-medium">
-                          {s.occurred_on}
-                        </Link>
-                      ) : (
-                        s.occurred_on
-                      )}
+                      {/* Every row links to the detail page, billed included — a billed
+                          session still needs to be reachable to cancel a paid session
+                          (Q4) even though its edit form is locked once billed. */}
+                      <Link href={`/tutor/sessions/${s.id}`} className="font-medium">
+                        {s.occurred_on}
+                      </Link>
                     </td>
                     <td className="px-5 py-3 text-text-secondary">
                       {(s.clients as unknown as { student_name: string } | null)?.student_name ?? "—"}

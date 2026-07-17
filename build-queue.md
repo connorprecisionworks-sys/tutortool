@@ -54,10 +54,9 @@ service. Reviewed (high effort; fixed a handle-regex bug, a swallowed RPC
 error, and deduped the base-URL helper) and manually verified end-to-end
 before the fix pass (publish -> page renders services/bio -> Book routes
 into the working Q2 flow) plus is_public/show_prices/unknown-handle
-checked via the raw anon key. TODO(connor): a standing self-serve
-calendar (book any time inside weekly availability, no pre-set slots) is
-a reasonable future enhancement — deliberately not built here since it's
-a distinct feature from what Q2 shipped, not the polish of the same one.
+checked via the raw anon key. TODO(connor) RESOLVED by B4: a standing
+self-serve calendar (book any time inside weekly availability, no
+pre-set slots) is now built — see the B4 entry below.
 
 The "pricing and scheduling pages" + public profile. Doubles as directory-ready later (directory search itself is PARKED).
 
@@ -122,9 +121,11 @@ once within the tutor's lead-time setting. Reviewed (high effort; fixed a
 real HTML-injection path — anonymous booking-form input reached parent
 emails unescaped — plus a claim-before-verify ordering bug, an unbounded
 lead-hours setting vs. the cron's 14-day cap, and a timezone
-inconsistency). TODO(connor): browser-level acceptance walkthrough
-(a session 24h out generates a logged reminder; a new booking generates a
-logged confirmation) deferred to the end-of-run QA pass.
+inconsistency). Walkthrough done in B6: logged a session ~24h out for a
+student with a payer email, manually triggered the reminders cron
+(CRON_SECRET), confirmed `sessionRemindersSent: 1` and a matching row in
+`reminders`. (Booking confirmations were already independently verified
+firing during B4's QA of the new booking flow.)
 
 Extend the existing invoice-reminder engine to sessions and bookings.
 
@@ -143,11 +144,14 @@ picker requires a real parent account, not just the code. Tutor sees new
 parent-created students on the Students page, confirm/merge. Reviewed
 (high effort; fixed two missing archived-student checks, a users-row
 backfill gap on /join, and a pending-review card leaking onto the
-archived tab). TODO(connor): "email confirmation off" needs Supabase
-Dashboard access (Authentication > Providers > Email) this environment
-doesn't have a safe way to reach — the flow degrades acceptably with
-confirmation on, but that's the remaining piece for true "fewest taps."
-Browser-level acceptance walkthrough deferred to the end-of-run QA pass.
+archived tab). TODO(connor) walkthrough done in B6: parent joined via
+tutor code -> "Someone else, add their name" -> Join, landed straight in
+the parent portal with no email-confirmation prompt at all in this dev
+project (the earlier assumption that Dashboard access was needed to turn
+confirmation off turned out to be wrong for this Supabase project's
+actual configuration — worth re-checking Auth settings before assuming
+it's still an open item) -> confirmed on the tutor's Students page via
+the "New from parent signups" card.
 
 Add a tutor-level join code alongside the per-student codes (keep student codes working).
 
@@ -345,7 +349,59 @@ Keyless calendar sync so a tutor sees Slate sessions in Google/Apple/Outlook. (D
 - Settings shows the feed URL with copy + a regenerate (revoke) option.
 - Acceptance: subscribe to the iCal URL in a calendar app and Slate sessions appear; a new booking shows up on the calendar's next refresh; regenerating the URL invalidates the old one.
 
-## B6 — Hardening + polish + deferred QA  [ ]
+## B6 — Hardening + polish + deferred QA  [x] (pending commit)
+
+**Deferred walkthroughs, all done in a real browser this pass:**
+- Q4 cancellations: cancelled a paid session as rollover -> a $40 credit
+  appeared and fully offset a new $40 invoice to $0.00; cancelled a
+  second paid session as refund -> "Cancelled — refunded" with no error
+  (Stripe unconfigured, so the best-effort call cleanly no-ops, per spec).
+- Q5 packages: prepaid a 4-session $150 package -> invoice auto-built and
+  paid -> package went Active 4/4 -> drew 3 sessions against it -> 1/4 ->
+  cancelled one of the drawn sessions as "Restore to the package" -> 2/4,
+  exactly matching the acceptance line.
+- Q6 reminders: logged a session ~24h out for a student with a payer
+  email, ran the cron manually, got `sessionRemindersSent: 1` and a
+  matching logged row.
+- Q7 parent join: joined via tutor code, added a new child, landed
+  straight in the parent portal (no email-confirmation gate hit in this
+  project — see the Q7 TODO update above), tutor saw and confirmed the
+  new student on the Students page.
+
+**Real bug found and fixed along the way:** a *billed* (paid) session
+had no link back to its own detail page from the Sessions list — the
+date was only ever a `<Link>` when `status === 'logged'` or cancelled —
+so "cancel a paid session," Q4's whole premise, was reachable in the
+database/RPC layer but a genuine dead end in the UI. Every row now
+links, billed included; the detail page itself already handled every
+status correctly, it just needed to be reachable.
+
+**Lint/polish:** `components/brand/logo.tsx`'s `<img>` warnings fixed
+with `next/image` (intrinsic width/height taken from each SVG's
+viewBox so the existing height-only `className` sizing keeps working
+via the browser's implicit aspect-ratio, unchanged visually — verified
+across the marketing header/footer, app shell sidebar, and every
+auth/public-page usage). Also needed `images.dangerouslyAllowSVG` +
+a locked-down `contentSecurityPolicy` in next.config.ts, since Next's
+image optimizer 400s on any SVG by default. `npm run lint` is now 0
+warnings, 0 errors (previously 4 warnings, all from this file).
+
+**TODO(connor) sweep:** every marker in the codebase was reviewed (see
+the full list gathered via `grep -rn "TODO(connor)"`). Two were stale
+and updated in place (Q3's self-serve-calendar TODO — resolved by B4;
+Q7's email-confirmation TODO — turned out not to be blocking in this
+project's actual config, corrected above). The rest (Stripe/Twilio/
+Resend "unexercised, no live key" notes; the single-timezone MVP
+assumption; the professional_discount rate-storage tradeoff; P6/P8/P9
+spec-vs-actual naming notes) are already accurate, load-bearing
+documentation of deliberate scope decisions with their reasoning
+inline — nothing left silently undocumented.
+
+**Page-depth spot checks this pass:** Packages (empty state), Services
+(empty state, light/dark, mobile), Booking Links + public tutor page
+(light/dark/mobile, covered fully during B4's QA), cancellations (light/
+dark, covered via the Q4 walkthrough above) — no new issues beyond the
+dead-end bug already covered above.
 
 Lock down what shipped. No new features.
 
