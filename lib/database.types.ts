@@ -845,6 +845,76 @@ export type Database = {
           },
         ]
       }
+      recurring_sessions: {
+        Row: {
+          client_id: string
+          created_at: string
+          duration_minutes: number
+          end_date: string | null
+          id: string
+          location: string | null
+          service_id: string | null
+          start_date: string
+          start_time: string
+          status: string
+          travel_minutes: number
+          tutor_id: string
+          weekday: number
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          duration_minutes: number
+          end_date?: string | null
+          id?: string
+          location?: string | null
+          service_id?: string | null
+          start_date: string
+          start_time: string
+          status?: string
+          travel_minutes?: number
+          tutor_id: string
+          weekday: number
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          duration_minutes?: number
+          end_date?: string | null
+          id?: string
+          location?: string | null
+          service_id?: string | null
+          start_date?: string
+          start_time?: string
+          status?: string
+          travel_minutes?: number
+          tutor_id?: string
+          weekday?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_sessions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_sessions_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recurring_sessions_tutor_id_fkey"
+            columns: ["tutor_id"]
+            isOneToOne: false
+            referencedRelation: "tutors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reminders: {
         Row: {
           channel: string
@@ -1050,6 +1120,7 @@ export type Database = {
           notes: string | null
           occurred_on: string
           package_id: string | null
+          recurring_session_id: string | null
           service_id: string | null
           service_price_cents: number | null
           start_time: string | null
@@ -1072,6 +1143,7 @@ export type Database = {
           notes?: string | null
           occurred_on: string
           package_id?: string | null
+          recurring_session_id?: string | null
           service_id?: string | null
           service_price_cents?: number | null
           start_time?: string | null
@@ -1094,6 +1166,7 @@ export type Database = {
           notes?: string | null
           occurred_on?: string
           package_id?: string | null
+          recurring_session_id?: string | null
           service_id?: string | null
           service_price_cents?: number | null
           start_time?: string | null
@@ -1122,6 +1195,13 @@ export type Database = {
             columns: ["package_id"]
             isOneToOne: false
             referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessions_recurring_session_id_fkey"
+            columns: ["recurring_session_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_sessions"
             referencedColumns: ["id"]
           },
           {
@@ -1475,6 +1555,14 @@ export type Database = {
       delete_service: { Args: { p_service_id: string }; Returns: undefined }
       delete_session: { Args: { p_session_id: string }; Returns: undefined }
       delete_student: { Args: { p_student_id: string }; Returns: undefined }
+      end_recurring_series: {
+        Args: {
+          p_from_date: string
+          p_override_handling?: string
+          p_recurring_session_id: string
+        }
+        Returns: Json
+      }
       generate_tutor_code: { Args: never; Returns: string }
       get_booking_link_public: { Args: { p_token: string }; Returns: Json }
       get_public_tutor_profile: { Args: { p_handle: string }; Returns: Json }

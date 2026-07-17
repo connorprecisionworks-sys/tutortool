@@ -47,9 +47,14 @@ export default async function SessionsPage({
         description="Every session you've logged, billed and unbilled."
         action={
           hasClients ? (
-            <Link href="/tutor/sessions/new">
-              <Button>Log session</Button>
-            </Link>
+            <div className="flex gap-2">
+              <Link href="/tutor/sessions/recurring">
+                <Button variant="secondary">Recurring sessions</Button>
+              </Link>
+              <Link href="/tutor/sessions/new">
+                <Button>Log session</Button>
+              </Link>
+            </div>
           ) : (
             <Link href="/tutor/students/new">
               <Button>Add a student first</Button>

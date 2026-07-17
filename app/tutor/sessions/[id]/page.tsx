@@ -7,6 +7,7 @@ import { SessionForm } from "@/components/sessions/session-form";
 import { updateSessionAction } from "@/app/tutor/sessions/actions";
 import { DeleteSessionButton } from "@/components/sessions/delete-session-button";
 import { CancelSessionButton } from "@/components/sessions/cancel-session-button";
+import { EndSeriesButton } from "@/components/sessions/end-series-button";
 import { NoteForm } from "@/components/sessions/note-form";
 
 const HANDLING_LABELS: Record<string, string> = {
@@ -58,6 +59,18 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
   // detaches a draft-invoice line item itself).
   const canCancel = !isCancelled && invoiceStatus !== "sent" && invoiceStatus !== "overdue";
 
+  // "Cancel this and future" only makes sense while the series is still
+  // generating new instances — an already-ended/cancelled series has
+  // nothing left for end_recurring_series to stop.
+  const { data: series } = session.recurring_session_id
+    ? await supabase
+        .from("recurring_sessions")
+        .select("id, status")
+        .eq("id", session.recurring_session_id)
+        .maybeSingle()
+    : { data: null };
+  const canEndSeries = canCancel && series?.status === "active";
+
   return (
     <div>
       <PageHeader
@@ -73,10 +86,25 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
           <div className="flex gap-2">
             {session.status === "logged" && !isCancelled && <DeleteSessionButton sessionId={session.id} />}
             {canCancel && <CancelSessionButton sessionId={session.id} isPackageSession={session.package_id != null} />}
+            {canEndSeries && session.recurring_session_id && (
+              <EndSeriesButton
+                recurringSessionId={session.recurring_session_id}
+                fromDate={session.occurred_on}
+                label="Cancel this + future"
+              />
+            )}
           </div>
         }
       />
       <div className="space-y-6">
+        {session.recurring_session_id && !isCancelled && (
+          <p className="text-xs text-text-tertiary">
+            Part of a recurring series.{" "}
+            {canEndSeries
+              ? "“Cancel this + future” ends the series from this date forward."
+              : "That series has already ended."}
+          </p>
+        )}
         {isCancelled && (
           <Card className="max-w-2xl border-border-strong">
             <p className="text-sm">

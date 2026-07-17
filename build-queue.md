@@ -207,7 +207,35 @@ The original ask from Beth's first meeting: track the deductible business side f
 - New "Expenses" area in the tutor nav; surface a small year-to-date expenses figure on the dashboard.
 - Acceptance: add a supplies expense with a receipt image and a mileage trip; the tax summary totals them by category and the mileage line equals miles times the set rate.
 
-## B2 — Recurring / standing weekly sessions  [ ]
+## B2 — Recurring / standing weekly sessions  [x] (pending commit)
+
+`recurring_sessions` is the template only; every occurrence is a normal
+`sessions` row (`recurring_session_id` link), so billing/reminders/
+invoicing need zero special-casing — proven in QA by bundling a
+generated instance into a draft invoice with no code changes. Rate
+resolution (`lib/recurring-sessions.ts`) reuses `lib/billing.ts`'s exact
+helpers rather than reimplementing in SQL, so generation can never drift
+from how a manually-logged session bills. Initial batch generates
+synchronously at series creation (immediate UX); a new daily cron
+(`/api/cron/generate-recurring-sessions`, added to vercel.json) rolls the
+8-week horizon forward for existing series. "This session only" reuses
+the existing Q4 cancel_session flow untouched; "this and future" is a
+new `end_recurring_series()` SECURITY DEFINER function that halts
+generation and cancels remaining unbilled instances via cancel_session
+in a loop (skip-on-error per instance so one already-billed session
+doesn't block the rest). RLS: recurring_sessions is select+insert-own
+only (no update policy — all state changes route through
+end_recurring_series); sessions_insert_own tightened to also check
+recurring_session_id ownership (same asymmetry-closing pattern as Q5's
+package_id). Reviewed (manual pass — same missing-tooling caveat as B1)
+and QA'd end-to-end in a headless browser: created a weekly Tuesday 4pm
+series, got 8 correctly-dated/priced instances, billed one into a draft
+invoice normally, cancelled a single instance (rest stayed intact), then
+cancelled "this and future" (correctly swept remaining unbilled
+instances including the still-draft one, which recomputed the invoice
+to $0, and left the already-billed one alone) — found and fixed a real
+bug where ending a series on/before its own start date violated the
+`end_date >= start_date` check constraint.
 
 Tutors usually have a fixed weekly slot per student. Stop re-entering it.
 
