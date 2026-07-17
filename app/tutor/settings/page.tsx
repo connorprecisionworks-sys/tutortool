@@ -7,6 +7,7 @@ import { SettingsForm } from "@/components/settings/settings-form";
 import { StripeConnectSection } from "@/components/settings/stripe-connect-section";
 import { ReminderTemplatesForm } from "@/components/settings/reminder-templates-form";
 import { PublicProfileForm } from "@/components/settings/public-profile-form";
+import { IcalFeedSection } from "@/components/settings/ical-feed-section";
 import { CopyButton } from "@/components/ui/copy-button";
 import { getStripeAccountStatus, isStripeConfigured } from "@/lib/stripe/client";
 import { tutorCodeLink } from "@/lib/tutor-code-link";
@@ -60,6 +61,15 @@ export default async function SettingsPage() {
             A shareable page with your bio, subjects, and services. No login required to view.
           </p>
           <PublicProfileForm tutor={tutor} />
+        </Card>
+
+        <Card className="max-w-2xl">
+          <h2 className="mb-1 text-sm font-semibold">Calendar sync</h2>
+          <p className="mb-4 text-sm text-text-secondary">
+            Subscribe to this link from Google, Apple, or Outlook Calendar to see your upcoming Slate sessions.
+            Read-only — nothing you do in your calendar app changes Slate.
+          </p>
+          <IcalFeedSection token={tutor.ical_token ?? ""} />
         </Card>
 
         <Card className="max-w-2xl">

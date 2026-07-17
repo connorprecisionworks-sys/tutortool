@@ -1,0 +1,54 @@
+"use client";
+
+import { useState, useTransition } from "react";
+import { Button } from "@/components/ui/button";
+import { CopyButton } from "@/components/ui/copy-button";
+import { regenerateIcalTokenAction } from "@/app/tutor/settings/actions";
+import { icalFeedUrl } from "@/lib/ical-feed-link";
+
+export function IcalFeedSection({ token }: { token: string }) {
+  const [currentToken, setCurrentToken] = useState(token);
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
+
+  function regenerate() {
+    setError(null);
+    startTransition(async () => {
+      const result = await regenerateIcalTokenAction();
+      if (result.error || !result.token) {
+        setError(result.error ?? "Could not regenerate the link.");
+        return;
+      }
+      setCurrentToken(result.token);
+      setConfirming(false);
+    });
+  }
+
+  return (
+    <div>
+      <div className="flex items-center gap-3 rounded-lg border border-border bg-surface-sunken px-4 py-3">
+        <code className="flex-1 truncate text-sm">{icalFeedUrl(currentToken)}</code>
+        <CopyButton value={icalFeedUrl(currentToken)} size="sm" />
+      </div>
+      {error && <p className="mt-2 text-sm text-text">{error}</p>}
+      <div className="mt-3">
+        {confirming ? (
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-text-secondary">Old link stops working immediately. Continue?</span>
+            <Button variant="secondary" size="sm" disabled={pending} onClick={regenerate}>
+              {pending ? "Regenerating…" : "Yes, regenerate"}
+            </Button>
+            <Button variant="ghost" size="sm" disabled={pending} onClick={() => setConfirming(false)}>
+              Never mind
+            </Button>
+          </div>
+        ) : (
+          <Button variant="secondary" size="sm" onClick={() => setConfirming(true)}>
+            Regenerate link
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}

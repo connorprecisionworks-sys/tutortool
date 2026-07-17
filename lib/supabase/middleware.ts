@@ -21,6 +21,11 @@ const PUBLIC_PATHS = [
   "/auth",
   "/api/webhooks",
   "/api/cron",
+  // Fetched by third-party calendar apps (Google/Apple/Outlook) polling
+  // unattended — never carries a Supabase session cookie, same reasoning
+  // as the webhook/cron prefixes above. Authorization is the secret token
+  // in the path itself (get_ical_feed), not a user session.
+  "/api/ical",
 ];
 
 function matchesPrefix(pathname: string, prefix: string) {

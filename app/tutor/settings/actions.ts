@@ -85,6 +85,22 @@ export async function updateTutorSettingsAction(
   return { success: true };
 }
 
+export interface RegenerateIcalTokenResult {
+  error?: string;
+  token?: string;
+}
+
+export async function regenerateIcalTokenAction(): Promise<RegenerateIcalTokenResult> {
+  await requireTutor();
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.rpc("regenerate_ical_token");
+
+  revalidatePath("/tutor/settings");
+  if (error) return { error: error.message };
+  return { token: data ?? undefined };
+}
+
 export async function updateReminderTemplatesAction(
   _prev: SettingsFormResult,
   formData: FormData

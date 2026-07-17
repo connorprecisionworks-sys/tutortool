@@ -312,7 +312,31 @@ The Q3 TODO: let parents book any open time inside availability, not just pre-se
 - Reuse the anon-safe booking path and its ownership/no-double-book guards from Q2; do not weaken RLS.
 - Acceptance: a parent books an arbitrary open slot inside availability and it confirms as a session; an already-taken or out-of-availability time is not offered.
 
-## B5 — Calendar sync (iCal feed)  [ ]
+## B5 — Calendar sync (iCal feed)  [x] (pending commit)
+
+Per-tutor `ical_token` (128-bit random, same entropy as booking_links'
+tokens — not the short hand-typed tutor_code, since this lives in a URL
+a calendar app polls unattended). Public read goes through a
+SECURITY DEFINER RPC (get_ical_feed) returning JSON, same shape as
+get_booking_link_public/get_public_tutor_profile, rather than the route
+handler reaching for the admin client directly — keeps every anonymous
+read in the app on one reviewed pattern. Regenerate is a fresh random
+token; the old URL 404s immediately since nothing can find a tutor by a
+token that no longer exists. Reviewed (manual pass, same missing-tooling
+caveat as B1/B2/B4) and QA'd end-to-end — found and fixed two real bugs
+before this could be called done: (1) the proxy/middleware's public-path
+allowlist didn't include /api/ical, so every request 307-redirected to
+/login — a calendar app has no session cookie to redirect with, so the
+feed would have silently never worked; (2) a genuine SQL bug caught by
+direct RPC testing, not just app-level testing — the query mixed an
+outer ORDER BY/LIMIT with an ungrouped json_agg aggregate, which
+PostgreSQL rejects outright (42803), not just handles wrong; fixed by
+moving the filter/order/limit into a subquery. After both fixes:
+subscribed via curl, confirmed a well-formed, correctly-escaped .ics
+with accurate DTSTART/DTEND and LOCATION; logged a second session and
+confirmed it appeared on refetch with no extra step; regenerated the
+link and confirmed the old URL 404s while the new one serves
+immediately. Checked Settings UI in light/dark and mobile.
 
 Keyless calendar sync so a tutor sees Slate sessions in Google/Apple/Outlook. (Decision: ship the iCal subscribe feed now; full Google two-way OAuth sync is a later item, not this one.)
 

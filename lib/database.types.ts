@@ -1268,6 +1268,7 @@ export type Database = {
           default_payment_timing: string
           email: string
           handle: string | null
+          ical_token: string | null
           id: string
           invoice_terms: string
           is_public: boolean
@@ -1295,6 +1296,7 @@ export type Database = {
           default_payment_timing?: string
           email: string
           handle?: string | null
+          ical_token?: string | null
           id?: string
           invoice_terms?: string
           is_public?: boolean
@@ -1322,6 +1324,7 @@ export type Database = {
           default_payment_timing?: string
           email?: string
           handle?: string | null
+          ical_token?: string | null
           id?: string
           invoice_terms?: string
           is_public?: boolean
@@ -1603,6 +1606,7 @@ export type Database = {
       }
       generate_tutor_code: { Args: never; Returns: string }
       get_booking_link_public: { Args: { p_token: string }; Returns: Json }
+      get_ical_feed: { Args: { p_token: string }; Returns: Json }
       get_open_availability_slots: {
         Args: { p_date: string; p_token: string }
         Returns: Json
@@ -1663,6 +1667,7 @@ export type Database = {
         }
         Returns: string
       }
+      regenerate_ical_token: { Args: never; Returns: string }
       regenerate_invite: { Args: { p_student_id: string }; Returns: string }
       remove_line_item: { Args: { p_line_item_id: string }; Returns: undefined }
       revoke_invite: { Args: { p_student_id: string }; Returns: undefined }
