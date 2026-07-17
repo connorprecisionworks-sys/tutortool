@@ -349,7 +349,7 @@ Keyless calendar sync so a tutor sees Slate sessions in Google/Apple/Outlook. (D
 - Settings shows the feed URL with copy + a regenerate (revoke) option.
 - Acceptance: subscribe to the iCal URL in a calendar app and Slate sessions appear; a new booking shows up on the calendar's next refresh; regenerating the URL invalidates the old one.
 
-## B6 — Hardening + polish + deferred QA  [x] (pending commit)
+## B6 — Hardening + polish + deferred QA  [x] (a5f9a09)
 
 **Deferred walkthroughs, all done in a real browser this pass:**
 - Q4 cancellations: cancelled a paid session as rollover -> a $40 credit
