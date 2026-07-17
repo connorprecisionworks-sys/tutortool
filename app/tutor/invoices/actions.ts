@@ -6,6 +6,7 @@ import { requireTutor } from "@/lib/auth/tutor";
 import { dollarsToCents } from "@/lib/money";
 import { getStripe, getStripeAccountStatus, isStripeConfigured } from "@/lib/stripe/client";
 import { appUrl } from "@/lib/env";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 /**
  * Best-effort: create a Stripe Checkout Session (direct charge on the
@@ -84,7 +85,7 @@ export async function createDraftInvoiceAction(
   _prev: InvoiceFormResult,
   formData: FormData
 ): Promise<InvoiceFormResult> {
-  await requireTutor();
+  const tutor = await requireTutor();
   const supabase = await createClient();
 
   const clientId = String(formData.get("client_id") ?? "");
@@ -102,6 +103,14 @@ export async function createDraftInvoiceAction(
   });
 
   if (error) return { error: error.message };
+
+  const posthog = getPostHogClient();
+  posthog.capture({
+    distinctId: tutor.auth_user_id,
+    event: "invoice_created",
+    properties: { period_start: periodStart, period_end: periodEnd },
+  });
+  await posthog.flush();
 
   revalidatePath("/tutor/invoices");
   return { invoiceId: data as string };
@@ -148,12 +157,20 @@ export async function removeLineItemAction(
 }
 
 export async function sendInvoiceAction(invoiceId: string): Promise<{ error?: string }> {
-  await requireTutor();
+  const tutor = await requireTutor();
   const supabase = await createClient();
   const { error } = await supabase.rpc("send_invoice", { p_invoice_id: invoiceId });
 
   if (!error) {
     await tryCreateStripePaymentLink(invoiceId);
+
+    const posthog = getPostHogClient();
+    posthog.capture({
+      distinctId: tutor.auth_user_id,
+      event: "invoice_sent",
+      properties: { invoice_id: invoiceId },
+    });
+    await posthog.flush();
   }
 
   revalidatePath(`/tutor/invoices/${invoiceId}`);
@@ -175,9 +192,20 @@ export async function regeneratePaymentLinkAction(invoiceId: string): Promise<{ 
 }
 
 export async function markInvoicePaidAction(invoiceId: string, method: string): Promise<{ error?: string }> {
-  await requireTutor();
+  const tutor = await requireTutor();
   const supabase = await createClient();
   const { error } = await supabase.rpc("mark_invoice_paid", { p_invoice_id: invoiceId, p_method: method });
+
+  if (!error) {
+    const posthog = getPostHogClient();
+    posthog.capture({
+      distinctId: tutor.auth_user_id,
+      event: "invoice_paid_manually",
+      properties: { invoice_id: invoiceId, payment_method: method },
+    });
+    await posthog.flush();
+  }
+
   revalidatePath(`/tutor/invoices/${invoiceId}`);
   revalidatePath("/tutor/invoices");
   if (error) return { error: error.message };

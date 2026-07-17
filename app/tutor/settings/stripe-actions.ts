@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireTutor } from "@/lib/auth/tutor";
 import { getStripe, isStripeConfigured } from "@/lib/stripe/client";
 import { appUrl } from "@/lib/env";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 export interface StripeActionResult {
   error?: string;
@@ -52,6 +53,14 @@ export async function connectStripeAction(): Promise<StripeActionResult> {
       return_url: `${appUrl()}/tutor/settings?stripe=return`,
       type: "account_onboarding",
     });
+
+    const posthog = getPostHogClient();
+    posthog.capture({
+      distinctId: tutor.auth_user_id,
+      event: "stripe_connect_started",
+      properties: { is_new_account: !tutor.stripe_account_id },
+    });
+    await posthog.flush();
 
     return { url: link.url };
   } catch (err) {

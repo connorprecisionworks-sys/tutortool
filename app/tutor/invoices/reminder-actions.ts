@@ -6,6 +6,7 @@ import { requireTutor } from "@/lib/auth/tutor";
 import { sendEmail } from "@/lib/email";
 import { formatCents } from "@/lib/money";
 import { interpolateTemplate, type ReminderTemplates } from "@/lib/reminders";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 export async function sendReminderNowAction(
   invoiceId: string,
@@ -63,5 +64,14 @@ export async function sendReminderNowAction(
   if (sendResult.error) {
     return { error: `Logged, but the email failed to send: ${sendResult.error}` };
   }
+
+  const posthog = getPostHogClient();
+  posthog.capture({
+    distinctId: tutor.auth_user_id,
+    event: "payment_reminder_sent",
+    properties: { invoice_id: invoiceId, template_key: templateKey },
+  });
+  await posthog.flush();
+
   return {};
 }

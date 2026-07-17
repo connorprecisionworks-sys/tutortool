@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ReactNode, useState } from "react";
 import clsx from "clsx";
+import posthog from "posthog-js";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Mark } from "@/components/brand/logo";
 import { createClient } from "@/lib/supabase/client";
@@ -31,6 +32,10 @@ export function AppShell({
   async function signOut() {
     const supabase = createClient();
     await supabase.auth.signOut();
+    // Clear the PostHog identity so the next person to log in on this browser
+    // (shared/family device) gets a fresh distinct_id instead of inheriting
+    // this user's events and session recording.
+    posthog.reset();
     router.push("/login");
     router.refresh();
   }

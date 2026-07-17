@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 export interface AuthActionResult {
   error?: string;
@@ -37,6 +38,18 @@ async function signUpWithRole(role: "tutor" | "parent", formData: FormData): Pro
   if (!data.session) {
     return { needsEmailConfirmation: true };
   }
+
+  const posthog = getPostHogClient();
+  posthog.capture({
+    distinctId: data.user!.id,
+    event: role === "tutor" ? "tutor_signed_up" : "parent_signed_up",
+    properties: { role },
+  });
+  posthog.identify({
+    distinctId: data.user!.id,
+    properties: { role, name },
+  });
+  await posthog.flush();
 
   // Session exists immediately (email confirmations off) — create the
   // profile row(s) now so the shell layout doesn't have to special-case a

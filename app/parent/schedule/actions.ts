@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireParent } from "@/lib/auth/parent";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 export interface BookingFormResult {
   error?: string;
@@ -29,7 +30,7 @@ export async function createBookingAction(
   _prev: BookingFormResult,
   formData: FormData
 ): Promise<BookingFormResult> {
-  await requireParent();
+  const parent = await requireParent();
   const supabase = await createClient();
 
   const studentId = String(formData.get("student_id") ?? "");
@@ -53,6 +54,14 @@ export async function createBookingAction(
   });
 
   if (error) return { error: error.message };
+
+  const posthog = getPostHogClient();
+  posthog.capture({
+    distinctId: parent.auth_user_id,
+    event: "session_booking_requested",
+    properties: { duration_minutes: durationMinutes },
+  });
+  await posthog.flush();
 
   revalidatePath("/parent/schedule");
   return {};
