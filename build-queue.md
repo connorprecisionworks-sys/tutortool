@@ -312,7 +312,7 @@ The Q3 TODO: let parents book any open time inside availability, not just pre-se
 - Reuse the anon-safe booking path and its ownership/no-double-book guards from Q2; do not weaken RLS.
 - Acceptance: a parent books an arbitrary open slot inside availability and it confirms as a session; an already-taken or out-of-availability time is not offered.
 
-## B5 — Calendar sync (iCal feed)  [x] (pending commit)
+## B5 — Calendar sync (iCal feed)  [x] (9e56ab7)
 
 Per-tutor `ical_token` (128-bit random, same entropy as booking_links'
 tokens — not the short hand-typed tutor_code, since this lives in a URL
