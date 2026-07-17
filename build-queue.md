@@ -244,7 +244,7 @@ Tutors usually have a fixed weekly slot per student. Stop re-entering it.
 - Instances bill and remind exactly like normal sessions; no double-entry.
 - Acceptance: set a weekly Tuesday 4pm session for a student; upcoming instances appear and each invoices normally; cancelling one instance leaves the rest intact.
 
-## B3 — Business-insights dashboard  [x] (pending commit)
+## B3 — Business-insights dashboard  [x] (5df1ea1)
 
 Read-only — no migration, no new mutations. Headline numbers are either
 the already-authoritative `invoices.total_cents` (never recomputed here,
