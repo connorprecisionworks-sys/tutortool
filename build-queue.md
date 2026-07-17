@@ -268,7 +268,7 @@ The "insights" pillar from the brand sheet. Read-only reporting, no new money mu
 - All figures derived from existing tables; must reconcile to the penny with the underlying data.
 - Acceptance: every headline number matches a hand calculation against seeded data.
 
-## B4 — Standing self-serve booking  [x] (pending commit)
+## B4 — Standing self-serve booking  [x] (257ad1a)
 
 booking_links gets a `mode` ('fixed_slots' | 'open_availability'). An
 open_availability link is genuinely standing/reusable (Calendly-style —
