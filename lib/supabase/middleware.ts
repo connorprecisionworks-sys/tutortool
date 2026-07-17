@@ -19,6 +19,9 @@ const PUBLIC_PATHS = [
   "/book",
   "/t",
   "/auth",
+  "/about",
+  "/privacy",
+  "/terms",
   "/api/webhooks",
   "/api/cron",
   // Fetched by third-party calendar apps (Google/Apple/Outlook) polling
@@ -26,6 +29,13 @@ const PUBLIC_PATHS = [
   // as the webhook/cron prefixes above. Authorization is the secret token
   // in the path itself (get_ical_feed), not a user session.
   "/api/ical",
+  // next.config.ts rewrites this to PostHog's ingest/asset origins so
+  // posthog-js's own requests (config.js, session recording, event
+  // capture) never carry a Supabase session cookie either — without this,
+  // every logged-out page (starting with the landing page) got these
+  // requests silently redirected to /login, and posthog-js choked trying
+  // to JSON.parse the login page's HTML back as a PostHog response.
+  "/ingest",
 ];
 
 function matchesPrefix(pathname: string, prefix: string) {
