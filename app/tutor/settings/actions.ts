@@ -52,6 +52,11 @@ export async function updateTutorSettingsAction(
     return { error: `Session reminder lead time must be between 0 and ${SESSION_REMINDER_MAX_LEAD_HOURS} hours.` };
   }
 
+  const mileageRate = Number(formData.get("mileage_rate_cents") ?? "0");
+  if (Number.isNaN(mileageRate) || mileageRate < 0) {
+    return { error: "Mileage rate must be a positive number." };
+  }
+
   // Ignored (stays false) unless Twilio is actually configured platform-
   // wide — the form field is hidden in that case anyway, but re-checked
   // here rather than trusting the client not to submit it regardless.
@@ -70,6 +75,7 @@ export async function updateTutorSettingsAction(
       default_payment_timing: paymentTiming,
       session_reminder_lead_hours: Math.round(sessionReminderLeadHours),
       sms_enabled: smsEnabled,
+      mileage_rate_cents: dollarsToCents(mileageRate),
     })
     .eq("id", tutor.id);
 

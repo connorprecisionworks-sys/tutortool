@@ -17,6 +17,10 @@ function monthRange(): { start: string; end: string } {
   return { start: start.toISOString(), end: end.toISOString() };
 }
 
+function yearStartDate(): string {
+  return `${new Date().getUTCFullYear()}-01-01`;
+}
+
 export default async function TutorDashboardPage() {
   const tutor = await requireTutor();
   const supabase = await createClient();
@@ -29,6 +33,7 @@ export default async function TutorDashboardPage() {
     { count: overdueCount },
     { data: billedThisMonth },
     { data: sessions },
+    { data: expensesThisYear },
   ] = await Promise.all([
     getOnboardingStatus(tutor),
     supabase.from("invoices").select("total_cents").eq("tutor_id", tutor.id).in("status", ["sent", "overdue"]),
@@ -48,7 +53,10 @@ export default async function TutorDashboardPage() {
       .from("sessions")
       .select("duration_minutes, effective_rate_cents, service_price_cents, package_id, clients(is_philanthropic)")
       .eq("tutor_id", tutor.id),
+    supabase.from("expenses").select("amount_cents").eq("tutor_id", tutor.id).gte("incurred_on", yearStartDate()),
   ]);
+
+  const expensesThisYearCents = (expensesThisYear ?? []).reduce((sum, e) => sum + e.amount_cents, 0);
 
   const outstandingCents = (outstandingInvoices ?? []).reduce((sum, i) => sum + i.total_cents, 0);
   const billedThisMonthCents = (billedThisMonth ?? []).reduce((sum, i) => sum + i.total_cents, 0);
@@ -97,7 +105,7 @@ export default async function TutorDashboardPage() {
 
       <OnboardingChecklist tutorId={tutor.id} status={onboarding} className="mb-6" />
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <p className="text-xs text-text-secondary">Outstanding</p>
           <p className="mt-1 text-2xl font-semibold tabular-nums">{formatCents(outstandingCents)}</p>
@@ -110,6 +118,12 @@ export default async function TutorDashboardPage() {
           <p className="text-xs text-text-secondary">Overdue invoices</p>
           <p className="mt-1 text-2xl font-semibold tabular-nums">{overdueCount ?? 0}</p>
         </Card>
+        <Link href="/tutor/expenses">
+          <Card className="h-full transition-colors hover:bg-hover">
+            <p className="text-xs text-text-secondary">Expenses this year</p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums">{formatCents(expensesThisYearCents)}</p>
+          </Card>
+        </Link>
       </div>
 
       <Card className="mt-6">

@@ -429,6 +429,89 @@ export type Database = {
           },
         ]
       }
+      expenses: {
+        Row: {
+          amount_cents: number
+          category: string
+          created_at: string
+          from_location: string | null
+          id: string
+          incurred_on: string
+          mileage_rate_cents: number | null
+          miles: number | null
+          note: string | null
+          receipt_path: string | null
+          session_id: string | null
+          student_id: string | null
+          to_location: string | null
+          tutor_id: string
+          vendor: string | null
+        }
+        Insert: {
+          amount_cents: number
+          category: string
+          created_at?: string
+          from_location?: string | null
+          id?: string
+          incurred_on: string
+          mileage_rate_cents?: number | null
+          miles?: number | null
+          note?: string | null
+          receipt_path?: string | null
+          session_id?: string | null
+          student_id?: string | null
+          to_location?: string | null
+          tutor_id: string
+          vendor?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          category?: string
+          created_at?: string
+          from_location?: string | null
+          id?: string
+          incurred_on?: string
+          mileage_rate_cents?: number | null
+          miles?: number | null
+          note?: string | null
+          receipt_path?: string | null
+          session_id?: string | null
+          student_id?: string | null
+          to_location?: string | null
+          tutor_id?: string
+          vendor?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "parent_visible_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_tutor_id_fkey"
+            columns: ["tutor_id"]
+            isOneToOne: false
+            referencedRelation: "tutors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invite_sends: {
         Row: {
           channel: string
@@ -1089,6 +1172,7 @@ export type Database = {
           id: string
           invoice_terms: string
           is_public: boolean
+          mileage_rate_cents: number
           name: string
           reminder_cadence: Json
           reminder_templates: Json
@@ -1115,6 +1199,7 @@ export type Database = {
           id?: string
           invoice_terms?: string
           is_public?: boolean
+          mileage_rate_cents?: number
           name: string
           reminder_cadence?: Json
           reminder_templates?: Json
@@ -1141,6 +1226,7 @@ export type Database = {
           id?: string
           invoice_terms?: string
           is_public?: boolean
+          mileage_rate_cents?: number
           name?: string
           reminder_cadence?: Json
           reminder_templates?: Json

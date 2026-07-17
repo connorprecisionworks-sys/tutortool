@@ -9,6 +9,7 @@ export const TUTOR_NAV: NavItem[] = [
   { href: "/tutor/schedule", label: "Schedule" },
   { href: "/tutor/booking-links", label: "Booking Links" },
   { href: "/tutor/resources", label: "Resources" },
+  { href: "/tutor/expenses", label: "Expenses" },
   { href: "/tutor/settings", label: "Settings" },
 ];
 

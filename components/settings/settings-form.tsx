@@ -121,6 +121,26 @@ export function SettingsForm({ tutor, smsConfigured }: { tutor: Tables<"tutors">
         </div>
       </div>
 
+      <div className="border-t border-border pt-6">
+        <h2 className="mb-4 text-sm font-semibold">Mileage</h2>
+        <div>
+          <Label htmlFor="mileage_rate_cents">Mileage rate ($/mile)</Label>
+          <Input
+            id="mileage_rate_cents"
+            name="mileage_rate_cents"
+            type="number"
+            step="0.001"
+            min="0"
+            defaultValue={(tutor.mileage_rate_cents / 100).toFixed(3)}
+            required
+          />
+          <FieldHint>
+            Used to value logged mileage trips in Expenses. Defaults to the IRS standard business rate —
+            the IRS updates this yearly, so check and update it each January.
+          </FieldHint>
+        </div>
+      </div>
+
       {smsConfigured && (
         <div className="border-t border-border pt-6">
           <h2 className="mb-4 text-sm font-semibold">SMS reminders</h2>
