@@ -244,7 +244,23 @@ Tutors usually have a fixed weekly slot per student. Stop re-entering it.
 - Instances bill and remind exactly like normal sessions; no double-entry.
 - Acceptance: set a weekly Tuesday 4pm session for a student; upcoming instances appear and each invoices normally; cancelling one instance leaves the rest intact.
 
-## B3 — Business-insights dashboard  [ ]
+## B3 — Business-insights dashboard  [x] (pending commit)
+
+Read-only — no migration, no new mutations. Headline numbers are either
+the already-authoritative `invoices.total_cents` (never recomputed here,
+just summed/filtered) or run through the exact same `computeSessionAmountCents`/
+`computeValueGivenCents` helpers the rest of the app already uses for
+billing and the dashboard's value-given card, so there's no second
+implementation of the money math to drift from the first. "Booked, not
+yet billed" mirrors `create_draft_invoice`'s own eligibility filter
+(logged, not cancelled, no package, not yet invoiced) plus a
+future-only date filter, so the number matches what would actually
+appear if invoiced today. Simple CSS bar charts (no charting library
+added — none existed in the repo). QA'd with real seeded data (a $60
+paid session this month, a $40 future unbilled session, standard rate,
+no discounts): every headline number, the 6-month revenue bar, and the
+top-students bar matched hand math exactly on the first pass. Checked
+light/dark and mobile.
 
 The "insights" pillar from the brand sheet. Read-only reporting, no new money mutations.
 

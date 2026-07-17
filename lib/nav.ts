@@ -2,6 +2,7 @@ import type { NavItem } from "@/components/shell/app-shell";
 
 export const TUTOR_NAV: NavItem[] = [
   { href: "/tutor", label: "Dashboard" },
+  { href: "/tutor/insights", label: "Insights" },
   { href: "/tutor/students", label: "Students" },
   { href: "/tutor/sessions", label: "Sessions" },
   { href: "/tutor/invoices", label: "Invoices" },
