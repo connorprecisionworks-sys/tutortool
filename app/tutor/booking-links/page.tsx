@@ -48,6 +48,7 @@ export default async function BookingLinksPage() {
               <tr>
                 <th className="px-5 py-3 font-medium">For</th>
                 <th className="px-5 py-3 font-medium">Service</th>
+                <th className="px-5 py-3 font-medium">Mode</th>
                 <th className="px-5 py-3 font-medium">Status</th>
                 <th className="px-5 py-3 font-medium">Link</th>
                 <th className="px-5 py-3" />
@@ -63,6 +64,9 @@ export default async function BookingLinksPage() {
                   </td>
                   <td className="px-5 py-3 text-text-secondary">
                     {(l.services as unknown as { name: string } | null)?.name ?? "Custom duration"}
+                  </td>
+                  <td className="px-5 py-3 text-text-secondary">
+                    {l.mode === "open_availability" ? "Standing" : "Fixed times"}
                   </td>
                   <td className="px-5 py-3">
                     <StatusDot status={l.status === "booked" ? "confirmed" : l.status === "cancelled" ? "cancelled" : "requested"} label={l.status === "open" ? "Open" : l.status === "booked" ? "Booked" : "Cancelled"} />

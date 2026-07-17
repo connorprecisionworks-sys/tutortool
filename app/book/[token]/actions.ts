@@ -8,6 +8,33 @@ import { formatBookingWhen } from "@/lib/scheduling";
 import { appUrl } from "@/lib/env";
 import { interpolateTemplate, type ReminderTemplates } from "@/lib/reminders";
 
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+export interface OpenAvailabilitySlotsResult {
+  slots: string[];
+  error?: string;
+}
+
+/**
+ * Same "anon RPC through a server action, not a client-side Supabase call"
+ * shape as confirmBookingLinkAction — the visitor has no session either
+ * way, but every anonymous read/write in this app goes through this one
+ * path rather than a second, browser-side call pattern.
+ */
+export async function getOpenAvailabilitySlotsAction(
+  token: string,
+  date: string
+): Promise<OpenAvailabilitySlotsResult> {
+  if (!DATE_RE.test(date)) return { slots: [], error: "Invalid date." };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("get_open_availability_slots", { p_token: token, p_date: date });
+
+  if (error) return { slots: [], error: error.message };
+  const result = data as unknown as { slots: string[] } | null;
+  return { slots: result?.slots ?? [] };
+}
+
 export interface ConfirmBookingResult {
   error?: string;
   bookingLinkId?: string;
@@ -137,4 +164,112 @@ export async function confirmBookingLinkAction(
   }
 
   return { bookingLinkId: bookingLinkId ?? undefined };
+}
+
+export interface ConfirmOpenBookingResult {
+  error?: string;
+  sessionId?: string;
+}
+
+/**
+ * Confirms an arbitrary time on a standing (open_availability) link — same
+ * anon-role-via-server-action shape as confirmBookingLinkAction above, and
+ * the same best-effort notification flow, just keyed off the RPC's
+ * returned session_id directly (an open_availability link never sets
+ * booking_links.session_id — it's reusable, not single-booking — so there's
+ * no link row to read that back from).
+ */
+export async function confirmOpenBookingLinkAction(
+  _prev: ConfirmOpenBookingResult,
+  formData: FormData
+): Promise<ConfirmOpenBookingResult> {
+  const token = String(formData.get("token") ?? "").trim();
+  const startTs = String(formData.get("start_ts") ?? "").trim();
+  const parentName = String(formData.get("parent_name") ?? "").trim();
+  const parentEmail = String(formData.get("parent_email") ?? "").trim();
+  const studentName = String(formData.get("student_name") ?? "").trim();
+
+  if (!token || !startTs) return { error: "Missing booking details." };
+  if (!parentEmail) return { error: "Email is required." };
+  if (Number.isNaN(new Date(startTs).getTime())) return { error: "Invalid time." };
+
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.rpc("confirm_open_booking_link", {
+    p_token: token,
+    p_start_ts: startTs,
+    p_parent_name: (parentName || null) as unknown as string,
+    p_parent_email: parentEmail,
+    p_student_name: (studentName || null) as unknown as string,
+  });
+
+  if (error) return { error: error.message };
+  const result = data as unknown as { session_id: string; booking_link_id: string } | null;
+  const sessionId = result?.session_id;
+  if (!sessionId) return { error: "Could not confirm the booking." };
+
+  try {
+    const admin = createAdminClient();
+    const { data: session } = await admin
+      .from("sessions")
+      .select("occurred_on, start_time, client_id, tutor_id")
+      .eq("id", sessionId)
+      .maybeSingle();
+
+    if (session) {
+      const [{ data: tutor }, { data: student }] = await Promise.all([
+        admin.from("tutors").select("name, email, reminder_templates").eq("id", session.tutor_id).maybeSingle(),
+        admin.from("clients").select("student_name").eq("id", session.client_id).maybeSingle(),
+      ]);
+
+      const whenText = formatBookingWhen(`${session.occurred_on}T${session.start_time ?? "00:00:00"}.000Z`);
+      const studentDisplayName = student?.student_name ?? "a student";
+
+      if (tutor?.email) {
+        if (isEmailConfigured()) {
+          await sendEmail({
+            to: tutor.email,
+            subject: `New booking: ${studentDisplayName}`,
+            html: buildBookingConfirmedEmailHtml({
+              tutorName: tutor.name,
+              studentName: studentDisplayName,
+              parentName: parentName || null,
+              whenText,
+              sessionsUrl: `${appUrl()}/tutor/sessions`,
+              logoUrl: `${appUrl()}/brand/logo/slate-logo-on-light.png`,
+            }),
+          });
+        } else {
+          console.log(`[booking notification] ${tutor.email}: new booking for ${studentDisplayName}`);
+        }
+      }
+
+      const template = (tutor?.reminder_templates as unknown as ReminderTemplates | null)?.booking_confirmation;
+      if (template) {
+        const { error: claimError } = await admin
+          .from("reminders")
+          .insert({ session_id: sessionId, kind: "booking_confirmation", channel: "email", template_key: "booking_confirmation" });
+
+        if (!claimError) {
+          const filled = interpolateTemplate(template, { student: studentDisplayName, tutor: tutor?.name ?? "your tutor", when: whenText });
+          if (isEmailConfigured()) {
+            const sendResult = await sendEmail({
+              to: parentEmail,
+              subject: filled.subject,
+              html: `<p>${filled.body.replace(/\n/g, "<br/>")}</p>`,
+            });
+            if (sendResult.error) {
+              console.error(`Booking confirmation send failed for session ${sessionId}:`, sendResult.error);
+            }
+          } else {
+            console.log(`[booking confirmation] ${parentEmail}: ${filled.subject}`);
+          }
+        }
+      }
+    }
+  } catch {
+    // Notification failure should never fail the parent's booking.
+  }
+
+  return { sessionId };
 }

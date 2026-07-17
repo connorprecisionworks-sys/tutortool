@@ -268,7 +268,42 @@ The "insights" pillar from the brand sheet. Read-only reporting, no new money mu
 - All figures derived from existing tables; must reconcile to the penny with the underlying data.
 - Acceptance: every headline number matches a hand calculation against seeded data.
 
-## B4 — Standing self-serve booking  [ ]
+## B4 — Standing self-serve booking  [x] (pending commit)
+
+booking_links gets a `mode` ('fixed_slots' | 'open_availability'). An
+open_availability link is genuinely standing/reusable (Calendly-style —
+stays status='open' and gets booked repeatedly by different parents,
+unlike a fixed_slots link which is single-use), which meant it couldn't
+reuse Q2's booking_links.session_id/chosen_slot_id (built for a 1:1
+link->booking model) — tracked instead via a new nullable
+sessions.booking_link_id. Deep-researched the existing Q2/P9 booking
+architecture before writing any code (see the exploration in this
+session) and found a real, pre-existing gap: confirm_booking_link (Q2)
+had NO overlap check against anything, and P9's create_booking/
+approve_booking only checked overlap against other `bookings` rows — the
+two mechanisms couldn't see each other, so a tutor could already be
+double-booked across a booking link and a P9 request today. Closed this
+with one shared `is_slot_bookable()` (containment against `availability`
++ overlap-with-buffer against BOTH `sessions` and `bookings`, under the
+same per-tutor `pg_advisory_xact_lock` P9 already uses for this exact
+race class) used by both the new public day-slots RPC and the confirm
+function, so there's exactly one implementation of "is this tutor free"
+to keep correct. get_public_tutor_profile (Q3) widened to also surface
+a standing link on the public page's "Book" button — it previously
+required a future `booking_link_slots` row, which an open_availability
+link never has. Reviewed (manual pass, same missing-tooling caveat as
+B1/B2 — caught and fixed a genuine SQL syntax bug myself, a missing
+semicolon in the token-retry loop, before ever applying the migration;
+also directly SQL-tested is_slot_bookable's containment/overlap/buffer/
+past-date logic in isolation against a real fixture before building any
+UI on top of it) and QA'd end-to-end in a headless browser: created a
+standing link, confirmed the public page correctly excluded both
+out-of-availability times and a time already occupied by an existing
+session, booked it twice with two different parents (proving it's
+genuinely reusable, not single-use), verified both sessions billed
+correctly, confirmed the public tutor profile's "Book" button now
+routes to the standing link, and confirmed cancelling the link stops
+further bookings on both the tutor and public sides.
 
 The Q3 TODO: let parents book any open time inside availability, not just pre-set slots (Calendly-style), as a booking option the tutor can enable.
 

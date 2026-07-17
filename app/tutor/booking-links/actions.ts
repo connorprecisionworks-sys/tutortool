@@ -78,6 +78,49 @@ export async function createBookingLinkAction(
   return { token: token ?? undefined };
 }
 
+export async function createOpenAvailabilityBookingLinkAction(
+  _prev: BookingLinkFormResult,
+  formData: FormData
+): Promise<BookingLinkFormResult> {
+  const tutor = await requireTutor();
+  const supabase = await createClient();
+
+  const studentId = String(formData.get("student_id") ?? "").trim();
+  const serviceId = String(formData.get("service_id") ?? "").trim();
+  const durationRaw = String(formData.get("duration_minutes") ?? "").trim();
+  const bufferRaw = String(formData.get("buffer_minutes") ?? "0").trim();
+
+  const durationMinutes = durationRaw ? Number(durationRaw) : null;
+  if (!serviceId && (!durationMinutes || durationMinutes <= 0)) {
+    return { error: "Pick a service or set a session duration." };
+  }
+
+  const bufferMinutes = Number(bufferRaw);
+  if (Number.isNaN(bufferMinutes) || bufferMinutes < 0) {
+    return { error: "Buffer must be zero or a positive number of minutes." };
+  }
+
+  const { data: token, error } = await supabase.rpc("create_open_availability_booking_link", {
+    p_student_id: (studentId || null) as unknown as string,
+    p_service_id: (serviceId || null) as unknown as string,
+    p_duration_minutes: (durationMinutes ?? null) as unknown as number,
+    p_buffer_minutes: Math.round(bufferMinutes),
+  });
+
+  if (error) return { error: error.message };
+
+  const posthog = getPostHogClient();
+  posthog.capture({
+    distinctId: tutor.auth_user_id,
+    event: "open_availability_booking_link_created",
+    properties: { has_service: Boolean(serviceId), has_student: Boolean(studentId), buffer_minutes: bufferMinutes },
+  });
+  await posthog.flush();
+
+  revalidatePath("/tutor/booking-links");
+  return { token: token ?? undefined };
+}
+
 export interface CancelBookingLinkResult {
   error?: string;
 }

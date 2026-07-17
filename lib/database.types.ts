@@ -108,9 +108,12 @@ export type Database = {
       }
       booking_links: {
         Row: {
+          buffer_minutes: number
           chosen_slot_id: string | null
           created_at: string
+          duration_minutes: number | null
           id: string
+          mode: string
           service_id: string | null
           session_id: string | null
           status: string
@@ -119,9 +122,12 @@ export type Database = {
           tutor_id: string
         }
         Insert: {
+          buffer_minutes?: number
           chosen_slot_id?: string | null
           created_at?: string
+          duration_minutes?: number | null
           id?: string
+          mode?: string
           service_id?: string | null
           session_id?: string | null
           status?: string
@@ -130,9 +136,12 @@ export type Database = {
           tutor_id: string
         }
         Update: {
+          buffer_minutes?: number
           chosen_slot_id?: string | null
           created_at?: string
+          duration_minutes?: number | null
           id?: string
+          mode?: string
           service_id?: string | null
           session_id?: string | null
           status?: string
@@ -1108,6 +1117,7 @@ export type Database = {
       sessions: {
         Row: {
           bill_travel: boolean
+          booking_link_id: string | null
           cancellation_handling: string | null
           cancelled_at: string | null
           client_id: string
@@ -1131,6 +1141,7 @@ export type Database = {
         }
         Insert: {
           bill_travel: boolean
+          booking_link_id?: string | null
           cancellation_handling?: string | null
           cancelled_at?: string | null
           client_id: string
@@ -1154,6 +1165,7 @@ export type Database = {
         }
         Update: {
           bill_travel?: boolean
+          booking_link_id?: string | null
           cancellation_handling?: string | null
           cancelled_at?: string | null
           client_id?: string
@@ -1176,6 +1188,13 @@ export type Database = {
           tutor_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "sessions_booking_link_id_fkey"
+            columns: ["booking_link_id"]
+            isOneToOne: false
+            referencedRelation: "booking_links"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sessions_client_id_fkey"
             columns: ["client_id"]
@@ -1439,6 +1458,16 @@ export type Database = {
         }
         Returns: string
       }
+      confirm_open_booking_link: {
+        Args: {
+          p_parent_email: string
+          p_parent_name: string
+          p_start_ts: string
+          p_student_name?: string
+          p_token: string
+        }
+        Returns: Json
+      }
       confirm_pending_student: {
         Args: { p_student_id: string }
         Returns: undefined
@@ -1470,6 +1499,15 @@ export type Database = {
         Returns: string
       }
       create_invite: { Args: { p_student_id: string }; Returns: string }
+      create_open_availability_booking_link: {
+        Args: {
+          p_buffer_minutes: number
+          p_duration_minutes: number
+          p_service_id: string
+          p_student_id: string
+        }
+        Returns: string
+      }
       create_package: {
         Args: {
           p_client_id: string
@@ -1565,6 +1603,10 @@ export type Database = {
       }
       generate_tutor_code: { Args: never; Returns: string }
       get_booking_link_public: { Args: { p_token: string }; Returns: Json }
+      get_open_availability_slots: {
+        Args: { p_date: string; p_token: string }
+        Returns: Json
+      }
       get_public_tutor_profile: { Args: { p_handle: string }; Returns: Json }
       get_tutor_name_for_code: { Args: { p_code: string }; Returns: string }
       get_unclaimed_students_for_tutor_code: {
@@ -1573,6 +1615,15 @@ export type Database = {
       }
       is_parent_of_session: { Args: { p_session_id: string }; Returns: boolean }
       is_parent_of_student: { Args: { p_student_id: string }; Returns: boolean }
+      is_slot_bookable: {
+        Args: {
+          p_buffer_minutes: number
+          p_duration_minutes: number
+          p_start_ts: string
+          p_tutor_id: string
+        }
+        Returns: boolean
+      }
       is_tutor_of_client: { Args: { p_client_id: string }; Returns: boolean }
       log_invite_send: {
         Args: {

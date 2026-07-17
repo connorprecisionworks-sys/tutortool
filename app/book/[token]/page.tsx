@@ -2,15 +2,18 @@ import { createClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/card";
 import { Mark } from "@/components/brand/logo";
 import { BookingConfirmForm } from "@/components/book/booking-confirm-form";
+import { OpenAvailabilityBookingForm } from "@/components/book/open-availability-booking-form";
 import { formatCents } from "@/lib/money";
 
 interface BookingLinkPublicData {
   found: boolean;
   status?: "open" | "booked" | "cancelled" | "unavailable";
+  mode?: "fixed_slots" | "open_availability";
   tutor_name?: string;
   service_name?: string | null;
   service_price_cents?: number | null;
   service_duration_minutes?: number | null;
+  duration_minutes?: number | null;
   needs_student_name?: boolean;
   slots?: { id: string; start_ts: string; duration_minutes: number }[];
 }
@@ -59,11 +62,19 @@ export default async function BookingLinkPage({ params }: { params: Promise<{ to
                 ? `${link.service_name} — ${formatCents(link.service_price_cents ?? 0)} (${link.service_duration_minutes} min)`
                 : "Pick a time below."}
             </p>
-            <BookingConfirmForm
-              token={token}
-              slots={link.slots ?? []}
-              needsStudentName={Boolean(link.needs_student_name)}
-            />
+            {link.mode === "open_availability" ? (
+              <OpenAvailabilityBookingForm
+                token={token}
+                durationMinutes={link.duration_minutes ?? 60}
+                needsStudentName={Boolean(link.needs_student_name)}
+              />
+            ) : (
+              <BookingConfirmForm
+                token={token}
+                slots={link.slots ?? []}
+                needsStudentName={Boolean(link.needs_student_name)}
+              />
+            )}
           </>
         )}
       </Card>
