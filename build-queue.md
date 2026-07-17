@@ -170,7 +170,7 @@ Add a tutor-level join code alongside the per-student codes (keep student codes 
 
 New todo items. Same global rules and same standing loop prompt (`slate-loop-prompt.md`). Work these top-down after all Batch 1 items (they are done). Decisions are baked in; no product calls needed.
 
-## B1 — Expense, receipt capture & mileage (tax module)  [x] (pending commit)
+## B1 — Expense, receipt capture & mileage (tax module)  [x] (d8f3a85)
 
 `expenses` table (plain tutor-owned RLS — not a cross-row money state
 machine like invoices/packages, so no SECURITY DEFINER layer needed; see
