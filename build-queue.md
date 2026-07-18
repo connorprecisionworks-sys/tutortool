@@ -413,6 +413,54 @@ Lock down what shipped. No new features.
 
 ---
 
+# BATCH 3 (platform changes from Connor's notes, 2026-07-16)
+
+These refine earlier decisions. Same loop, same rules. Order matters (onboarding + availability before booking rework, polish last).
+
+## C1 — Hard onboarding gate (replaces the dismissible checklist)  [ ]
+
+Onboarding becomes the first thing a tutor does, gating the dashboard, not an optional card.
+
+- On first login (and any time required setup is incomplete), route the tutor into a full-screen, focused, multi-step setup flow instead of the dashboard. Steps: set standard rate + travel rule, set weekly availability (see C2), add at least one service, set public handle + bio, (optional) add first student + send invite.
+- Include a subtle "Skip for now" on each step so it's not a hard lock, but the flow is the default landing until required steps are done, and it re-appears next login while incomplete. Once complete, it never gates again.
+- Keep a small dashboard reminder for anything skipped. Retire the old dismissible-only behavior as the primary onboarding.
+- Acceptance: a brand-new tutor lands in the gated setup, not the dashboard; completing it (or skipping to the end) opens the dashboard; a returning tutor with setup incomplete is routed back into it.
+
+## C2 — Weekly availability editor  [ ]
+
+Set availability as recurring weekly blocks, fast.
+
+- A tutor sets availability by day-of-week + time range, and can apply a range across multiple days in one action (e.g. Mon-Fri, 3:00-6:00pm). Support multiple blocks per day and easy add/remove/edit. This is the single source of truth for when the tutor is bookable.
+- Builds on the existing `availability` table; extend as needed. Times respect the app's existing time handling (note the standing UTC/timezone TODO).
+- Acceptance: a tutor sets Mon-Fri 3-6pm in one action and it saves as the weekly availability that booking reads from.
+
+## C3 — Availability-driven booking (services inherit availability)  [ ]
+
+Services no longer carry their own fixed time slots. Bookable times are generated from the tutor's availability, filtered by the chosen service's duration, minus existing sessions and a buffer. This makes availability the model (Cal-style), building on B4's open-availability booking.
+
+- Public page / booking flow: parent picks a service, then sees open times computed from the tutor's weekly availability for that service's length, and books one, creating a session.
+- Make availability-driven booking the default/primary path. Keep the manual "offer specific slots" booking link as an optional secondary override, not the default; a service by itself never defines times.
+- Reuse B4's is_slot_bookable() + per-tutor lock so nothing double-books.
+- Acceptance: with Mon-Fri 3-6pm availability and a 60-min service, a parent booking that service sees only open 60-min slots inside 3-6pm on weekdays, and a booked time disappears from the options.
+
+## C4 — Customizable public/booking page  [ ]
+
+Let each tutor customize their public page so it isn't a generic clone. Cal-inspired setup UX, Slate brand frame kept.
+
+- Tutor can customize content and arrangement: profile photo, display name, headline/tagline, bio, subjects, which services appear and their order, show/hide prices, a short welcome note, and the booking CTA label. Live preview while editing.
+- Decision (baked): customization is content + layout arrangement, NOT full color re-theming. Keep Slate typography and the slate-blue accent so pages stay consistent and premium. (Connor can expand to theming later if he wants.)
+- Acceptance: a tutor uploads a photo, writes a headline, reorders services, hides prices, and the public page reflects all of it with the Slate frame intact.
+
+## C5 — Motion + mobile polish pass (landing + dashboard)  [ ]
+
+Do this LAST, after C1-C4, so it polishes the final state. Full spec is the same as the motion/mobile prompt: premium staggered entrance/reveal/fly-in animations on the landing (transform+opacity only, IntersectionObserver, reduced-motion safe), smooth marquee, and a genuine mobile optimization of the landing AND the tutor dashboard + core screens (drawer nav, tables to cards/scroll, no overflow, 44px targets, both themes). Verify with screenshots at 390px and 1440px, light and dark; iterate on what looks off rather than stopping at a green build.
+
+Note: a landing-page motion rebuild (hero stagger, parallax, marquee fade, alternating reveals) and an initial dashboard mobile-responsiveness pass (tables, tap targets, settings wrap) already shipped outside the queue in commits `33f1586`/`c274a09`/`f26bc8b`/`f8a4d01`. When this item comes up, audit what's already covered before redoing it — this pass should mainly extend the same treatment to whatever C1-C4 add (onboarding flow, availability editor, customizable public page) rather than starting from scratch.
+
+- Acceptance: landing motion is smooth and tasteful (not busy), reduced-motion gives static content, and the dashboard is clean and usable at 390px in both themes.
+
+---
+
 ## Parked (do NOT build in this loop)
 
 - Searchable "find tutors in your area" directory / marketplace + matching. Public tutor pages (Q3) make this possible later, but the directory, search, and tutor discovery are a separate initiative.
