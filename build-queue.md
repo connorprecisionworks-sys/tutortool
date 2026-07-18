@@ -512,7 +512,22 @@ Let each tutor customize their public page so it isn't a generic clone. Cal-insp
 - Decision (baked): customization is content + layout arrangement, NOT full color re-theming. Keep Slate typography and the slate-blue accent so pages stay consistent and premium. (Connor can expand to theming later if he wants.)
 - Acceptance: a tutor uploads a photo, writes a headline, reorders services, hides prices, and the public page reflects all of it with the Slate frame intact.
 
-## C5 — Motion + mobile polish pass (landing + dashboard)  [ ]
+## C5 — Motion + mobile polish pass (landing + dashboard)  [x] (c21417b)
+
+Audited what already shipped (landing motion + initial dashboard
+mobile pass, commits 33f1586/c274a09/f26bc8b/f8a4d01) rather than
+redoing it, then extended the same treatment to what C1-C4 actually
+added: onboarding wizard steps now fade+rise in (motion-safe:-gated,
+matching the landing page's Reveal primitive's reduced-motion
+convention). Screenshot pass at 390px/1280px, light+dark, across the
+onboarding wizard, the C1 dashboard reminder card, and the Services
+list surfaced one real bug (not new work from this item, but exactly
+the kind of thing this pass exists to catch): C4's reorder-button
+column was the table's first cell, which the app's responsive-table
+CSS always makes the mobile card's bold title — so a service's card
+was titled by two icon buttons instead of its name. Fixed by moving
+the reorder buttons inline beside the name instead of a separate
+column.
 
 Do this LAST, after C1-C4, so it polishes the final state. Full spec is the same as the motion/mobile prompt: premium staggered entrance/reveal/fly-in animations on the landing (transform+opacity only, IntersectionObserver, reduced-motion safe), smooth marquee, and a genuine mobile optimization of the landing AND the tutor dashboard + core screens (drawer nav, tables to cards/scroll, no overflow, 44px targets, both themes). Verify with screenshots at 390px and 1440px, light and dark; iterate on what looks off rather than stopping at a green build.
 
