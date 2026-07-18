@@ -53,7 +53,6 @@ export default async function ServicesPage() {
           <table className="rtable w-full text-sm">
             <thead className="bg-surface-sunken text-left text-text-secondary">
               <tr>
-                <th className="px-5 py-3 font-medium">Order</th>
                 <th className="px-5 py-3 font-medium">Service</th>
                 <th className="px-5 py-3 font-medium">Duration</th>
                 <th className="px-5 py-3 text-right font-medium">Price</th>
@@ -65,13 +64,15 @@ export default async function ServicesPage() {
               {services.map((s, i) => (
                 <tr key={s.id} className="border-t border-border hover:bg-hover">
                   <td className="px-5 py-3">
-                    <ServiceReorderButtons serviceId={s.id} isFirst={i === 0} isLast={i === services.length - 1} />
-                  </td>
-                  <td className="px-5 py-3">
-                    <Link href={`/tutor/settings/services/${s.id}`} className="font-medium">
-                      {s.name}
-                    </Link>
-                    {s.description && <p className="mt-0.5 text-xs text-text-tertiary">{s.description}</p>}
+                    <div className="flex items-start gap-2">
+                      <ServiceReorderButtons serviceId={s.id} isFirst={i === 0} isLast={i === services.length - 1} />
+                      <div>
+                        <Link href={`/tutor/settings/services/${s.id}`} className="font-medium">
+                          {s.name}
+                        </Link>
+                        {s.description && <p className="mt-0.5 text-xs text-text-tertiary">{s.description}</p>}
+                      </div>
+                    </div>
                   </td>
                   <td className="px-5 py-3 text-text-secondary" data-label="Duration">
                     {s.duration_minutes} min

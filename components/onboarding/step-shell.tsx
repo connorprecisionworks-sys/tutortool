@@ -31,18 +31,26 @@ export function StepShell({
         </span>
       </div>
 
-      <h1 className="text-xl font-semibold sm:text-2xl">{title}</h1>
-      <p className="mt-1.5 text-sm text-text-secondary">{description}</p>
+      {/* Keyed on stepNumber so each step change remounts this node —
+          otherwise React just patches the existing DOM in place (same tag
+          positions every step) and the fade+rise animation would only ever
+          play once, on the wizard's first mount. motion-safe: means it's
+          a no-op under prefers-reduced-motion, same convention as the
+          landing page's Reveal primitive. */}
+      <div key={stepNumber} className="motion-safe:animate-[fade-rise-in_300ms_ease-out]">
+        <h1 className="text-xl font-semibold sm:text-2xl">{title}</h1>
+        <p className="mt-1.5 text-sm text-text-secondary">{description}</p>
 
-      <div className="mt-6">{children}</div>
+        <div className="mt-6">{children}</div>
 
-      {skipHref && (
-        <div className="mt-6 text-center">
-          <Link href={skipHref} className="text-xs text-text-tertiary hover:text-text">
-            Skip for now
-          </Link>
-        </div>
-      )}
+        {skipHref && (
+          <div className="mt-6 text-center">
+            <Link href={skipHref} className="text-xs text-text-tertiary hover:text-text">
+              Skip for now
+            </Link>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
