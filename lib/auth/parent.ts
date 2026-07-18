@@ -33,6 +33,11 @@ export const requireParent = cache(async function requireParent(): Promise<Paren
 
   if (existing) {
     if (existing.role !== "parent") redirect("/tutor");
+    // Unconditional now that backfillSignupAgreement is idempotent — this
+    // branch previously never backfilled at all, leaving no self-healing
+    // path if the original backfill (in the `created` branch below) had
+    // failed or lost a race.
+    await backfillSignupAgreement(supabase, user);
     await requireCurrentAgreement(supabase, user.id);
     return existing;
   }
@@ -54,7 +59,11 @@ export const requireParent = cache(async function requireParent(): Promise<Paren
     return created;
   }
 
-  // Unique-violation: a concurrent request already inserted the row.
+  // Unique-violation: a concurrent request already inserted the row. Also
+  // run the same backfill the winning request ran — the winner's own
+  // insert may not have committed yet by the time this request's query
+  // runs, so without this a losing request can see no agreement row and
+  // get bounced to /accept-terms despite having agreed at signup.
   if (error?.code === "23505") {
     const { data: raced } = await supabase
       .from("users")
@@ -62,6 +71,7 @@ export const requireParent = cache(async function requireParent(): Promise<Paren
       .eq("auth_user_id", user.id)
       .single();
     if (raced) {
+      await backfillSignupAgreement(supabase, user);
       await requireCurrentAgreement(supabase, user.id);
       return raced;
     }

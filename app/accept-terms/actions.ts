@@ -22,7 +22,10 @@ export async function acceptTermsAction(formData: FormData): Promise<AcceptTerms
     terms_version: TERMS_DOC.version,
     privacy_version: PRIVACY_DOC.version,
   });
-  if (error) return { error: error.message };
+  // A unique-violation here just means this exact version pair was already
+  // recorded (e.g. a double-submit, or backfill already ran) — that's the
+  // desired end state, not a failure to surface to the user.
+  if (error && error.code !== "23505") return { error: error.message };
 
   return {};
 }

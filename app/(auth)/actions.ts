@@ -102,7 +102,8 @@ async function signUpWithRole(role: "tutor" | "parent", formData: FormData): Pro
     terms_version: TERMS_DOC.version,
     privacy_version: PRIVACY_DOC.version,
   });
-  if (agreementError) {
+  // Ignore unique-violation races, same as the tutors/users inserts above.
+  if (agreementError && agreementError.code !== "23505") {
     console.error("Failed to record signup agreement:", agreementError.message);
   }
 

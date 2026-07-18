@@ -45,8 +45,12 @@ export const requireTutor = cache(async function requireTutor(): Promise<TutorRo
       await supabase
         .from("users")
         .insert({ auth_user_id: user.id, role: "tutor", name: existing.name, email: existing.email });
-      await backfillSignupAgreement(supabase, user);
     }
+    // Unconditional now that backfillSignupAgreement is idempotent — closes
+    // the race where a concurrent request already created `userRow` but its
+    // own backfill insert hadn't committed yet when this request reached
+    // requireCurrentAgreement.
+    await backfillSignupAgreement(supabase, user);
     await requireCurrentAgreement(supabase, user.id);
     return existing;
   }
@@ -69,6 +73,10 @@ export const requireTutor = cache(async function requireTutor(): Promise<TutorRo
 
   // Unique-violation: a concurrent request (e.g. two simultaneous /tutor
   // loads on first sign-in) already inserted the row. Fetch and return it.
+  // Also run the same backfill the winning request ran — the winner's own
+  // insert may not have committed yet by the time this request's query
+  // runs, so without this a losing request can see no agreement row and
+  // get bounced to /accept-terms despite having agreed at signup.
   if (error?.code === "23505") {
     const { data: raced } = await supabase
       .from("tutors")
@@ -76,6 +84,7 @@ export const requireTutor = cache(async function requireTutor(): Promise<TutorRo
       .eq("auth_user_id", user.id)
       .single();
     if (raced) {
+      await backfillSignupAgreement(supabase, user);
       await requireCurrentAgreement(supabase, user.id);
       return raced;
     }
