@@ -4,6 +4,7 @@ import { Suspense, useActionState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signInAction, type AuthActionResult } from "@/app/(auth)/actions";
+import { safeNext } from "@/lib/auth/safe-redirect";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -16,8 +17,7 @@ function LoginForm() {
   const [state, formAction, pending] = useActionState(async (_: AuthActionResult, formData: FormData) => {
     const result = await signInAction(formData);
     if (!result.error) {
-      const next = searchParams.get("next") || "/tutor";
-      router.push(next);
+      router.push(safeNext(searchParams.get("next"), "/tutor"));
       router.refresh();
     }
     return result;
