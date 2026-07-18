@@ -48,7 +48,7 @@ export default async function ServicesPage() {
         />
       ) : (
         <Card className="overflow-x-auto p-0">
-          <table className="w-full text-sm">
+          <table className="rtable w-full text-sm">
             <thead className="bg-surface-sunken text-left text-text-secondary">
               <tr>
                 <th className="px-5 py-3 font-medium">Service</th>
@@ -67,12 +67,16 @@ export default async function ServicesPage() {
                     </Link>
                     {s.description && <p className="mt-0.5 text-xs text-text-tertiary">{s.description}</p>}
                   </td>
-                  <td className="px-5 py-3 text-text-secondary">{s.duration_minutes} min</td>
-                  <td className="px-5 py-3 text-right tabular-nums">{formatCents(s.price_cents)}</td>
-                  <td className="px-5 py-3">
+                  <td className="px-5 py-3 text-text-secondary" data-label="Duration">
+                    {s.duration_minutes} min
+                  </td>
+                  <td className="px-5 py-3 text-right tabular-nums" data-label="Price">
+                    {formatCents(s.price_cents)}
+                  </td>
+                  <td className="px-5 py-3" data-label="Status">
                     <ServiceActiveToggle serviceId={s.id} isActive={s.is_active} />
                   </td>
-                  <td className="px-5 py-3 text-right">
+                  <td className="cell-action px-5 py-3 text-right">
                     <DeleteServiceRowButton serviceId={s.id} serviceName={s.name} />
                   </td>
                 </tr>

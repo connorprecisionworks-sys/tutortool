@@ -43,7 +43,7 @@ export default async function BookingLinksPage() {
         />
       ) : (
         <Card className="overflow-x-auto p-0">
-          <table className="w-full text-sm">
+          <table className="rtable w-full text-sm">
             <thead className="bg-surface-sunken text-left text-text-secondary">
               <tr>
                 <th className="px-5 py-3 font-medium">For</th>
@@ -62,23 +62,23 @@ export default async function BookingLinksPage() {
                       <span className="text-text-tertiary">Open — any new parent</span>
                     )}
                   </td>
-                  <td className="px-5 py-3 text-text-secondary">
+                  <td className="px-5 py-3 text-text-secondary" data-label="Service">
                     {(l.services as unknown as { name: string } | null)?.name ?? "Custom duration"}
                   </td>
-                  <td className="px-5 py-3 text-text-secondary">
+                  <td className="px-5 py-3 text-text-secondary" data-label="Mode">
                     {l.mode === "open_availability" ? "Standing" : "Fixed times"}
                   </td>
-                  <td className="px-5 py-3">
+                  <td className="px-5 py-3" data-label="Status">
                     <StatusDot status={l.status === "booked" ? "confirmed" : l.status === "cancelled" ? "cancelled" : "requested"} label={l.status === "open" ? "Open" : l.status === "booked" ? "Booked" : "Cancelled"} />
                   </td>
-                  <td className="px-5 py-3">
+                  <td className="px-5 py-3" data-label="Link">
                     {l.status === "open" ? (
                       <CopyButton value={bookingLink(l.token)} label="Copy link" copiedLabel="Copied" size="sm" />
                     ) : (
                       <span className="text-xs text-text-tertiary">—</span>
                     )}
                   </td>
-                  <td className="px-5 py-3 text-right">
+                  <td className="cell-action px-5 py-3 text-right">
                     {l.status === "open" && <CancelBookingLinkButton bookingLinkId={l.id} />}
                     {l.status === "booked" && l.session_id && (
                       <Link href={`/tutor/sessions/${l.session_id}`} className="text-xs text-text-tertiary hover:text-text">

@@ -28,15 +28,15 @@ export default async function SettingsPage() {
         </Card>
 
         <Card className="max-w-2xl">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-sm font-semibold">Services</h2>
               <p className="mt-1 text-sm text-text-secondary">
                 Named, flat-priced offerings — e.g. a diagnostic assessment separate from your hourly rate.
               </p>
             </div>
-            <Link href="/tutor/settings/services">
-              <Button variant="secondary" size="sm">
+            <Link href="/tutor/settings/services" className="shrink-0">
+              <Button variant="secondary" size="sm" className="w-full sm:w-auto">
                 Manage services
               </Button>
             </Link>

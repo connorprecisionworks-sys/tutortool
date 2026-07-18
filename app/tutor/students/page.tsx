@@ -109,7 +109,7 @@ export default async function StudentsPage({
         />
       ) : (
         <Card className="overflow-x-auto p-0">
-          <table className="w-full text-sm">
+          <table className="rtable w-full text-sm">
             <thead className="bg-surface-sunken text-left text-text-secondary">
               <tr>
                 <th className="px-5 py-3 font-medium">Student</th>
@@ -140,17 +140,23 @@ export default async function StudentsPage({
                         <span className="ml-2 text-xs text-text-tertiary">community impact</span>
                       )}
                     </td>
-                    <td className="px-5 py-3 text-text-secondary">{s.payer_name ?? "—"}</td>
-                    <td className="px-5 py-3 text-text-secondary">{RATE_TYPE_LABELS[rateType]}</td>
-                    <td className="px-5 py-3 text-right tabular-nums">{formatCents(effective)}/hr</td>
-                    <td className="px-5 py-3">
+                    <td className="px-5 py-3 text-text-secondary" data-label="Payer">
+                      {s.payer_name ?? "—"}
+                    </td>
+                    <td className="px-5 py-3 text-text-secondary" data-label="Rate">
+                      {RATE_TYPE_LABELS[rateType]}
+                    </td>
+                    <td className="px-5 py-3 text-right tabular-nums" data-label="Effective rate">
+                      {formatCents(effective)}/hr
+                    </td>
+                    <td className="px-5 py-3" data-label="Student Code">
                       {activeCode ? (
                         <CopyStudentCodeButton code={activeCode} />
                       ) : (
                         <span className="text-xs text-text-tertiary">revoked</span>
                       )}
                     </td>
-                    <td className="px-5 py-3 text-right">
+                    <td className="cell-action px-5 py-3 text-right">
                       <DeleteStudentRowButton studentId={s.id} studentName={s.student_name} />
                     </td>
                   </tr>

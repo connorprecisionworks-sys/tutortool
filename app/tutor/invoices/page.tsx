@@ -79,7 +79,7 @@ export default async function InvoicesPage({
         />
       ) : (
         <Card className="overflow-x-auto p-0">
-          <table className="w-full text-sm">
+          <table className="rtable w-full text-sm">
             <thead className="bg-surface-sunken text-left text-text-secondary">
               <tr>
                 <th className="px-5 py-3 font-medium">Student</th>
@@ -98,15 +98,19 @@ export default async function InvoicesPage({
                       {(inv.clients as unknown as { student_name: string } | null)?.student_name ?? "—"}
                     </Link>
                   </td>
-                  <td className="px-5 py-3 text-text-secondary">
+                  <td className="px-5 py-3 text-text-secondary" data-label="Period">
                     {inv.period_start} – {inv.period_end}
                   </td>
-                  <td className="px-5 py-3 text-right tabular-nums">{formatCents(inv.total_cents)}</td>
-                  <td className="px-5 py-3">
+                  <td className="px-5 py-3 text-right tabular-nums" data-label="Total">
+                    {formatCents(inv.total_cents)}
+                  </td>
+                  <td className="px-5 py-3" data-label="Status">
                     <StatusDot status={inv.status} />
                   </td>
-                  <td className="px-5 py-3 text-text-secondary">{inv.due_date ?? "—"}</td>
-                  <td className="px-5 py-3 text-right">
+                  <td className="px-5 py-3 text-text-secondary" data-label="Due">
+                    {inv.due_date ?? "—"}
+                  </td>
+                  <td className="cell-action px-5 py-3 text-right">
                     {inv.status === "draft" && <DeleteInvoiceRowButton invoiceId={inv.id} />}
                   </td>
                 </tr>

@@ -40,7 +40,7 @@ export function MarketingHeader() {
         </div>
 
         <button
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-text-secondary hover:bg-hover md:hidden"
+          className="flex h-11 w-11 items-center justify-center rounded-lg text-text-secondary hover:bg-hover md:hidden"
           onClick={() => setOpen((v) => !v)}
           aria-label="Toggle menu"
           aria-expanded={open}

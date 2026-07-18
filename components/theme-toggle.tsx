@@ -36,7 +36,7 @@ export function ThemeToggle() {
       type="button"
       onClick={() => applyTheme(next)}
       aria-label={`Switch to ${next} mode`}
-      className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-text-secondary hover:bg-hover"
+      className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-text-secondary hover:bg-hover max-sm:h-11 max-sm:w-11"
     >
       {theme === "light" ? (
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

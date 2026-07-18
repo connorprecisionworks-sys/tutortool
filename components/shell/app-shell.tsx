@@ -69,7 +69,7 @@ export function AppShell({
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
                 className={clsx(
-                  "block rounded-lg px-3 py-2 text-sm transition-colors",
+                  "block rounded-lg px-3 py-2.5 text-sm transition-colors",
                   active ? "bg-hover text-text font-medium" : "text-text-secondary hover:bg-hover hover:text-text"
                 )}
               >
@@ -100,7 +100,7 @@ export function AppShell({
       <div className="flex min-h-full flex-1 flex-col">
         <header className="flex h-14 items-center justify-between border-b border-border px-4 sm:px-8">
           <button
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-text-secondary hover:bg-hover sm:hidden"
+            className="flex h-11 w-11 items-center justify-center rounded-lg text-text-secondary hover:bg-hover sm:hidden"
             onClick={() => setMobileOpen((v) => !v)}
             aria-label="Toggle navigation"
           >

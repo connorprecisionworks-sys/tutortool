@@ -92,7 +92,7 @@ export default async function SessionsPage({
         />
       ) : (
         <Card className="overflow-x-auto p-0">
-          <table className="w-full text-sm">
+          <table className="rtable w-full text-sm">
             <thead className="bg-surface-sunken text-left text-text-secondary">
               <tr>
                 <th className="px-5 py-3 font-medium">Date</th>
@@ -125,10 +125,10 @@ export default async function SessionsPage({
                         {s.occurred_on}
                       </Link>
                     </td>
-                    <td className="px-5 py-3 text-text-secondary">
+                    <td className="px-5 py-3 text-text-secondary" data-label="Student">
                       {(s.clients as unknown as { student_name: string } | null)?.student_name ?? "—"}
                     </td>
-                    <td className="px-5 py-3 text-text-secondary">
+                    <td className="px-5 py-3 text-text-secondary" data-label="Duration">
                       {s.duration_minutes} min
                       {(s.services as unknown as { name: string } | null)?.name && (
                         <span className="ml-1.5 text-xs text-text-tertiary">
@@ -136,16 +136,16 @@ export default async function SessionsPage({
                         </span>
                       )}
                     </td>
-                    <td className="px-5 py-3 text-text-secondary">
+                    <td className="px-5 py-3 text-text-secondary" data-label="Travel">
                       {s.travel_minutes > 0 ? `${s.travel_minutes} min${s.bill_travel ? "" : " (unbilled)"}` : "—"}
                     </td>
-                    <td className="px-5 py-3 text-right tabular-nums">
+                    <td className="px-5 py-3 text-right tabular-nums" data-label="Amount">
                       {s.package_id ? <span className="text-text-tertiary">Package</span> : formatCents(amount)}
                     </td>
-                    <td className="px-5 py-3">
+                    <td className="px-5 py-3" data-label="Status">
                       <StatusDot status={isCancelled ? "cancelled" : s.status} />
                     </td>
-                    <td className="px-5 py-3 text-right">
+                    <td className="cell-action px-5 py-3 text-right">
                       {s.status === "logged" && !isCancelled && <DeleteSessionRowButton sessionId={s.id} />}
                     </td>
                   </tr>
