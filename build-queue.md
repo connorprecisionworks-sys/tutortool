@@ -488,7 +488,23 @@ Services no longer carry their own fixed time slots. Bookable times are generate
 - Reuse B4's is_slot_bookable() + per-tutor lock so nothing double-books.
 - Acceptance: with Mon-Fri 3-6pm availability and a 60-min service, a parent booking that service sees only open 60-min slots inside 3-6pm on weekdays, and a booked time disappears from the options.
 
-## C4 — Customizable public/booking page  [ ]
+## C4 — Customizable public/booking page  [x] (c189b08)
+
+Photo, display name, headline, welcome note, custom booking-button
+label, and service order (up/down on the Services page), with a live
+preview pane in Settings mirroring the real page as fields change —
+Slate frame/typography untouched, content + arrangement only.
+High-effort review caught and fixed two real security bugs before
+commit: a path-traversal risk in the avatar upload path (built
+entirely from server-generated values now, never the client
+filename) and a stored-XSS risk from accepting image/svg+xml
+(restricted to a raster allowlist — verified a crafted SVG is
+rejected while a real PNG uploads and renders publicly). Also fixed:
+a non-atomic multi-row reorder loop (replaced with a single
+SECURITY DEFINER move_service() transaction), new services no longer
+defaulting to sort_order 0 (a DB trigger auto-assigns append-at-end),
+and reorder errors that were silently swallowed by the UI. QA'd
+end-to-end in both themes and at 390px.
 
 Let each tutor customize their public page so it isn't a generic clone. Cal-inspired setup UX, Slate brand frame kept.
 
