@@ -1030,6 +1030,7 @@ export type Database = {
           is_active: boolean
           name: string
           price_cents: number
+          sort_order: number
           tutor_id: string
         }
         Insert: {
@@ -1040,6 +1041,7 @@ export type Database = {
           is_active?: boolean
           name: string
           price_cents: number
+          sort_order?: number
           tutor_id: string
         }
         Update: {
@@ -1050,6 +1052,7 @@ export type Database = {
           is_active?: boolean
           name?: string
           price_cents?: number
+          sort_order?: number
           tutor_id?: string
         }
         Relationships: [
@@ -1260,20 +1263,24 @@ export type Database = {
       tutors: {
         Row: {
           auth_user_id: string
+          avatar_path: string | null
           bill_travel_default: boolean
           bio: string | null
+          booking_cta_label: string
           cancellation_window_hours: number
           created_at: string
           default_cancellation_policy: string
           default_payment_timing: string
           email: string
           handle: string | null
+          headline: string | null
           ical_token: string | null
           id: string
           invoice_terms: string
           is_public: boolean
           mileage_rate_cents: number
           name: string
+          public_display_name: string | null
           reminder_cadence: Json
           reminder_templates: Json
           session_reminder_lead_hours: number
@@ -1285,23 +1292,28 @@ export type Database = {
           subjects: string | null
           travel_rate_cents: number | null
           tutor_code: string
+          welcome_note: string | null
         }
         Insert: {
           auth_user_id: string
+          avatar_path?: string | null
           bill_travel_default?: boolean
           bio?: string | null
+          booking_cta_label?: string
           cancellation_window_hours?: number
           created_at?: string
           default_cancellation_policy?: string
           default_payment_timing?: string
           email: string
           handle?: string | null
+          headline?: string | null
           ical_token?: string | null
           id?: string
           invoice_terms?: string
           is_public?: boolean
           mileage_rate_cents?: number
           name: string
+          public_display_name?: string | null
           reminder_cadence?: Json
           reminder_templates?: Json
           session_reminder_lead_hours?: number
@@ -1313,23 +1325,28 @@ export type Database = {
           subjects?: string | null
           travel_rate_cents?: number | null
           tutor_code?: string
+          welcome_note?: string | null
         }
         Update: {
           auth_user_id?: string
+          avatar_path?: string | null
           bill_travel_default?: boolean
           bio?: string | null
+          booking_cta_label?: string
           cancellation_window_hours?: number
           created_at?: string
           default_cancellation_policy?: string
           default_payment_timing?: string
           email?: string
           handle?: string | null
+          headline?: string | null
           ical_token?: string | null
           id?: string
           invoice_terms?: string
           is_public?: boolean
           mileage_rate_cents?: number
           name?: string
+          public_display_name?: string | null
           reminder_cadence?: Json
           reminder_templates?: Json
           session_reminder_lead_hours?: number
@@ -1341,6 +1358,7 @@ export type Database = {
           subjects?: string | null
           travel_rate_cents?: number | null
           tutor_code?: string
+          welcome_note?: string | null
         }
         Relationships: []
       }
@@ -1680,6 +1698,10 @@ export type Database = {
       }
       merge_pending_student: {
         Args: { p_pending_student_id: string; p_target_student_id: string }
+        Returns: undefined
+      }
+      move_service: {
+        Args: { p_direction: string; p_service_id: string }
         Returns: undefined
       }
       recompute_invoice_totals: {

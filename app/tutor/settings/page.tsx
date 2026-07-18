@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { requireTutor } from "@/lib/auth/tutor";
+import { createClient } from "@/lib/supabase/server";
 import { SettingsForm } from "@/components/settings/settings-form";
 import { StripeConnectSection } from "@/components/settings/stripe-connect-section";
 import { ReminderTemplatesForm } from "@/components/settings/reminder-templates-form";
@@ -16,8 +17,18 @@ import type { ReminderTemplates } from "@/lib/reminders";
 
 export default async function SettingsPage() {
   const tutor = await requireTutor();
+  const supabase = await createClient();
 
-  const status = tutor.stripe_account_id ? await getStripeAccountStatus(tutor.stripe_account_id) : null;
+  const [status, { data: services }] = await Promise.all([
+    tutor.stripe_account_id ? getStripeAccountStatus(tutor.stripe_account_id) : Promise.resolve(null),
+    supabase
+      .from("services")
+      .select("id, name, description, duration_minutes, price_cents")
+      .eq("tutor_id", tutor.id)
+      .eq("is_active", true)
+      .order("sort_order")
+      .order("created_at"),
+  ]);
 
   return (
     <div>
@@ -55,12 +66,17 @@ export default async function SettingsPage() {
           </div>
         </Card>
 
-        <Card className="max-w-2xl">
-          <h2 className="mb-1 text-sm font-semibold">Public profile</h2>
+        <Card className="max-w-4xl">
+          <h2 className="mb-1 text-sm font-semibold">Public page</h2>
           <p className="mb-4 text-sm text-text-secondary">
-            A shareable page with your bio, subjects, and services. No login required to view.
+            A shareable page with your photo, bio, and services — customizable, with the Slate frame kept.
+            No login required to view. Reorder which services show (and in what order) from{" "}
+            <Link href="/tutor/settings/services" className="underline hover:text-text">
+              Services
+            </Link>
+            .
           </p>
-          <PublicProfileForm tutor={tutor} />
+          <PublicProfileForm tutor={tutor} services={services ?? []} />
         </Card>
 
         <Card className="max-w-2xl">

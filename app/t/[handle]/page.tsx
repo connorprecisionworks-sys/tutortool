@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Mark } from "@/components/brand/logo";
 import { formatCents } from "@/lib/money";
+import { avatarPublicUrl } from "@/lib/avatar-url";
 
 interface PublicTutorService {
   id: string;
@@ -16,8 +17,12 @@ interface PublicTutorService {
 interface PublicTutorProfile {
   found: boolean;
   name?: string;
+  avatar_path?: string | null;
+  headline?: string | null;
   bio?: string | null;
   subjects?: string | null;
+  welcome_note?: string | null;
+  booking_cta_label?: string;
   services?: PublicTutorService[];
   booking_token?: string | null;
 }
@@ -48,12 +53,23 @@ export default async function PublicTutorPage({ params }: { params: Promise<{ ha
     );
   }
 
+  const avatarUrl = avatarPublicUrl(profile.avatar_path);
+  const ctaLabel = profile.booking_cta_label?.trim() || "Book";
+
   return (
     <div className="mx-auto max-w-2xl px-4 py-12 sm:py-16">
       <Mark className="mb-6 h-6" />
+
+      {avatarUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element -- external, tutor-controlled Storage URL; next/image's remote-pattern allowlist isn't worth configuring for one user-uploaded bucket
+        <img src={avatarUrl} alt="" className="mb-4 h-16 w-16 rounded-full object-cover" />
+      ) : null}
+
       <h1 className="text-2xl font-semibold sm:text-3xl">{profile.name}</h1>
+      {profile.headline && <p className="mt-1 text-sm font-medium text-accent">{profile.headline}</p>}
       {profile.subjects && <p className="mt-1 text-sm text-text-secondary">{profile.subjects}</p>}
       {profile.bio && <p className="mt-4 text-sm leading-relaxed text-text sm:text-base">{profile.bio}</p>}
+      {profile.welcome_note && <p className="mt-4 text-sm leading-relaxed text-text-secondary">{profile.welcome_note}</p>}
 
       <div className="mt-8 space-y-3">
         {(profile.services ?? []).length === 0 ? (
@@ -70,7 +86,7 @@ export default async function PublicTutorPage({ params }: { params: Promise<{ ha
                 </p>
               </div>
               <Link href={`/t/${handle}/book/${s.id}`} className="shrink-0">
-                <Button size="sm">Book</Button>
+                <Button size="sm">{ctaLabel}</Button>
               </Link>
             </Card>
           ))

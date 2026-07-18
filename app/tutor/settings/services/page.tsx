@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { formatCents } from "@/lib/money";
 import { ServiceActiveToggle } from "@/components/settings/service-active-toggle";
 import { DeleteServiceRowButton } from "@/components/settings/delete-service-row-button";
+import { ServiceReorderButtons } from "@/components/settings/service-reorder-buttons";
 
 export default async function ServicesPage() {
   const tutor = await requireTutor();
@@ -16,13 +17,14 @@ export default async function ServicesPage() {
     .from("services")
     .select("*")
     .eq("tutor_id", tutor.id)
+    .order("sort_order")
     .order("created_at");
 
   return (
     <div>
       <PageHeader
         title="Services"
-        description="Named, priced offerings. Pick one when logging a session to bill its flat price instead of your hourly rate."
+        description="Named, priced offerings. Pick one when logging a session to bill its flat price instead of your hourly rate. This order is also how they appear on your public page."
         action={
           <div className="flex items-center gap-3">
             <Link href="/tutor/settings">
@@ -51,6 +53,7 @@ export default async function ServicesPage() {
           <table className="rtable w-full text-sm">
             <thead className="bg-surface-sunken text-left text-text-secondary">
               <tr>
+                <th className="px-5 py-3 font-medium">Order</th>
                 <th className="px-5 py-3 font-medium">Service</th>
                 <th className="px-5 py-3 font-medium">Duration</th>
                 <th className="px-5 py-3 text-right font-medium">Price</th>
@@ -59,8 +62,11 @@ export default async function ServicesPage() {
               </tr>
             </thead>
             <tbody>
-              {services.map((s) => (
+              {services.map((s, i) => (
                 <tr key={s.id} className="border-t border-border hover:bg-hover">
+                  <td className="px-5 py-3">
+                    <ServiceReorderButtons serviceId={s.id} isFirst={i === 0} isLast={i === services.length - 1} />
+                  </td>
                   <td className="px-5 py-3">
                     <Link href={`/tutor/settings/services/${s.id}`} className="font-medium">
                       {s.name}

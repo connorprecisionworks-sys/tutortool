@@ -1,65 +1,222 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea, FieldHint } from "@/components/ui/input";
 import { CopyButton } from "@/components/ui/copy-button";
 import { updatePublicProfileAction, type PublicProfileFormResult } from "@/app/tutor/settings/profile-actions";
 import { publicAppUrl } from "@/lib/app-url";
+import { avatarPublicUrl } from "@/lib/avatar-url";
+import { formatCents } from "@/lib/money";
 import type { Tables } from "@/lib/database.types";
 
 const initialState: PublicProfileFormResult = {};
 
-export function PublicProfileForm({ tutor }: { tutor: Tables<"tutors"> }) {
+type PreviewService = Pick<Tables<"services">, "id" | "name" | "description" | "duration_minutes" | "price_cents">;
+
+export function PublicProfileForm({
+  tutor,
+  services,
+}: {
+  tutor: Tables<"tutors">;
+  services: PreviewService[];
+}) {
   const [state, formAction, pending] = useActionState(updatePublicProfileAction, initialState);
+
+  // Controlled purely to drive the live preview pane — the <form> below
+  // still submits every field through a normal FormData post (each input
+  // keeps its `name`), untouched by this state living alongside it.
+  const [handle, setHandle] = useState(tutor.handle ?? "");
+  const [publicDisplayName, setPublicDisplayName] = useState(tutor.public_display_name ?? "");
+  const [headline, setHeadline] = useState(tutor.headline ?? "");
+  const [bio, setBio] = useState(tutor.bio ?? "");
+  const [subjects, setSubjects] = useState(tutor.subjects ?? "");
+  const [welcomeNote, setWelcomeNote] = useState(tutor.welcome_note ?? "");
+  const [bookingCtaLabel, setBookingCtaLabel] = useState(tutor.booking_cta_label || "Book");
+  const [showBio, setShowBio] = useState(tutor.show_bio);
+  const [showPrices, setShowPrices] = useState(tutor.show_prices);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(avatarPublicUrl(tutor.avatar_path));
+
   const publicUrl = tutor.handle ? `${publicAppUrl()}/t/${tutor.handle}` : null;
+  const displayName = publicDisplayName.trim() || tutor.name;
+
+  function onAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarPreview((prev) => {
+      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
+  }
+
 
   return (
-    <form action={formAction} className="space-y-4">
-      {tutor.is_public && publicUrl && (
-        <div className="flex items-center gap-3 rounded-lg border border-border bg-surface-sunken px-4 py-3">
-          <code className="flex-1 truncate text-sm">{publicUrl}</code>
-          <CopyButton value={publicUrl} size="sm" />
+    <div className="grid gap-8 lg:grid-cols-2">
+      <form action={formAction} className="space-y-4">
+        {tutor.is_public && publicUrl && (
+          <div className="flex items-center gap-3 rounded-lg border border-border bg-surface-sunken px-4 py-3">
+            <code className="flex-1 truncate text-sm">{publicUrl}</code>
+            <CopyButton value={publicUrl} size="sm" />
+          </div>
+        )}
+
+        <div>
+          <Label htmlFor="avatar">Profile photo</Label>
+          <div className="flex items-center gap-3">
+            {avatarPreview ? (
+              // eslint-disable-next-line @next/next/no-img-element -- avatar preview needs a live blob: URL for the freshly-picked file, which next/image can't optimize
+              <img src={avatarPreview} alt="" className="h-12 w-12 rounded-full object-cover" />
+            ) : (
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-sunken text-sm text-text-tertiary">
+                {displayName.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <Input id="avatar" name="avatar" type="file" accept="image/*" onChange={onAvatarChange} className="flex-1" />
+          </div>
+          <FieldHint>Square photos work best. Under 5 MB.</FieldHint>
         </div>
-      )}
+
+        <div>
+          <Label htmlFor="handle">Handle</Label>
+          <Input id="handle" name="handle" value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="e.g. jane-tutoring" />
+          <FieldHint>Lowercase letters, numbers, and hyphens only. Your page lives at /t/your-handle.</FieldHint>
+        </div>
+
+        <div>
+          <Label htmlFor="public_display_name">Display name (optional)</Label>
+          <Input
+            id="public_display_name"
+            name="public_display_name"
+            value={publicDisplayName}
+            onChange={(e) => setPublicDisplayName(e.target.value)}
+            placeholder={tutor.name}
+          />
+          <FieldHint>Shown on your public page instead of your account name. Leave blank to use &quot;{tutor.name}&quot;.</FieldHint>
+        </div>
+
+        <div>
+          <Label htmlFor="headline">Headline (optional)</Label>
+          <Input
+            id="headline"
+            name="headline"
+            value={headline}
+            onChange={(e) => setHeadline(e.target.value)}
+            placeholder="e.g. SAT & algebra tutor, 10+ years"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="bio">Short bio</Label>
+          <Textarea id="bio" name="bio" value={bio} onChange={(e) => setBio(e.target.value)} rows={3} />
+        </div>
+
+        <div>
+          <Label htmlFor="subjects">Subjects</Label>
+          <Input
+            id="subjects"
+            name="subjects"
+            value={subjects}
+            onChange={(e) => setSubjects(e.target.value)}
+            placeholder="e.g. Algebra, SAT Prep, Physics"
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="welcome_note">Welcome note (optional)</Label>
+          <Textarea
+            id="welcome_note"
+            name="welcome_note"
+            value={welcomeNote}
+            onChange={(e) => setWelcomeNote(e.target.value)}
+            rows={2}
+            placeholder="A short line shown above your services."
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="booking_cta_label">Booking button label</Label>
+          <Input
+            id="booking_cta_label"
+            name="booking_cta_label"
+            value={bookingCtaLabel}
+            onChange={(e) => setBookingCtaLabel(e.target.value)}
+            placeholder="Book"
+          />
+        </div>
+
+        <div className="space-y-2 border-t border-border pt-4">
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="is_public" defaultChecked={tutor.is_public} className="h-4 w-4 rounded border-border" />
+            Publish my page
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              name="show_bio"
+              checked={showBio}
+              onChange={(e) => setShowBio(e.target.checked)}
+              className="h-4 w-4 rounded border-border"
+            />
+            Show my bio
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              name="show_prices"
+              checked={showPrices}
+              onChange={(e) => setShowPrices(e.target.checked)}
+              className="h-4 w-4 rounded border-border"
+            />
+            Show service prices
+          </label>
+        </div>
+
+        {state.error && <p className="text-sm text-text">{state.error}</p>}
+        {state.success && <p className="text-sm text-text-secondary">Saved.</p>}
+
+        <Button type="submit" disabled={pending}>
+          {pending ? "Saving…" : "Save profile"}
+        </Button>
+      </form>
 
       <div>
-        <Label htmlFor="handle">Handle</Label>
-        <Input id="handle" name="handle" defaultValue={tutor.handle ?? ""} placeholder="e.g. jane-tutoring" />
-        <FieldHint>Lowercase letters, numbers, and hyphens only. Your page lives at /t/your-handle.</FieldHint>
+        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-text-tertiary">Live preview</p>
+        <div className="rounded-xl border border-border bg-bg p-6">
+          {avatarPreview ? (
+            // eslint-disable-next-line @next/next/no-img-element -- see the form's own avatar preview above
+            <img src={avatarPreview} alt="" className="mb-4 h-14 w-14 rounded-full object-cover" />
+          ) : (
+            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-surface-sunken text-lg text-text-tertiary">
+              {displayName.charAt(0).toUpperCase()}
+            </div>
+          )}
+          <h2 className="text-xl font-semibold">{displayName}</h2>
+          {headline.trim() && <p className="mt-1 text-sm font-medium text-accent">{headline}</p>}
+          {subjects.trim() && <p className="mt-1 text-sm text-text-secondary">{subjects}</p>}
+          {showBio && bio.trim() && <p className="mt-3 text-sm leading-relaxed text-text">{bio}</p>}
+          {welcomeNote.trim() && <p className="mt-3 text-sm text-text-secondary">{welcomeNote}</p>}
+
+          <div className="mt-5 space-y-2">
+            {services.length === 0 ? (
+              <p className="text-sm text-text-secondary">No services listed yet.</p>
+            ) : (
+              services.map((s) => (
+                <div key={s.id} className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
+                  <div>
+                    <p className="text-sm font-medium">{s.name}</p>
+                    <p className="text-xs text-text-tertiary">
+                      {s.duration_minutes} min{showPrices && s.price_cents != null && ` · ${formatCents(s.price_cents)}`}
+                    </p>
+                  </div>
+                  <span className="shrink-0 rounded-lg bg-accent px-3 py-1 text-xs font-medium text-accent-text">
+                    {bookingCtaLabel.trim() || "Book"}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
       </div>
-
-      <div>
-        <Label htmlFor="bio">Short bio</Label>
-        <Textarea id="bio" name="bio" defaultValue={tutor.bio ?? ""} rows={3} />
-      </div>
-
-      <div>
-        <Label htmlFor="subjects">Subjects</Label>
-        <Input id="subjects" name="subjects" defaultValue={tutor.subjects ?? ""} placeholder="e.g. Algebra, SAT Prep, Physics" />
-      </div>
-
-      <div className="space-y-2 border-t border-border pt-4">
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" name="is_public" defaultChecked={tutor.is_public} className="h-4 w-4 rounded border-border" />
-          Publish my page
-        </label>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" name="show_bio" defaultChecked={tutor.show_bio} className="h-4 w-4 rounded border-border" />
-          Show my bio
-        </label>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" name="show_prices" defaultChecked={tutor.show_prices} className="h-4 w-4 rounded border-border" />
-          Show service prices
-        </label>
-      </div>
-
-      {state.error && <p className="text-sm text-text">{state.error}</p>}
-      {state.success && <p className="text-sm text-text-secondary">Saved.</p>}
-
-      <Button type="submit" disabled={pending}>
-        {pending ? "Saving…" : "Save profile"}
-      </Button>
-    </form>
+    </div>
   );
 }

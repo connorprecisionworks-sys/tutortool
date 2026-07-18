@@ -98,6 +98,31 @@ export async function setServiceActiveAction(serviceId: string, isActive: boolea
   revalidatePath("/tutor/settings/services");
 }
 
+export interface MoveServiceResult {
+  error?: string;
+}
+
+/**
+ * C4: reorders how services appear on the public page. move_service
+ * (SECURITY DEFINER) does the whole read-swap-renumber-write cycle in one
+ * transaction server-side — a code review of the original JS version (a
+ * sequential per-row update loop with no transaction) found it could leave
+ * a corrupted, partially-renumbered order behind if any single update in
+ * the loop failed. New services get their sort_order auto-assigned by a
+ * DB trigger (always current-max-plus-one for the tutor), so they append
+ * at the end rather than tying at the column default of 0.
+ */
+export async function moveServiceAction(serviceId: string, direction: "up" | "down"): Promise<MoveServiceResult> {
+  await requireTutor();
+  const supabase = await createClient();
+
+  const { error } = await supabase.rpc("move_service", { p_service_id: serviceId, p_direction: direction });
+  if (error) return { error: error.message };
+
+  revalidatePath("/tutor/settings/services");
+  return {};
+}
+
 export interface DeleteServiceResult {
   error?: string;
 }
