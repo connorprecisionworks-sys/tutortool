@@ -426,7 +426,16 @@ Onboarding becomes the first thing a tutor does, gating the dashboard, not an op
 - Keep a small dashboard reminder for anything skipped. Retire the old dismissible-only behavior as the primary onboarding.
 - Acceptance: a brand-new tutor lands in the gated setup, not the dashboard; completing it (or skipping to the end) opens the dashboard; a returning tutor with setup incomplete is routed back into it.
 
-## C2 — Weekly availability editor  [ ]
+## C2 — Weekly availability editor  [x] (91dfabf)
+
+Extended the existing per-day AvailabilityManager (P9) with a weekday
+checkbox picker + Mon-Fri/Weekends/Every day quick-selects; one submit
+inserts a row per selected day, de-duped against identical existing
+windows. Removal stays per-window (delete + re-add, no update policy,
+per P9's original design — "edit" is remove-then-re-add). Reused
+directly by C1's onboarding wizard step. QA'd via headless browser as
+part of C1's flow below (applying Mon-Fri 3-6pm produced exactly 5
+rows, each independently removable).
 
 Set availability as recurring weekly blocks, fast.
 
