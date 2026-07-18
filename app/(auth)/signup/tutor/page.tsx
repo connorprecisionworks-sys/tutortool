@@ -1,17 +1,19 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signUpTutorAction, type AuthActionResult } from "@/app/(auth)/actions";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { AgreementCheckbox } from "@/components/legal/agreement-checkbox";
 
 const initialState: AuthActionResult = {};
 
 export default function TutorSignupPage() {
   const router = useRouter();
+  const [agreed, setAgreed] = useState(false);
   const [state, formAction, pending] = useActionState(async (_: AuthActionResult, formData: FormData) => {
     const result = await signUpTutorAction(formData);
     if (!result.error && !result.needsEmailConfirmation) {
@@ -64,8 +66,9 @@ export default function TutorSignupPage() {
               required
             />
           </div>
+          <AgreementCheckbox checked={agreed} onChange={setAgreed} />
           {state.error && <p className="text-sm text-text">{state.error}</p>}
-          <Button type="submit" className="w-full" disabled={pending}>
+          <Button type="submit" className="w-full" disabled={pending || !agreed}>
             {pending ? "Creating account…" : "Create account"}
           </Button>
         </form>

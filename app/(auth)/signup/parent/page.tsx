@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Label, FieldHint } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Mark } from "@/components/brand/logo";
+import { AgreementCheckbox } from "@/components/legal/agreement-checkbox";
 
 const initialState: AuthActionResult = {};
 
@@ -19,6 +20,7 @@ function ParentSignupForm() {
   const tutorCode = searchParams.get("tutor_code") ?? "";
   const [redeemError, setRedeemError] = useState<string | null>(null);
   const [accountCreated, setAccountCreated] = useState(false);
+  const [agreed, setAgreed] = useState(false);
 
   const [state, formAction, pending] = useActionState(async (prev: AuthActionResult, formData: FormData) => {
     const result = await signUpParentAction(formData);
@@ -142,8 +144,9 @@ function ParentSignupForm() {
             </FieldHint>
           </div>
         )}
+        <AgreementCheckbox checked={agreed} onChange={setAgreed} />
         {state.error && <p className="text-sm text-text">{state.error}</p>}
-        <Button type="submit" className="w-full" disabled={pending}>
+        <Button type="submit" className="w-full" disabled={pending || !agreed}>
           {pending ? "Creating account…" : "Create account"}
         </Button>
       </form>

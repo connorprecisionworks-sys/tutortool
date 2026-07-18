@@ -39,6 +39,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      agreements: {
+        Row: {
+          accepted_at: string
+          auth_user_id: string
+          id: string
+          privacy_version: string
+          terms_version: string
+        }
+        Insert: {
+          accepted_at?: string
+          auth_user_id: string
+          id?: string
+          privacy_version: string
+          terms_version: string
+        }
+        Update: {
+          accepted_at?: string
+          auth_user_id?: string
+          id?: string
+          privacy_version?: string
+          terms_version?: string
+        }
+        Relationships: []
+      }
       availability: {
         Row: {
           created_at: string
