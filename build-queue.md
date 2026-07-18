@@ -417,7 +417,25 @@ Lock down what shipped. No new features.
 
 These refine earlier decisions. Same loop, same rules. Order matters (onboarding + availability before booking rework, polish last).
 
-## C1 — Hard onboarding gate (replaces the dismissible checklist)  [ ]
+## C1 — Hard onboarding gate (replaces the dismissible checklist)  [x] (556db08)
+
+Full-screen 5-step wizard at /onboarding (rate, availability [C2],
+service, handle+bio, optional student+invite), gated in
+app/tutor/layout.tsx via a tutor-scoped session cookie so an
+already-set-up tutor skips the extra queries and an incomplete one
+gets bounced every render until they finish or skip through. Reused
+existing server actions per step rather than duplicating them.
+Dashboard's OnboardingChecklist redesigned to keep showing a small
+reminder for skipped *optional* items (student, Stripe) even once
+required steps are satisfied, per spec — it previously hid entirely
+the moment required was done. Reviewed + QA'd in a headless browser
+(see the C1 commit for the full writeup); found and fixed a real bug
+myself before commit where the gate cookie wasn't scoped to the
+tutor, letting a second tutor signing up in the same browser tab
+inherit the first tutor's cleared gate. TODO(connor): existing
+pre-C1 tutors without a public handle will hit the gate once on
+their next visit to pick one — correct per spec, but worth knowing
+before deploy.
 
 Onboarding becomes the first thing a tutor does, gating the dashboard, not an optional card.
 
