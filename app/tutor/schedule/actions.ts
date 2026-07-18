@@ -15,24 +15,43 @@ export async function addAvailabilityAction(
   const tutor = await requireTutor();
   const supabase = await createClient();
 
-  const weekday = Number(formData.get("weekday") ?? "-1");
+  const weekdays = formData
+    .getAll("weekday")
+    .map((v) => Number(v))
+    .filter((n) => Number.isInteger(n) && n >= 0 && n <= 6);
   const startTime = String(formData.get("start_time") ?? "");
   const endTime = String(formData.get("end_time") ?? "");
 
-  if (weekday < 0 || weekday > 6) return { error: "Pick a day." };
+  if (weekdays.length === 0) return { error: "Pick at least one day." };
   if (!startTime || !endTime) return { error: "Pick a start and end time." };
   if (startTime >= endTime) return { error: "End time must be after start time." };
 
-  const { error } = await supabase.from("availability").insert({
-    tutor_id: tutor.id,
-    weekday,
-    start_time: startTime,
-    end_time: endTime,
-  });
+  // De-dupe against windows already saved for a picked day at the exact
+  // same start/end, so re-applying "Mon-Fri 3-6pm" over an existing Monday
+  // window doesn't create a redundant duplicate row.
+  const { data: existing } = await supabase
+    .from("availability")
+    .select("weekday, start_time, end_time")
+    .eq("tutor_id", tutor.id)
+    .in("weekday", weekdays);
+
+  const rows = weekdays
+    .filter(
+      (weekday) =>
+        !(existing ?? []).some(
+          (e) => e.weekday === weekday && e.start_time === `${startTime}:00` && e.end_time === `${endTime}:00`
+        )
+    )
+    .map((weekday) => ({ tutor_id: tutor.id, weekday, start_time: startTime, end_time: endTime }));
+
+  if (rows.length === 0) return {};
+
+  const { error } = await supabase.from("availability").insert(rows);
 
   if (error) return { error: error.message };
 
   revalidatePath("/tutor/schedule");
+  revalidatePath("/tutor/onboarding");
   return {};
 }
 
