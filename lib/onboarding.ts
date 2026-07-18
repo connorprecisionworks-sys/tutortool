@@ -3,7 +3,7 @@ import { getStripeAccountStatus, isStripeConfigured } from "@/lib/stripe/client"
 import type { TutorRow } from "@/lib/auth/tutor";
 
 export interface OnboardingStep {
-  key: "rates" | "student" | "parent" | "session" | "stripe";
+  key: "rates" | "availability" | "service" | "profile" | "student" | "stripe";
   label: string;
   description: string;
   href: string;
@@ -20,6 +20,18 @@ export interface OnboardingStatus {
   hasAnyData: boolean;
 }
 
+// The gate (C1) walks a tutor through exactly these, in this order, before
+// the dashboard opens on their own. "student" and "stripe" are surfaced
+// alongside them (same status object powers both the wizard and the
+// dashboard's leftover-reminder card) but never block the gate.
+export const ONBOARDING_GATE_STEP_KEYS: OnboardingStep["key"][] = [
+  "rates",
+  "availability",
+  "service",
+  "profile",
+  "student",
+];
+
 /**
  * Every step's `done` is read straight off real rows (or the Stripe API for
  * the one external step) — there's no separate "onboarding_complete" flag to
@@ -29,62 +41,53 @@ export interface OnboardingStatus {
 export async function getOnboardingStatus(tutor: TutorRow): Promise<OnboardingStatus> {
   const supabase = await createClient();
 
-  const [{ data: students }, { count: sessionCount }, { data: parentLinks }] = await Promise.all([
-    supabase
-      .from("clients")
-      .select("id, archived, created_at, rate_type")
-      .eq("tutor_id", tutor.id)
-      .order("created_at", { ascending: true }),
+  const [
+    { count: studentCount },
+    { count: sessionCount },
+    { count: availabilityCount },
+    { count: serviceCount },
+  ] = await Promise.all([
+    supabase.from("clients").select("id", { count: "exact", head: true }).eq("tutor_id", tutor.id),
     supabase.from("sessions").select("id", { count: "exact", head: true }).eq("tutor_id", tutor.id),
-    supabase
-      .from("parent_students")
-      .select("id, clients!inner(tutor_id)")
-      .eq("clients.tutor_id", tutor.id)
-      .limit(1),
+    supabase.from("availability").select("id", { count: "exact", head: true }).eq("tutor_id", tutor.id),
+    supabase.from("services").select("id", { count: "exact", head: true }).eq("tutor_id", tutor.id),
   ]);
-
-  const studentCount = students?.length ?? 0;
-  const firstStudent = students?.find((s) => !s.archived) ?? students?.[0] ?? null;
-  // A student on a non-"standard" rate type (professional discount, friend,
-  // low-income, pro bono) has an independently configured rate rule rather
-  // than inheriting the tutor-level default — so a tutor who bills every
-  // student a custom or pro-bono rate has genuinely finished this step even
-  // if standard_rate_cents (which only matters for "standard"-rate
-  // students) is still its unset default of 0.
-  const hasStudentWithConfiguredRate = (students ?? []).some((s) => s.rate_type !== "standard");
 
   const requiredSteps: Omit<OnboardingStep, "optional">[] = [
     {
       key: "rates",
-      label: "Set your rates",
-      description: "Standard hourly rate and travel rule.",
+      label: "Set your standard rate",
+      description: "Your default hourly rate and travel rule.",
       href: "/tutor/settings",
-      cta: "Set rates",
-      done: tutor.standard_rate_cents > 0 || hasStudentWithConfiguredRate,
+      cta: "Set rate",
+      done: tutor.standard_rate_cents > 0,
     },
     {
-      key: "student",
-      label: "Add your first student",
-      description: "We generate their Student Code automatically.",
-      href: "/tutor/students/new",
-      cta: "Add student",
-      done: studentCount > 0,
+      key: "availability",
+      label: "Set your weekly availability",
+      description: "The hours parents can book you.",
+      href: "/tutor/schedule",
+      cta: "Set availability",
+      done: (availabilityCount ?? 0) > 0,
     },
     {
-      key: "parent",
-      label: "Invite a parent",
-      description: "Share the student's code or join link.",
-      href: firstStudent ? `/tutor/students/${firstStudent.id}` : "/tutor/students/new",
-      cta: "Invite parent",
-      done: (parentLinks?.length ?? 0) > 0,
+      key: "service",
+      label: "Add a service",
+      description: "A named, priced offering — e.g. a tutoring session.",
+      href: "/tutor/settings/services/new",
+      cta: "Add service",
+      done: (serviceCount ?? 0) > 0,
     },
     {
-      key: "session",
-      label: "Log your first session",
-      description: "Duration and travel bill automatically.",
-      href: "/tutor/sessions/new",
-      cta: "Log session",
-      done: (sessionCount ?? 0) > 0,
+      key: "profile",
+      label: "Set your public page",
+      description: "Pick a handle so parents can find and book you.",
+      href: "/tutor/settings",
+      cta: "Set handle",
+      // Bio and visibility toggles are polish a tutor can add any time — the
+      // handle is the one field the public page (and Q2/B4 booking links)
+      // can't function without, so that alone is what gates this step.
+      done: Boolean(tutor.handle),
     },
   ];
 
@@ -104,6 +107,15 @@ export async function getOnboardingStatus(tutor: TutorRow): Promise<OnboardingSt
   const steps: OnboardingStep[] = [
     ...requiredSteps,
     {
+      key: "student",
+      label: "Add your first student",
+      description: "Optional — we generate their Student Code automatically.",
+      href: "/tutor/students/new",
+      cta: "Add student",
+      done: (studentCount ?? 0) > 0,
+      optional: true,
+    },
+    {
       key: "stripe",
       label: "Connect Stripe to get paid",
       description: "Optional — invoice payment links go straight to you.",
@@ -119,6 +131,6 @@ export async function getOnboardingStatus(tutor: TutorRow): Promise<OnboardingSt
     requiredDone,
     requiredTotal: requiredSteps.length,
     allRequiredDone,
-    hasAnyData: studentCount > 0 || (sessionCount ?? 0) > 0,
+    hasAnyData: (studentCount ?? 0) > 0 || (sessionCount ?? 0) > 0,
   };
 }

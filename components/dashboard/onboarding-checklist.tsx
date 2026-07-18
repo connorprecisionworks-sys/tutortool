@@ -54,7 +54,45 @@ export function OnboardingChecklist({
 }) {
   const dismissed = useSyncExternalStore(subscribe, () => getSnapshot(tutorId), getServerSnapshot);
 
-  if (dismissed || status.allRequiredDone) return null;
+  const remaining = status.steps.filter((s) => !s.done);
+  if (dismissed || remaining.length === 0) return null;
+
+  // Once the C1 wizard's required steps are all satisfied, the only thing
+  // left to remind about is whatever was explicitly skipped there (student,
+  // Stripe) — a small persistent nudge, not the full "get set up" checklist
+  // with its progress bar over required steps that are already 100% done.
+  if (status.allRequiredDone) {
+    return (
+      <Card className={clsx("relative", className)}>
+        <button
+          type="button"
+          onClick={() => dismissOnboarding(tutorId)}
+          aria-label="Dismiss reminder"
+          className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-lg text-text-tertiary hover:bg-hover hover:text-text"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M18 6 6 18M6 6l12 12" />
+          </svg>
+        </button>
+        <h2 className="pr-8 text-sm font-semibold">A couple of optional steps left</h2>
+        <ul className="mt-3 divide-y divide-border">
+          {remaining.map((step) => (
+            <li key={step.key} className="flex flex-wrap items-center justify-between gap-3 py-2.5">
+              <div>
+                <p className="text-sm font-medium">{step.label}</p>
+                <p className="text-xs text-text-tertiary">{step.description}</p>
+              </div>
+              <Link href={step.href} className="shrink-0">
+                <Button variant="secondary" size="sm">
+                  {step.cta}
+                </Button>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </Card>
+    );
+  }
 
   const required = status.steps.filter((s) => !s.optional);
   const optional = status.steps.filter((s) => s.optional);
