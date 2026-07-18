@@ -4,6 +4,8 @@ The autonomous work list. Code works this top-down: build an item fully, /review
 
 Decisions are already baked into each item so no product calls are needed mid-run. Global rules for every item: Slate brand (slate blue accent, Inter Tight headings, per BRAND.md), integer cents for money, RLS so tutors touch only their rows and parents only their child's, page-depth bar (empty/loading/error states, mobile, light+dark), no git push.
 
+LEGAL DOCS RULE (standing): if an item introduces a new type of data collected, a new third-party service provider/subprocessor, a new way data is shared, or a public-facing surface, you MUST also update /terms and /privacy (source: legal/Slate-Terms-of-Service.md and legal/Slate-Privacy-Policy.md), bump the Effective Date + version, and add a dated line to legal/legal-changelog.md. Legal docs must stay in sync with what the app actually does.
+
 Status legend: [ ] todo, [~] in progress, [x] done (+ commit), [!] blocked.
 
 ---
