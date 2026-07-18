@@ -2,6 +2,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { intendedRole } from "@/lib/auth/user";
+import { backfillSignupAgreement, requireCurrentAgreement } from "@/lib/legal/gate";
 import type { Tables } from "@/lib/database.types";
 
 export type ParentUserRow = Tables<"users">;
@@ -32,6 +33,7 @@ export const requireParent = cache(async function requireParent(): Promise<Paren
 
   if (existing) {
     if (existing.role !== "parent") redirect("/tutor");
+    await requireCurrentAgreement(supabase, user.id);
     return existing;
   }
 
@@ -46,7 +48,11 @@ export const requireParent = cache(async function requireParent(): Promise<Paren
     .select("*")
     .single();
 
-  if (created) return created;
+  if (created) {
+    await backfillSignupAgreement(supabase, user);
+    await requireCurrentAgreement(supabase, user.id);
+    return created;
+  }
 
   // Unique-violation: a concurrent request already inserted the row.
   if (error?.code === "23505") {
@@ -55,7 +61,10 @@ export const requireParent = cache(async function requireParent(): Promise<Paren
       .select("*")
       .eq("auth_user_id", user.id)
       .single();
-    if (raced) return raced;
+    if (raced) {
+      await requireCurrentAgreement(supabase, user.id);
+      return raced;
+    }
   }
 
   redirect("/login");

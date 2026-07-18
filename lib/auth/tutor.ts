@@ -2,6 +2,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { intendedRole } from "@/lib/auth/user";
+import { backfillSignupAgreement, requireCurrentAgreement } from "@/lib/legal/gate";
 import type { Tables } from "@/lib/database.types";
 
 export type TutorRow = Tables<"tutors">;
@@ -44,7 +45,9 @@ export const requireTutor = cache(async function requireTutor(): Promise<TutorRo
       await supabase
         .from("users")
         .insert({ auth_user_id: user.id, role: "tutor", name: existing.name, email: existing.email });
+      await backfillSignupAgreement(supabase, user);
     }
+    await requireCurrentAgreement(supabase, user.id);
     return existing;
   }
 
@@ -59,6 +62,8 @@ export const requireTutor = cache(async function requireTutor(): Promise<TutorRo
 
   if (created) {
     await supabase.from("users").insert({ auth_user_id: user.id, role: "tutor", name, email });
+    await backfillSignupAgreement(supabase, user);
+    await requireCurrentAgreement(supabase, user.id);
     return created;
   }
 
@@ -70,7 +75,10 @@ export const requireTutor = cache(async function requireTutor(): Promise<TutorRo
       .select("*")
       .eq("auth_user_id", user.id)
       .single();
-    if (raced) return raced;
+    if (raced) {
+      await requireCurrentAgreement(supabase, user.id);
+      return raced;
+    }
   }
 
   throw new Error(error?.message ?? "Could not create tutor profile.");
