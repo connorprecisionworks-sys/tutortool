@@ -15,18 +15,20 @@ export function AcceptTermsCard({
   termsEffectiveDate,
   privacyVersion,
   privacyEffectiveDate,
+  next,
 }: {
   termsVersion: string;
   termsEffectiveDate: string;
   privacyVersion: string;
   privacyEffectiveDate: string;
+  next: string;
 }) {
   const router = useRouter();
   const [agreed, setAgreed] = useState(false);
   const [state, formAction, pending] = useActionState(async (_: AcceptTermsResult, formData: FormData) => {
     const result = await acceptTermsAction(formData);
     if (!result.error) {
-      router.push("/");
+      router.push(next);
       router.refresh();
     }
     return result;

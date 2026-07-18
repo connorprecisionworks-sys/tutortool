@@ -57,7 +57,14 @@ function redirectWithCookies(url: URL, response: NextResponse) {
 }
 
 export async function updateSession(request: NextRequest) {
-  let response = NextResponse.next({ request });
+  // Forwarded so Server Components downstream (specifically
+  // requireCurrentAgreement's redirect to /accept-terms) can recover the
+  // page a user was on when a gate interrupted them — Next doesn't
+  // otherwise expose the request pathname outside middleware.
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-pathname", request.nextUrl.pathname + request.nextUrl.search);
+
+  let response = NextResponse.next({ request: { headers: requestHeaders } });
 
   const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -69,7 +76,7 @@ export async function updateSession(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          response = NextResponse.next({ request });
+          response = NextResponse.next({ request: { headers: requestHeaders } });
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options)
           );
