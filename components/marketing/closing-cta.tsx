@@ -9,7 +9,7 @@ export function ClosingCta({ calcomLink }: { calcomLink: string }) {
         <h2 className="text-3xl tracking-tight sm:text-4xl">Start running your tutoring like a business.</h2>
         <p className="mt-4 text-base text-text-secondary sm:text-lg">Free to start.</p>
         <Link href="/signup/tutor" className="mt-8 inline-block">
-          <Button size="md" className="h-11 px-6 text-sm">
+          <Button size="md" className="h-11 px-6 text-sm motion-safe:hover:scale-[1.03]">
             Sign up free
           </Button>
         </Link>

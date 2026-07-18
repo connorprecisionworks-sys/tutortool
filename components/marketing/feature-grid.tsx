@@ -52,7 +52,7 @@ export function FeatureGrid() {
         </Reveal>
         <div className="mt-14 space-y-20">
           {FEATURES.map((feature, i) => (
-            <Reveal key={feature.title}>
+            <Reveal key={feature.title} variant={i % 2 === 1 ? "right" : "left"}>
               <div
                 className={clsx(
                   "grid grid-cols-1 items-center gap-8 sm:grid-cols-2 sm:gap-12",

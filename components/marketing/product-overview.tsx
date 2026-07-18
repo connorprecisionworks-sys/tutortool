@@ -34,8 +34,8 @@ export function ProductOverview() {
         </Reveal>
         <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {OVERVIEW.map((item, i) => (
-            <Reveal key={item.title} delay={i * 80}>
-              <div className="flex h-full flex-col gap-4 rounded-xl border border-border bg-surface p-5">
+            <Reveal key={item.title} delay={i * 70}>
+              <div className="flex h-full flex-col gap-4 rounded-xl border border-border bg-surface p-5 transition-transform duration-300 motion-safe:hover:-translate-y-1">
                 {item.mockup}
                 <div>
                   <h3 className="text-base tracking-tight">{item.title}</h3>

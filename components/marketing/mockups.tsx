@@ -12,7 +12,12 @@ import { StatusDot, type StatusKind } from "@/components/ui/status-dot";
  */
 function MockupFrame({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={clsx("overflow-hidden rounded-xl border border-border bg-surface", className)}>
+    <div
+      className={clsx(
+        "overflow-hidden rounded-xl border border-border bg-surface transition-transform duration-300 motion-safe:hover:-translate-y-1",
+        className
+      )}
+    >
       <div className="flex h-8 items-center gap-1.5 border-b border-border bg-surface-sunken px-3">
         <span className="h-1.5 w-1.5 rounded-full bg-border-strong" />
         <span className="h-1.5 w-1.5 rounded-full bg-border-strong" />

@@ -29,7 +29,7 @@ export function HowItWorks() {
         </Reveal>
         <div className="mt-10 grid grid-cols-1 gap-10 sm:grid-cols-3">
           {STEPS.map((step, i) => (
-            <Reveal key={step.title} delay={i * 100}>
+            <Reveal key={step.title} delay={i * 70}>
               <div>
                 <span className="tabular-nums text-sm font-semibold text-accent">{String(i + 1).padStart(2, "0")}</span>
                 <h3 className="mt-3 text-base tracking-tight">{step.title}</h3>

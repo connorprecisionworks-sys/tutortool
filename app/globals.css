@@ -161,3 +161,84 @@ textarea {
     transform: translateX(0);
   }
 }
+
+@keyframes word-rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.4em);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.marquee-fade {
+  mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+}
+
+/* Responsive tables: below `sm`, rows become stacked cards instead of a
+   horizontally-scrolling table — the first cell reads as the card title,
+   the rest render as label/value rows via the `data-label` attribute. */
+@media (max-width: 639.98px) {
+  .rtable {
+    display: block;
+  }
+  .rtable thead {
+    display: none;
+  }
+  .rtable tbody {
+    display: block;
+  }
+  .rtable tr {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    margin-bottom: 0.75rem;
+    overflow: hidden;
+  }
+  .rtable tr:last-child {
+    margin-bottom: 0;
+  }
+  .rtable td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.625rem 1rem;
+    border-top: 1px solid var(--border);
+    text-align: right;
+  }
+  .rtable td:empty {
+    display: none;
+  }
+  .rtable td:first-child {
+    border-top: none;
+    padding-top: 0.875rem;
+    padding-bottom: 0.5rem;
+    font-weight: 500;
+    justify-content: flex-start;
+    text-align: left;
+  }
+  .rtable td[data-label]::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+  }
+  .rtable td.cell-action {
+    justify-content: flex-end;
+  }
+}

@@ -18,7 +18,7 @@ function MarqueeRow({ items, reverse }: { items: string[]; reverse?: boolean }) 
   // as a static (slightly overflowing, clipped) row — no infinite scroll,
   // no motion, still legible.
   return (
-    <div className="overflow-hidden">
+    <div className="marquee-fade overflow-hidden">
       <div
         className={clsx(
           "flex w-max gap-3 motion-safe:hover:[animation-play-state:paused]",
