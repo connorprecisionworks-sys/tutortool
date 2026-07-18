@@ -461,7 +461,25 @@ Set availability as recurring weekly blocks, fast.
 - Builds on the existing `availability` table; extend as needed. Times respect the app's existing time handling (note the standing UTC/timezone TODO).
 - Acceptance: a tutor sets Mon-Fri 3-6pm in one action and it saves as the weekly availability that booking reads from.
 
-## C3 — Availability-driven booking (services inherit availability)  [ ]
+## C3 — Availability-driven booking (services inherit availability)  [x] (b73516c)
+
+Public page's booking CTA is per-service and needs no tutor-created
+booking link first: new (get_public_service, get_public_service_slots,
+confirm_public_service_booking) RPCs key off (handle, service_id)
+directly, deliberately not built on B4's booking_links (would mean
+auto-creating an invisible link per service). B4's manual link stays a
+quiet secondary CTA. Reuses B4's is_slot_bookable() + advisory lock.
+High-effort review (real, not the missing-tooling manual-pass caveat
+from Batch 2 — gstack /review is available now) caught and fixed
+three real bugs before commit: a race where fast date-switching could
+book a slot from the wrong day, a failed-confirm leaving a just-taken
+slot resubmittable forever, and a swallowed RPC error masking outages
+as 404s — plus deduped a copy-pasted SQL slot-generation loop into a
+shared helper. The same race+stale-slot fix was also backported to
+B4's own booking form, which had the identical bug. QA'd end-to-end
+(Mon-Fri 3-6pm + 60-min service → exactly 3 slots; booking one removes
+it on reload; the "slot taken from under you" fix verified by racing
+the anon RPC directly against an open picker).
 
 Services no longer carry their own fixed time slots. Bookable times are generated from the tutor's availability, filtered by the chosen service's duration, minus existing sessions and a buffer. This makes availability the model (Cal-style), building on B4's open-availability booking.
 
