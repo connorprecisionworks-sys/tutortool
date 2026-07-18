@@ -65,3 +65,20 @@ export function nowAsStoredWallClockIso(): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}.000Z`;
 }
+
+/** Tomorrow's date as YYYY-MM-DD, the default first date shown on an availability-driven booking picker. */
+export function tomorrowIso(): string {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Formats an open-slot ISO timestamp's time-of-day only, reading UTC getters — same wall-clock-stamped-as-UTC convention as formatBookingWhen. */
+export function formatIsoSlotTime(iso: string): string {
+  const d = new Date(iso);
+  const hours24 = d.getUTCHours();
+  const minutes = d.getUTCMinutes();
+  const period = hours24 >= 12 ? "PM" : "AM";
+  const hours12 = hours24 % 12 === 0 ? 12 : hours24 % 12;
+  return `${hours12}:${String(minutes).padStart(2, "0")} ${period}`;
+}

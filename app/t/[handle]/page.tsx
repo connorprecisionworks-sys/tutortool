@@ -6,6 +6,7 @@ import { Mark } from "@/components/brand/logo";
 import { formatCents } from "@/lib/money";
 
 interface PublicTutorService {
+  id: string;
   name: string;
   description: string | null;
   duration_minutes: number;
@@ -58,30 +59,35 @@ export default async function PublicTutorPage({ params }: { params: Promise<{ ha
         {(profile.services ?? []).length === 0 ? (
           <p className="text-sm text-text-secondary">No services listed yet.</p>
         ) : (
-          profile.services!.map((s, i) => (
-            <Card key={i} className="flex items-center justify-between gap-4">
+          profile.services!.map((s) => (
+            <Card key={s.id} className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <p className="font-medium">{s.name}</p>
                 {s.description && <p className="mt-0.5 text-sm text-text-secondary">{s.description}</p>}
-                <p className="mt-1 text-xs text-text-tertiary">{s.duration_minutes} min</p>
+                <p className="mt-1 text-xs text-text-tertiary">
+                  {s.duration_minutes} min
+                  {s.price_cents != null && ` · ${formatCents(s.price_cents)}`}
+                </p>
               </div>
-              {s.price_cents != null && (
-                <p className="whitespace-nowrap font-medium tabular-nums">{formatCents(s.price_cents)}</p>
-              )}
+              <Link href={`/t/${handle}/book/${s.id}`} className="shrink-0">
+                <Button size="sm">Book</Button>
+              </Link>
             </Card>
           ))
         )}
       </div>
 
-      <div className="mt-8">
-        {profile.booking_token ? (
-          <Link href={`/book/${profile.booking_token}`}>
-            <Button className="w-full sm:w-auto">Book a session</Button>
+      {/* C3: availability-driven booking (per-service, above) is the default
+          path. A manually-created booking link (Q2's specific offered
+          slots, or a B4 standing link) stays available as an optional
+          secondary override — surfaced quietly, not as the primary CTA. */}
+      {profile.booking_token && (
+        <div className="mt-8 border-t border-border pt-6">
+          <Link href={`/book/${profile.booking_token}`} className="text-sm text-text-secondary underline hover:text-text">
+            Or see specific times offered by {profile.name}
           </Link>
-        ) : (
-          <p className="text-sm text-text-secondary">No open booking times right now — check back soon.</p>
-        )}
-      </div>
+        </div>
+      )}
 
       <p className="mt-12 text-center text-xs text-text-tertiary">Slate — Back office for tutors.</p>
     </div>

@@ -4,23 +4,23 @@ import { useActionState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input, Label, FieldHint } from "@/components/ui/input";
 import {
-  confirmOpenBookingLinkAction,
-  getOpenAvailabilitySlotsAction,
-  type ConfirmOpenBookingResult,
-} from "@/app/book/[token]/actions";
+  confirmPublicServiceBookingAction,
+  getPublicServiceSlotsAction,
+  type ConfirmPublicServiceBookingResult,
+} from "@/app/t/[handle]/book/[serviceId]/actions";
 import { useSlotPicker } from "@/lib/hooks/use-slot-picker";
 import { formatIsoSlotTime as formatTime } from "@/lib/scheduling";
 
-const initialState: ConfirmOpenBookingResult = {};
+const initialState: ConfirmPublicServiceBookingResult = {};
 
-export function OpenAvailabilityBookingForm({
-  token,
+export function ServiceAvailabilityBookingForm({
+  handle,
+  serviceId,
   durationMinutes,
-  needsStudentName,
 }: {
-  token: string;
+  handle: string;
+  serviceId: string;
   durationMinutes: number;
-  needsStudentName: boolean;
 }) {
   const {
     date,
@@ -31,8 +31,8 @@ export function OpenAvailabilityBookingForm({
     pending: pendingSlots,
     error: slotsError,
     refetch,
-  } = useSlotPicker((d) => getOpenAvailabilitySlotsAction(token, d), [token]);
-  const [state, formAction, pending] = useActionState(confirmOpenBookingLinkAction, initialState);
+  } = useSlotPicker((d) => getPublicServiceSlotsAction(handle, serviceId, d), [handle, serviceId]);
+  const [state, formAction, pending] = useActionState(confirmPublicServiceBookingAction, initialState);
 
   // A confirm failure most often means someone else just took this slot —
   // drop back to the picker with fresh data instead of leaving the same
@@ -91,7 +91,8 @@ export function OpenAvailabilityBookingForm({
 
   return (
     <form action={formAction} className="space-y-4">
-      <input type="hidden" name="token" value={token} />
+      <input type="hidden" name="handle" value={handle} />
+      <input type="hidden" name="service_id" value={serviceId} />
       <input type="hidden" name="start_ts" value={selectedSlot} />
 
       <div className="rounded-lg border border-border bg-surface-sunken px-4 py-3 text-sm">
@@ -107,12 +108,10 @@ export function OpenAvailabilityBookingForm({
         </button>
       </div>
 
-      {needsStudentName && (
-        <div>
-          <Label htmlFor="student_name">Student&apos;s name</Label>
-          <Input id="student_name" name="student_name" required />
-        </div>
-      )}
+      <div>
+        <Label htmlFor="student_name">Student&apos;s name</Label>
+        <Input id="student_name" name="student_name" required />
+      </div>
 
       <div>
         <Label htmlFor="parent_name">Your name</Label>

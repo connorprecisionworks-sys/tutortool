@@ -1475,6 +1475,17 @@ export type Database = {
         Args: { p_student_id: string }
         Returns: undefined
       }
+      confirm_public_service_booking: {
+        Args: {
+          p_handle: string
+          p_parent_email: string
+          p_parent_name: string
+          p_service_id: string
+          p_start_ts: string
+          p_student_name?: string
+        }
+        Returns: Json
+      }
       create_booking: {
         Args: {
           p_duration_minutes: number
@@ -1604,11 +1615,28 @@ export type Database = {
         }
         Returns: Json
       }
+      generate_open_slots: {
+        Args: {
+          p_buffer_minutes: number
+          p_date: string
+          p_duration_minutes: number
+          p_tutor_id: string
+        }
+        Returns: string[]
+      }
       generate_tutor_code: { Args: never; Returns: string }
       get_booking_link_public: { Args: { p_token: string }; Returns: Json }
       get_ical_feed: { Args: { p_token: string }; Returns: Json }
       get_open_availability_slots: {
         Args: { p_date: string; p_token: string }
+        Returns: Json
+      }
+      get_public_service: {
+        Args: { p_handle: string; p_service_id: string }
+        Returns: Json
+      }
+      get_public_service_slots: {
+        Args: { p_date: string; p_handle: string; p_service_id: string }
         Returns: Json
       }
       get_public_tutor_profile: { Args: { p_handle: string }; Returns: Json }
