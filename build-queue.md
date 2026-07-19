@@ -539,6 +539,125 @@ Note: a landing-page motion rebuild (hero stagger, parallax, marquee fade, alter
 
 ---
 
+# BATCH 4 (tutor feedback from first live session, 2026-07-18)
+
+Real feedback from Connor's first tutor. Same loop, same rules, same LEGAL DOCS RULE. Ordered quick-wins/foundational first, bigger + infra-dependent later. Items needing an external key/account (Resend, Google/Outlook/Zoom OAuth) should build the code and mark themselves [!] blocked on the missing credential rather than stalling.
+
+## D1 — Onboarding handle: validate live + allow anything  [x] (5dfc098)
+
+Live format/reserved checks are instant (lib/handle.ts, shared with the
+save action so they can never drift); availability is debounced against
+a new is_handle_available() SECURITY DEFINER RPC (tutors_select_own RLS
+blocks a plain cross-tutor lookup otherwise). Submit is disabled with an
+inline message for taken/invalid; a transient check failure never blocks
+submit. Format relaxed to letters/digits/hyphens/underscores/periods,
+3-48 chars (kept the 3-char floor — a prior fix had deliberately closed
+a 1-char-handle bug); added a reserved-handle list over the app's real
+top-level routes. Reviewed (high effort; fixed a real bug where the live
+check called the full requireTutor() gate and could redirect a tutor off
+the page mid-keystroke, plus a regex draft that reintroduced the 1-char
+bug) and QA'd end-to-end across two disposable tutors: invalid format,
+reserved word, cross-tutor taken handle, and a valid custom handle with
+underscore/period, in both onboarding and Settings, light+dark, desktop
++mobile.
+
+- On the onboarding + settings handle field, validate inline BEFORE submit: show availability/format feedback as they type (taken/available, allowed characters), and block submit only with a clear inline message, never a silent fail.
+- Relax handle rules so it can be almost anything the tutor wants (any URL-safe string, reasonable length); only reject truly invalid/taken handles.
+- Acceptance: typing a taken or invalid handle shows an inline flag immediately; a valid custom handle submits cleanly.
+
+## D2 — Dashboard "Getting Started / Learn Slate"  [ ]
+
+Tutors land on the dashboard and don't know what to do. Add an intro.
+
+- A clear "Learn how to use Slate" / getting-started element on the dashboard: a short, dismissible intro card or a help panel with a few "here's how Slate works" steps (add a student, set availability, send a booking link, invoice). Link each to the real action. Calm, editorial, on-brand.
+- Acceptance: a new tutor sees an obvious intro/how-to on the dashboard that orients them and links to the key actions.
+
+## D3 — Tutor contact info  [ ]
+
+- Add tutor contact fields (phone, and any contact info) in Settings, and optionally surface on the public page (tutor-controlled visibility). Also used to prefill SMS/contact features later.
+- Acceptance: a tutor saves a phone/contact, and it persists and can be shown/hidden on the public page.
+
+## D4 — Date format M/D/Y app-wide  [ ]
+
+- Change the sessions page (and other date displays) to M/D/Y format for consistency. Sweep the app for inconsistent date rendering and standardize.
+- Acceptance: sessions and key screens show dates as M/D/Y.
+
+## D5 — Notes clarity: private vs shared + student intake template  [ ]
+
+Make it obvious who a note is for, and add a structured student-info template.
+
+- Clearly separate and label "Tutor Notes" (private, never shown to parents/students) from "Session Notes" (shareable with the parent). Rename/relabel and visually distinguish so a tutor never confuses them.
+- On the student detail page, add an intake template for the student's parent info, contact, and needs/goals (structured fields or a prefilled note template).
+- Acceptance: private tutor notes are clearly marked and never visible in the parent portal; a student has a parent-info/contact/needs section.
+
+## D6 — Parent billing: view all invoices  [ ]
+
+- Ensure a parent can view their invoices (list + detail) from the billing section of their portal, not just a single linked one.
+- Acceptance: a parent opens Billing and sees all their invoices with status and can open each.
+
+## D7 — Printable / PDF invoices  [ ]
+
+- Add "Download PDF" / printable view for an invoice (tutor and parent). Clean, branded, itemized.
+- Acceptance: an invoice downloads as a well-formatted PDF that matches the on-screen invoice.
+
+## D8 — Packages upgrade  [ ]
+
+- Package can be general (usable by any of the tutor's students) OR bound to a specific student (make student_id optional).
+- Package builder auto-calculates the price from selected sessions/services and supports a discount (percent or amount) with the total shown live.
+- Advertise packages/services/offers on the public tutor page (a tutor can feature them).
+- Acceptance: a tutor builds a general 4-session package with a 10% discount, the total auto-calculates, and it can appear on the public page.
+
+## D9 — Email center (templates + preview + custom + notifications)  [ ]
+
+Depends on Resend for actual delivery (Connor adds RESEND_API_KEY + EMAIL_FROM in env; if absent, build everything and mark delivery [!] blocked on the key, preview/editor still work).
+
+- Rewrite the premade email + notification templates so they read well and on-brand (booking confirmation, reminder, invoice, invite). The current ones are weak.
+- Let tutors preview what each email/notification looks like.
+- Collapse the template list: each template compressed by default, expands when opened.
+- Let tutors edit templates and create their own using premade variables like {{link}}, {{student}}, {{date}}, {{tutor}}, {{amount}} with an inserter + a live preview.
+- Per-tutor notification settings: which alerts they get (e.g., new booking) and which go to parents.
+- Billing/booking emails to parents must feel like they come from the tutor: send from the verified platform address (EMAIL_FROM, e.g. support@slatetutor.com) but set the From DISPLAY NAME to "{Tutor Name} via Slate" and set Reply-To to the tutor's own email (from their contact info, D3), so a parent's reply goes to the tutor, not to Slate. Never put the tutor's raw email in the From address (SPF/DKIM/DMARC will fail).
+- Acceptance: a tutor opens the email center, previews a booking-confirmation email, edits it with a {{link}} variable, and sees the preview render; a sent parent email shows "{Tutor} via Slate" as the sender with Reply-To = the tutor's email; delivery works once Resend is keyed.
+
+## D10 — Booking page more visual  [ ]
+
+- Make the public booking flow more visual and polished (service cards, clearer availability/time selection, tutor photo/branding), keeping the Slate frame. Mobile-first.
+- Acceptance: the booking page looks visual and inviting, not a bare list, at desktop and mobile.
+
+## D11 — Availability: per-day hours + unavailability  [ ]
+
+- Let tutors set different hours for specific days (override the weekly default per weekday) and block off specific dates/ranges as unavailable (vacations, one-offs). Booking respects both.
+- Acceptance: a tutor sets Fri to 1-3pm (different from the Mon-Thu default) and blocks a specific date; booking offers reflect both.
+
+## D12 — Auto-send invoices  [ ]
+
+- Option to automatically generate and send invoices on a cadence (e.g., weekly) or trigger (e.g., after each session / when a package runs out), tutor-configurable per client, with a clear on/off and preview. Reuses the reminder job infrastructure.
+- Acceptance: a tutor enables weekly auto-invoicing for a client and an invoice is generated + queued to send on schedule (delivery gated on Resend, same as D9).
+
+## D13 — Gated / paid resources + invoice add-ons  [ ]
+
+Money-touching + new sharing surface, so /review and update /terms + /privacy per the LEGAL DOCS RULE.
+
+- Let a tutor mark a resource (or a section) as paid/gated: the parent must pay to unlock it. Support gated resources tied to a price, and an optional paid add-on line on an invoice that unlocks specific content/sections when paid.
+- Payment reuses the existing Stripe/invoice path; gated content stays locked until payment is confirmed. Manual mark-as-paid also unlocks.
+- Acceptance: a parent sees a locked resource, pays (or the tutor marks paid), and it unlocks; RLS prevents access before payment.
+
+## D14 — Installable app + persistent login (PWA)  [ ]
+
+- Make Slate installable (web app manifest, icons from the brand kit, standalone display) so "Add to Home Screen" in Safari opens a real app shell, and keep the session persistent so the user stays logged in in the installed app.
+- Acceptance: adding Slate to the Home Screen on iOS Safari opens a standalone app that stays logged in across launches.
+
+## D15 — Integrations (calendar, video, email)  [ ]
+
+Mostly credential-dependent; build what's buildable, mark the OAuth/key pieces [!] blocked with what Connor must provide.
+
+- Google Calendar / Outlook two-way sync (beyond the existing one-way iCal feed). Needs Google/Microsoft OAuth credentials from Connor; build the integration and block on the creds if absent.
+- Video links: attach a Zoom or Google Meet link to a session/booking (manual paste first; auto-generation needs Zoom/Google OAuth, block on that). "Not super necessary" per Connor, so keep it light.
+- Send email directly from Slate as part of integrations (reuses the email/Resend layer).
+- Acceptance: a tutor can attach a meeting link to a session; calendar two-way sync works once OAuth creds are provided (else clearly marked blocked).
+
+---
+
 ## Parked (do NOT build in this loop)
 
 - Searchable "find tutors in your area" directory / marketplace + matching. Public tutor pages (Q3) make this possible later, but the directory, search, and tutor discovery are a separate initiative.
