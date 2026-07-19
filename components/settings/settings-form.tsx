@@ -21,7 +21,11 @@ export function SettingsForm({ tutor, smsConfigured }: { tutor: Tables<"tutors">
       <div>
         <Label htmlFor="phone">Phone (optional)</Label>
         <Input id="phone" name="phone" type="tel" maxLength={30} defaultValue={tutor.phone ?? ""} placeholder="e.g. (555) 123-4567" />
-        <FieldHint>Used for your own records and to prefill contact/SMS features. Not shown publicly unless you enable it below.</FieldHint>
+        <FieldHint>
+          Used for your own records and to prefill contact/SMS features. Not shown publicly unless you enable it
+          below — changing the number here turns public visibility back off, so you re-confirm it for the new
+          number.
+        </FieldHint>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">

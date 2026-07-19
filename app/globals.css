@@ -128,6 +128,14 @@ textarea {
   transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, opacity 150ms ease;
 }
 
+/* D7: sane page margins for anything printed (invoice documents, or any
+   other page a user prints via the browser's own print/save-as-PDF). */
+@media print {
+  @page {
+    margin: 0.6in;
+  }
+}
+
 .logo-light {
   display: block;
 }

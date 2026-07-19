@@ -96,6 +96,14 @@ export default async function ParentInvoiceDetailPage({ params }: { params: Prom
                 No payment link yet — ask your tutor to send one, or arrange payment directly with them.
               </p>
             )}
+            <a
+              href={`/invoice/${invoice.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block text-xs text-text underline underline-offset-2"
+            >
+              Download PDF ↗
+            </a>
           </Card>
           <Link href="/parent/billing" className="text-xs text-text-tertiary hover:text-text">
             ← Back to Billing

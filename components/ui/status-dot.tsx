@@ -15,7 +15,7 @@ export type StatusKind =
   | "declined"
   | "cancelled";
 
-const LABELS: Record<StatusKind, string> = {
+export const STATUS_LABELS: Record<StatusKind, string> = {
   draft: "Draft",
   sent: "Sent",
   paid: "Paid",
@@ -49,7 +49,7 @@ export function StatusDot({ status, label }: { status: StatusKind; label?: strin
         )}
       />
       <span className={clsx(bold ? "font-semibold text-text" : "text-text-secondary")}>
-        {label ?? LABELS[status]}
+        {label ?? STATUS_LABELS[status]}
       </span>
     </span>
   );

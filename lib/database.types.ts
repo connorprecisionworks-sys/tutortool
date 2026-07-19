@@ -1680,6 +1680,7 @@ export type Database = {
       generate_tutor_code: { Args: never; Returns: string }
       get_booking_link_public: { Args: { p_token: string }; Returns: Json }
       get_ical_feed: { Args: { p_token: string }; Returns: Json }
+      get_invoice_document: { Args: { p_invoice_id: string }; Returns: Json }
       get_open_availability_slots: {
         Args: { p_date: string; p_token: string }
         Returns: Json

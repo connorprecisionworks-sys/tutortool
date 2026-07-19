@@ -28,9 +28,18 @@ export async function updateTutorSettingsAction(
   const invoiceTerms = String(formData.get("invoice_terms") ?? "due_on_receipt");
   const billTravelDefault = formData.get("bill_travel_default") === "on";
   const name = String(formData.get("name") ?? "").trim();
-  const phone = String(formData.get("phone") ?? "").trim().slice(0, 30);
+  const phone = String(formData.get("phone") ?? "").trim().slice(0, 30) || null;
 
   if (!name) return { error: "Name is required." };
+
+  // "Show my phone number" (Settings > Public page) is consent for one
+  // specific number, not a standing publish-anything toggle — mirrors the
+  // same reasoning already applied to a client's payer_phone/sms_opt_in in
+  // app/tutor/students/actions.ts. Without this, a tutor who once opted a
+  // number in, later cleared it, then entered a brand-new personal number
+  // here would have that new number silently published on their public
+  // page the moment this save lands, with no re-confirmation anywhere.
+  const phoneChanged = phone !== tutor.phone;
 
   const cancellationPolicy = String(formData.get("default_cancellation_policy") ?? "rollover");
   if (!["rollover", "refund", "charge"].includes(cancellationPolicy)) {
@@ -67,7 +76,8 @@ export async function updateTutorSettingsAction(
     .from("tutors")
     .update({
       name,
-      phone: phone || null,
+      phone,
+      ...(phoneChanged ? { show_phone: false } : {}),
       standard_rate_cents: dollarsToCents(standardRate),
       travel_rate_cents: travelRateRaw ? dollarsToCents(Number(travelRateRaw)) : null,
       bill_travel_default: billTravelDefault,

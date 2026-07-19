@@ -147,6 +147,14 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
                 </div>
               )}
             </dl>
+            <a
+              href={`/invoice/${invoice.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 block text-xs text-text underline underline-offset-2"
+            >
+              Download PDF ↗
+            </a>
           </Card>
 
           <Card className="space-y-3">
