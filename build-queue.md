@@ -635,7 +635,30 @@ desktop+mobile.
 - Change the sessions page (and other date displays) to M/D/Y format for consistency. Sweep the app for inconsistent date rendering and standardize.
 - Acceptance: sessions and key screens show dates as M/D/Y.
 
-## D5 — Notes clarity: private vs shared + student intake template  [ ]
+## D5 — Notes clarity: private vs shared + student intake template  [x] (aad1cf9)
+
+Relabeled per spec's own naming: "Tutor Notes" (sessions.notes,
+clients.notes — always private, no sharing mechanism exists) vs
+"Session Notes" (session_notes table — shareable, RLS-gated). New
+PrivacyPill marks each field's state, live-updating on the Session
+Notes toggle. Student detail gets a "Student intake" section grouping
+existing payer contact fields with a new structured needs_goals field.
+High-effort review found and fixed six real bugs, three from this
+item and three resurfacing from D1/D4 in the same review pass: a
+server-side reserved-handle re-check with no unchanged-value bypass
+that could block saving any profile field for a tutor who already
+owned a now-reserved handle; D4's UTC-pinned date formatter shifting
+join/invite dates a day for viewers west of UTC on one client
+component; RESERVED_HANDLES blocking valid handles like "book"/"join"
+that can never actually collide with /t/[handle] (fixed the list and
+its inaccurate justification comment); a cross-tab localStorage sync
+regression in D4's useDismissible refactor; a PrivacyPill margin
+Tailwind's cascade made impossible to override; and misleading Session
+Notes copy on billed/cancelled sessions. QA'd end-to-end including
+confirming via the raw DB and the actual parent portal that a shared
+Session Note appears while the private Tutor Note never does, plus the
+reserved-handle-unchanged and "book"-now-valid fixes. Light+dark,
+desktop+mobile.
 
 Make it obvious who a note is for, and add a structured student-info template.
 
