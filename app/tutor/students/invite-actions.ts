@@ -4,8 +4,10 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireTutor } from "@/lib/auth/tutor";
 import { isEmailConfigured, sendEmail } from "@/lib/email";
-import { buildInviteEmailHtml } from "@/lib/invite-email";
+import { resolveSystemTemplate, renderTemplateEmailHtml } from "@/lib/email-templates";
+import { parentFacingIdentity } from "@/lib/email-identity";
 import { studentJoinLink } from "@/lib/invite-link";
+import type { ReminderTemplates } from "@/lib/reminders";
 
 export async function revokeInviteAction(studentId: string): Promise<{ error?: string }> {
   await requireTutor();
@@ -94,17 +96,18 @@ export async function sendInviteEmailAction(
   const link = studentJoinLink(invite.code);
   const logoUrl = process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/brand/logo/slate-logo-on-light.png` : null;
 
+  const template = resolveSystemTemplate(tutor.reminder_templates as unknown as ReminderTemplates, "invite_parent");
+  const rendered = renderTemplateEmailHtml(
+    template,
+    { tutor: tutor.name, student: student.student_name, parent: parentName.trim(), link, code: invite.code },
+    { ctaLabel: "Join Slate", logoUrl }
+  );
+
   const sendResult = await sendEmail({
     to: email,
-    subject: `You're invited to Slate for ${student.student_name}`,
-    html: buildInviteEmailHtml({
-      tutorName: tutor.name,
-      studentName: student.student_name,
-      parentName,
-      link,
-      code: invite.code,
-      logoUrl,
-    }),
+    subject: rendered.subject,
+    html: rendered.html,
+    ...parentFacingIdentity(tutor),
   });
   if (sendResult.error) return { error: sendResult.error };
 

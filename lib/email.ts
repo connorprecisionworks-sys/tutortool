@@ -6,20 +6,48 @@ export interface SendEmailParams {
   to: string;
   subject: string;
   html: string;
+  /**
+   * Display name to show in the recipient's inbox instead of the bare
+   * EMAIL_FROM display name — e.g. "{Tutor Name} via Slate" for a
+   * parent-facing send. The address itself always stays EMAIL_FROM's
+   * verified domain (SPF/DKIM/DMARC would fail on a tutor's raw address).
+   */
+  fromName?: string;
+  /** Reply-To — e.g. the tutor's own email, so a parent's reply reaches them, not Slate. */
+  replyTo?: string;
+}
+
+/** Pulls the bare address out of an "EMAIL_FROM" env value that may already be "Name <addr>". */
+function fromAddress(): string {
+  const raw = process.env.EMAIL_FROM ?? "Slate <onboarding@resend.dev>";
+  const match = raw.match(/<([^>]+)>/);
+  return match ? match[1] : raw;
 }
 
 /**
- * Sends via Resend if RESEND_API_KEY is set; otherwise logs and no-ops.
- * TODO(connor): no Resend key was provided during this build, so every
- * reminder/invoice email in this app currently just logs server-side
- * instead of delivering. Add RESEND_API_KEY (and set EMAIL_FROM) in
- * .env.local to go live — no other code changes needed.
+ * A tutor's display name is free text (no character restriction beyond a
+ * trim in Settings) but ends up in a mailbox display-name position of a
+ * real RFC 5322 header — an un-quoted "," or "<...>" there is either
+ * mis-parsed as a second address or rejected outright by Resend. Always
+ * wrapping it in a quoted-string (escaping the two characters that end a
+ * quoted-string early) makes any tutor-chosen name safe there. CR/LF are
+ * stripped too, since this string is spliced directly into a header value.
  */
+function quoteMailboxName(name: string): string {
+  const sanitized = name.replace(/[\r\n]/g, "").trim();
+  return `"${sanitized.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+}
+
+/** Sends via Resend if RESEND_API_KEY is set; otherwise logs and no-ops. */
 export async function sendEmail(params: SendEmailParams): Promise<{ error?: string }> {
   if (!isEmailConfigured()) {
     console.log(`[email stub] would send to ${params.to}: "${params.subject}"`);
     return {};
   }
+
+  const from = params.fromName
+    ? `${quoteMailboxName(params.fromName)} <${fromAddress()}>`
+    : (process.env.EMAIL_FROM ?? "Slate <onboarding@resend.dev>");
 
   try {
     const res = await fetch("https://api.resend.com/emails", {
@@ -29,10 +57,11 @@ export async function sendEmail(params: SendEmailParams): Promise<{ error?: stri
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: process.env.EMAIL_FROM ?? "Slate <onboarding@resend.dev>",
+        from,
         to: params.to,
         subject: params.subject,
         html: params.html,
+        ...(params.replyTo ? { reply_to: params.replyTo } : {}),
       }),
     });
 

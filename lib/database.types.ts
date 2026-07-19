@@ -1299,6 +1299,7 @@ export type Database = {
           booking_cta_label: string
           cancellation_window_hours: number
           created_at: string
+          custom_email_templates: Json
           default_cancellation_policy: string
           default_payment_timing: string
           email: string
@@ -1310,6 +1311,7 @@ export type Database = {
           is_public: boolean
           mileage_rate_cents: number
           name: string
+          notification_settings: Json
           phone: string | null
           public_display_name: string | null
           reminder_cadence: Json
@@ -1334,6 +1336,7 @@ export type Database = {
           booking_cta_label?: string
           cancellation_window_hours?: number
           created_at?: string
+          custom_email_templates?: Json
           default_cancellation_policy?: string
           default_payment_timing?: string
           email: string
@@ -1345,6 +1348,7 @@ export type Database = {
           is_public?: boolean
           mileage_rate_cents?: number
           name: string
+          notification_settings?: Json
           phone?: string | null
           public_display_name?: string | null
           reminder_cadence?: Json
@@ -1369,6 +1373,7 @@ export type Database = {
           booking_cta_label?: string
           cancellation_window_hours?: number
           created_at?: string
+          custom_email_templates?: Json
           default_cancellation_policy?: string
           default_payment_timing?: string
           email?: string
@@ -1380,6 +1385,7 @@ export type Database = {
           is_public?: boolean
           mileage_rate_cents?: number
           name?: string
+          notification_settings?: Json
           phone?: string | null
           public_display_name?: string | null
           reminder_cadence?: Json

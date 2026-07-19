@@ -6,14 +6,12 @@ import { requireTutor } from "@/lib/auth/tutor";
 import { createClient } from "@/lib/supabase/server";
 import { SettingsForm } from "@/components/settings/settings-form";
 import { StripeConnectSection } from "@/components/settings/stripe-connect-section";
-import { ReminderTemplatesForm } from "@/components/settings/reminder-templates-form";
 import { PublicProfileForm } from "@/components/settings/public-profile-form";
 import { IcalFeedSection } from "@/components/settings/ical-feed-section";
 import { CopyButton } from "@/components/ui/copy-button";
 import { getStripeAccountStatus, isStripeConfigured } from "@/lib/stripe/client";
 import { tutorCodeLink } from "@/lib/tutor-code-link";
 import { isSmsConfigured } from "@/lib/sms";
-import type { ReminderTemplates } from "@/lib/reminders";
 
 export default async function SettingsPage() {
   const tutor = await requireTutor();
@@ -98,8 +96,19 @@ export default async function SettingsPage() {
         </Card>
 
         <Card className="max-w-2xl">
-          <h2 className="mb-3 text-sm font-semibold">Reminder templates</h2>
-          <ReminderTemplatesForm templates={tutor.reminder_templates as unknown as ReminderTemplates} />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-sm font-semibold">Email center</h2>
+              <p className="mt-1 text-sm text-text-secondary">
+                Templates for booking, reminders, and invoices, with a live preview and your own notification settings.
+              </p>
+            </div>
+            <Link href="/tutor/settings/email" className="shrink-0">
+              <Button variant="secondary" size="sm" className="w-full sm:w-auto">
+                Open email center
+              </Button>
+            </Link>
+          </div>
         </Card>
       </div>
     </div>

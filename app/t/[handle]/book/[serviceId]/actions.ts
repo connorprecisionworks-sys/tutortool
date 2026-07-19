@@ -6,7 +6,10 @@ import { isEmailConfigured, sendEmail } from "@/lib/email";
 import { buildBookingConfirmedEmailHtml } from "@/lib/booking-link-email";
 import { formatBookingWhen } from "@/lib/scheduling";
 import { appUrl } from "@/lib/env";
-import { interpolateTemplate, type ReminderTemplates } from "@/lib/reminders";
+import type { ReminderTemplates } from "@/lib/reminders";
+import { resolveSystemTemplate, renderTemplateEmailHtml } from "@/lib/email-templates";
+import { parentFacingIdentity } from "@/lib/email-identity";
+import { isNotificationEnabled, type NotificationSettings } from "@/lib/notification-settings";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -92,14 +95,20 @@ export async function confirmPublicServiceBookingAction(
 
     if (session) {
       const [{ data: tutor }, { data: student }] = await Promise.all([
-        admin.from("tutors").select("name, email, reminder_templates").eq("id", session.tutor_id).maybeSingle(),
+        admin
+          .from("tutors")
+          .select("name, email, reminder_templates, notification_settings")
+          .eq("id", session.tutor_id)
+          .maybeSingle(),
         admin.from("clients").select("student_name").eq("id", session.client_id).maybeSingle(),
       ]);
 
       const whenText = formatBookingWhen(`${session.occurred_on}T${session.start_time ?? "00:00:00"}.000Z`);
       const studentDisplayName = student?.student_name ?? "a student";
+      const notificationSettings = tutor?.notification_settings as unknown as NotificationSettings | null;
+      const bookingLink = `${appUrl()}/t/${handle}`;
 
-      if (tutor?.email) {
+      if (tutor?.email && isNotificationEnabled(notificationSettings, "tutor_new_booking")) {
         if (isEmailConfigured()) {
           await sendEmail({
             to: tutor.email,
@@ -118,29 +127,30 @@ export async function confirmPublicServiceBookingAction(
         }
       }
 
-      const template = (tutor?.reminder_templates as unknown as ReminderTemplates | null)?.booking_confirmation;
-      if (template) {
+      if (tutor && isNotificationEnabled(notificationSettings, "parent_booking_confirmation")) {
+        const template = resolveSystemTemplate(tutor.reminder_templates as unknown as ReminderTemplates, "booking_confirmation");
         const { error: claimError } = await admin
           .from("reminders")
           .insert({ session_id: sessionId, kind: "booking_confirmation", channel: "email", template_key: "booking_confirmation" });
 
         if (!claimError) {
-          const filled = interpolateTemplate(template, {
-            student: studentDisplayName,
-            tutor: tutor?.name ?? "your tutor",
-            when: whenText,
-          });
+          const rendered = renderTemplateEmailHtml(
+            template,
+            { student: studentDisplayName, tutor: tutor.name, when: whenText, link: bookingLink },
+            { ctaLabel: "View booking", logoUrl: `${appUrl()}/brand/logo/slate-logo-on-light.png` }
+          );
           if (isEmailConfigured()) {
             const sendResult = await sendEmail({
               to: parentEmail,
-              subject: filled.subject,
-              html: `<p>${filled.body.replace(/\n/g, "<br/>")}</p>`,
+              subject: rendered.subject,
+              html: rendered.html,
+              ...parentFacingIdentity(tutor),
             });
             if (sendResult.error) {
               console.error(`Booking confirmation send failed for session ${sessionId}:`, sendResult.error);
             }
           } else {
-            console.log(`[booking confirmation] ${parentEmail}: ${filled.subject}`);
+            console.log(`[booking confirmation] ${parentEmail}: ${rendered.subject}`);
           }
         }
       }

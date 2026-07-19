@@ -6,7 +6,9 @@ import { requireTutor } from "@/lib/auth/tutor";
 import { sendEmail } from "@/lib/email";
 import { formatCents } from "@/lib/money";
 import { formatDate } from "@/lib/date";
-import { interpolateTemplate, type ReminderTemplates } from "@/lib/reminders";
+import type { ReminderTemplates } from "@/lib/reminders";
+import { resolveSystemTemplate, renderTemplateEmailHtml, SYSTEM_EMAIL_TEMPLATES } from "@/lib/email-templates";
+import { parentFacingIdentity } from "@/lib/email-identity";
 import { getPostHogClient } from "@/lib/posthog-server";
 
 export async function sendReminderNowAction(
@@ -28,8 +30,9 @@ export async function sendReminderNowAction(
   const client = invoice.clients as unknown as { payer_email: string | null; student_name: string } | null;
   if (!client?.payer_email) return { error: "No payer email on file for this student." };
 
-  const template = (tutor.reminder_templates as unknown as ReminderTemplates)?.[templateKey];
-  if (!template) return { error: "Template not found." };
+  if (!SYSTEM_EMAIL_TEMPLATES.some((t) => t.key === templateKey)) return { error: "Template not found." };
+  const template = resolveSystemTemplate(tutor.reminder_templates as unknown as ReminderTemplates, templateKey);
+  const logoUrl = process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/brand/logo/slate-logo-on-light.png` : null;
 
   // Log first (a manual-suffixed key so it never collides with the
   // automated cadence's unique offset_N keys, letting the tutor resend
@@ -46,18 +49,23 @@ export async function sendReminderNowAction(
   });
   if (logError) return { error: logError.message };
 
-  const filled = interpolateTemplate(template, {
-    student: client.student_name,
-    tutor: tutor.name,
-    amount: formatCents(invoice.total_cents),
-    due_date: invoice.due_date ? formatDate(invoice.due_date) : "",
-    link: invoice.stripe_payment_url ?? "",
-  });
+  const rendered = renderTemplateEmailHtml(
+    template,
+    {
+      student: client.student_name,
+      tutor: tutor.name,
+      amount: formatCents(invoice.total_cents),
+      due_date: invoice.due_date ? formatDate(invoice.due_date) : "",
+      link: invoice.stripe_payment_url ?? "",
+    },
+    { ctaLabel: "Pay invoice", logoUrl }
+  );
 
   const sendResult = await sendEmail({
     to: client.payer_email,
-    subject: filled.subject,
-    html: `<p>${filled.body.replace(/\n/g, "<br/>")}</p>`,
+    subject: rendered.subject,
+    html: rendered.html,
+    ...parentFacingIdentity(tutor),
   });
 
   revalidatePath(`/tutor/invoices/${invoiceId}`);

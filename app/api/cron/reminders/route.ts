@@ -9,11 +9,15 @@ import {
   DEFAULT_OFFSETS_DAYS,
   SESSION_REMINDER_MAX_LEAD_HOURS,
   daysBetween,
-  interpolateTemplate,
   latestApplicableOffset,
   offsetKey,
   type ReminderTemplates,
 } from "@/lib/reminders";
+import { resolveSystemTemplate, renderTemplateEmailHtml, SYSTEM_EMAIL_TEMPLATES } from "@/lib/email-templates";
+import { parentFacingIdentity } from "@/lib/email-identity";
+import { isNotificationEnabled, type NotificationSettings } from "@/lib/notification-settings";
+
+const LOGO_URL = process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/brand/logo/slate-logo-on-light.png` : null;
 
 export const runtime = "nodejs";
 
@@ -122,12 +126,16 @@ async function runReminderJob(request: NextRequest): Promise<NextResponse> {
   const [{ data: invoices }, { data: upcomingSessions }] = await Promise.all([
     admin
       .from("invoices")
-      .select("id, due_date, total_cents, stripe_payment_url, tutor_id, tutors(reminder_cadence, reminder_templates, name, sms_enabled), clients(payer_email, student_name, payer_phone, sms_opt_in)")
+      .select(
+        "id, due_date, total_cents, stripe_payment_url, tutor_id, tutors(reminder_cadence, reminder_templates, notification_settings, name, email, sms_enabled), clients(payer_email, student_name, payer_phone, sms_opt_in)"
+      )
       .in("status", ["sent", "overdue"])
       .not("due_date", "is", null),
     admin
       .from("sessions")
-      .select("id, occurred_on, start_time, tutor_id, tutors(name, session_reminder_lead_hours, reminder_templates, sms_enabled), clients(payer_email, student_name, payer_phone, sms_opt_in)")
+      .select(
+        "id, occurred_on, start_time, tutor_id, tutors(name, email, session_reminder_lead_hours, reminder_templates, notification_settings, sms_enabled), clients(payer_email, student_name, payer_phone, sms_opt_in)"
+      )
       .is("cancelled_at", null)
       .not("start_time", "is", null)
       .gte("occurred_on", today)
@@ -141,7 +149,9 @@ async function runReminderJob(request: NextRequest): Promise<NextResponse> {
     const tutor = invoice.tutors as unknown as {
       reminder_cadence: { offsets_days?: number[] } | null;
       reminder_templates: ReminderTemplates;
+      notification_settings: NotificationSettings | null;
       name: string;
+      email: string;
       sms_enabled: boolean;
     } | null;
     const client = invoice.clients as unknown as {
@@ -152,6 +162,7 @@ async function runReminderJob(request: NextRequest): Promise<NextResponse> {
     } | null;
 
     if (!tutor || !invoice.due_date) continue;
+    if (!isNotificationEnabled(tutor.notification_settings, "parent_invoice_reminders")) continue;
 
     const offsets = tutor.reminder_cadence?.offsets_days ?? DEFAULT_OFFSETS_DAYS;
     const daysPastDue = daysBetween(invoice.due_date, today);
@@ -159,8 +170,12 @@ async function runReminderJob(request: NextRequest): Promise<NextResponse> {
     if (targetOffset === null) continue;
 
     const key = offsetKey(targetOffset);
-    const template = tutor.reminder_templates?.[key];
-    if (!template) continue;
+    // reminder_cadence.offsets_days is a freeform jsonb array with no DB
+    // constraint pinning it to [0, 3, 7] — resolveSystemTemplate falls back
+    // to a blank subject/body (not null) for a key it doesn't recognize, so
+    // an out-of-range offset must be skipped here rather than sent blank.
+    if (!SYSTEM_EMAIL_TEMPLATES.some((t) => t.key === key)) continue;
+    const template = resolveSystemTemplate(tutor.reminder_templates, key);
 
     const smsPhone =
       tutor.sms_enabled && isSmsConfigured() && client?.sms_opt_in
@@ -171,13 +186,14 @@ async function runReminderJob(request: NextRequest): Promise<NextResponse> {
     // No deliverable channel for this client — nothing to claim or send.
     if (!hasEmail && !hasSms) continue;
 
-    const filled = interpolateTemplate(template, {
+    const vars = {
       student: client!.student_name,
       tutor: tutor.name,
       amount: formatCents(invoice.total_cents),
       due_date: formatDate(invoice.due_date),
       link: invoice.stripe_payment_url ?? "",
-    });
+    };
+    const rendered = renderTemplateEmailHtml(template, vars, { ctaLabel: "Pay invoice", logoUrl: LOGO_URL });
 
     const outcomes = await Promise.all([
       hasEmail
@@ -187,8 +203,9 @@ async function runReminderJob(request: NextRequest): Promise<NextResponse> {
             () =>
               sendEmail({
                 to: client!.payer_email!,
-                subject: filled.subject,
-                html: `<p>${filled.body.replace(/\n/g, "<br/>")}</p>`,
+                subject: rendered.subject,
+                html: rendered.html,
+                ...parentFacingIdentity(tutor),
               }),
             `invoice ${invoice.id}/${key} (email)`
           )
@@ -197,7 +214,7 @@ async function runReminderJob(request: NextRequest): Promise<NextResponse> {
         ? claimAndSend(
             admin,
             { invoice_id: invoice.id, channel: "sms", template_key: key },
-            () => sendSms({ to: smsPhone!, body: filled.body }),
+            () => sendSms({ to: smsPhone!, body: rendered.body }),
             `invoice ${invoice.id}/${key} (sms, ${maskPhone(smsPhone!)})`
           )
         : Promise.resolve(null),
@@ -222,8 +239,10 @@ async function runReminderJob(request: NextRequest): Promise<NextResponse> {
   for (const session of upcomingSessions ?? []) {
     const tutor = session.tutors as unknown as {
       name: string;
+      email: string;
       session_reminder_lead_hours: number;
       reminder_templates: ReminderTemplates;
+      notification_settings: NotificationSettings | null;
       sms_enabled: boolean;
     } | null;
     const client = session.clients as unknown as {
@@ -234,6 +253,7 @@ async function runReminderJob(request: NextRequest): Promise<NextResponse> {
     } | null;
 
     if (!tutor || !session.start_time) continue;
+    if (!isNotificationEnabled(tutor.notification_settings, "parent_session_reminder")) continue;
 
     // Wall-clock-stamped-as-UTC convention, same as everywhere else
     // scheduling touches a date+time (see the TODO in
@@ -248,8 +268,7 @@ async function runReminderJob(request: NextRequest): Promise<NextResponse> {
     // sent after the fact, which would just be confusing.
     if (hoursUntil <= 0 || hoursUntil > tutor.session_reminder_lead_hours) continue;
 
-    const template = tutor.reminder_templates?.session_reminder;
-    if (!template) continue;
+    const template = resolveSystemTemplate(tutor.reminder_templates, "session_reminder");
 
     const smsPhone =
       tutor.sms_enabled && isSmsConfigured() && client?.sms_opt_in
@@ -259,11 +278,15 @@ async function runReminderJob(request: NextRequest): Promise<NextResponse> {
     const hasSms = Boolean(smsPhone);
     if (!hasEmail && !hasSms) continue;
 
-    const filled = interpolateTemplate(template, {
-      student: client!.student_name,
-      tutor: tutor.name,
-      when: formatBookingWhen(`${session.occurred_on}T${session.start_time}.000Z`),
-    });
+    const rendered = renderTemplateEmailHtml(
+      template,
+      {
+        student: client!.student_name,
+        tutor: tutor.name,
+        when: formatBookingWhen(`${session.occurred_on}T${session.start_time}.000Z`),
+      },
+      { logoUrl: LOGO_URL }
+    );
 
     // Same insert-to-claim dedup shape as the invoice loop above, scoped
     // by the partial unique index on (session_id, kind, channel) instead of
@@ -277,8 +300,9 @@ async function runReminderJob(request: NextRequest): Promise<NextResponse> {
             () =>
               sendEmail({
                 to: client!.payer_email!,
-                subject: filled.subject,
-                html: `<p>${filled.body.replace(/\n/g, "<br/>")}</p>`,
+                subject: rendered.subject,
+                html: rendered.html,
+                ...parentFacingIdentity(tutor),
               }),
             `session ${session.id} (email)`
           )
@@ -287,7 +311,7 @@ async function runReminderJob(request: NextRequest): Promise<NextResponse> {
         ? claimAndSend(
             admin,
             { session_id: session.id, kind: "session_reminder", channel: "sms", template_key: "session_reminder" },
-            () => sendSms({ to: smsPhone!, body: filled.body }),
+            () => sendSms({ to: smsPhone!, body: rendered.body }),
             `session ${session.id} (sms, ${maskPhone(smsPhone!)})`
           )
         : Promise.resolve(null),
