@@ -140,7 +140,12 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
         </Card>
 
         <Card className="max-w-2xl">
-          <h2 className="mb-3 text-sm font-semibold">Session note</h2>
+          <h2 className="text-sm font-semibold">Session Notes</h2>
+          <p className="mb-3 mt-1 text-xs text-text-tertiary">
+            {session.status === "billed" || isCancelled
+              ? "Shareable with the parent when marked shared."
+              : "Distinct from Tutor Notes above — this is what a parent sees when shared."}
+          </p>
           <NoteForm sessionId={session.id} note={note} />
         </Card>
       </div>

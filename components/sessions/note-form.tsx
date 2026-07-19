@@ -4,6 +4,7 @@ import { useActionState, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/input";
+import { PrivacyPill } from "@/components/ui/privacy-pill";
 import {
   saveSessionNoteAction,
   deleteSessionNoteAction,
@@ -18,10 +19,15 @@ export function NoteForm({ sessionId, note }: { sessionId: string; note: Tables<
   const [state, formAction, pending] = useActionState(saveSessionNoteAction, initialState);
   const [deletePending, startDeleteTransition] = useTransition();
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [shared, setShared] = useState(note?.shared ?? false);
 
   return (
     <form action={formAction} className="space-y-3">
       <input type="hidden" name="session_id" value={sessionId} />
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-text-tertiary">Shareable — the toggle below controls parent-portal visibility.</p>
+        <PrivacyPill shared={shared} />
+      </div>
       <Textarea
         name="body"
         defaultValue={note?.body ?? ""}
@@ -32,7 +38,8 @@ export function NoteForm({ sessionId, note }: { sessionId: string; note: Tables<
         <input
           type="checkbox"
           name="shared"
-          defaultChecked={note?.shared ?? false}
+          checked={shared}
+          onChange={(e) => setShared(e.target.checked)}
           className="h-4 w-4 rounded border-border"
         />
         Share this note with the parent

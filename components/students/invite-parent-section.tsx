@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
 import { Input, Label } from "@/components/ui/input";
-import { formatTimestampDate } from "@/lib/date";
 import { buildInviteMessage } from "@/lib/invite-message";
 import {
   logInviteCopyAction,
@@ -18,6 +17,19 @@ import type { Tables } from "@/lib/database.types";
 type Invite = Tables<"invites">;
 type Redemption = Pick<Tables<"parent_students">, "id" | "parent_name" | "parent_email" | "created_at">;
 type PendingInvite = Pick<Tables<"invite_sends">, "id" | "parent_name" | "parent_email" | "sent_at">;
+
+// Deliberately not lib/date.ts's formatTimestampDate (UTC-pinned, chosen so
+// Server Component pages render deterministically regardless of the host's
+// timezone). This is a "use client" component, so a plain unpinned
+// toLocaleDateString() risks a one-frame hydration mismatch if the SSR pass
+// runs in a different zone than the browser — accepted here in exchange for
+// showing the tutor's own actual local join/invite date afterward, rather
+// than a UTC date that's silently a day off for anyone west of it. This is a
+// secondary list (parent joins/invites), not a money or privacy surface, so
+// the tradeoff favors accuracy for the viewer over hydration purity.
+function formatLocalDate(isoTimestamp: string): string {
+  return new Date(isoTimestamp).toLocaleDateString();
+}
 
 export function InviteParentSection({
   studentId,
@@ -208,7 +220,7 @@ export function InviteParentSection({
               {redemptions.map((r) => (
                 <li key={r.id} className="flex items-center justify-between gap-3 text-sm">
                   <span className="truncate">{r.parent_name || r.parent_email}</span>
-                  <span className="shrink-0 text-text-tertiary">{formatTimestampDate(r.created_at)}</span>
+                  <span className="shrink-0 text-text-tertiary">{formatLocalDate(r.created_at)}</span>
                 </li>
               ))}
             </ul>
@@ -225,7 +237,7 @@ export function InviteParentSection({
               {pendingInvites.map((p) => (
                 <li key={p.id} className="flex items-center justify-between gap-3 text-sm">
                   <span className="truncate">{p.parent_name || p.parent_email}</span>
-                  <span className="shrink-0 text-text-tertiary">{formatTimestampDate(p.sent_at)}</span>
+                  <span className="shrink-0 text-text-tertiary">{formatLocalDate(p.sent_at)}</span>
                 </li>
               ))}
             </ul>

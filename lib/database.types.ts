@@ -331,6 +331,7 @@ export type Database = {
           custom_rate_cents: number | null
           id: string
           is_philanthropic: boolean
+          needs_goals: string | null
           notes: string | null
           payer_email: string | null
           payer_name: string | null
@@ -351,6 +352,7 @@ export type Database = {
           custom_rate_cents?: number | null
           id?: string
           is_philanthropic?: boolean
+          needs_goals?: string | null
           notes?: string | null
           payer_email?: string | null
           payer_name?: string | null
@@ -371,6 +373,7 @@ export type Database = {
           custom_rate_cents?: number | null
           id?: string
           is_philanthropic?: boolean
+          needs_goals?: string | null
           notes?: string | null
           payer_email?: string | null
           payer_name?: string | null
@@ -1609,6 +1612,7 @@ export type Database = {
           p_bill_travel: boolean
           p_custom_rate_cents: number
           p_is_philanthropic: boolean
+          p_needs_goals: string
           p_notes: string
           p_payer_email: string
           p_payer_name: string
@@ -1627,6 +1631,7 @@ export type Database = {
           custom_rate_cents: number | null
           id: string
           is_philanthropic: boolean
+          needs_goals: string | null
           notes: string | null
           payer_email: string | null
           payer_name: string | null

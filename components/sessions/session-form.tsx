@@ -4,6 +4,7 @@ import { useActionState, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea, FieldHint } from "@/components/ui/input";
+import { PrivacyPill } from "@/components/ui/privacy-pill";
 import { computeSessionAmountCents, resolveBillTravel, resolveTravelRateCents } from "@/lib/billing";
 import { formatCents } from "@/lib/money";
 import type { SessionFormResult } from "@/app/tutor/sessions/actions";
@@ -241,8 +242,12 @@ export function SessionForm({
       </div>
 
       <div>
-        <Label htmlFor="notes">Notes (optional)</Label>
+        <Label htmlFor="notes">
+          Tutor Notes
+          <PrivacyPill shared={false} className="ml-2" />
+        </Label>
         <Textarea id="notes" name="notes" defaultValue={session?.notes ?? ""} rows={3} />
+        <FieldHint>Private — never shown to parents or students.</FieldHint>
       </div>
 
       {isPackageSession && (

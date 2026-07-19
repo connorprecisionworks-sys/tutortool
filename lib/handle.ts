@@ -16,36 +16,24 @@ export const HANDLE_MAX = 48;
 // minimum match length is pinned at 1 + 1 + 1 = 3 chars (HANDLE_MIN).
 export const HANDLE_RE = /^[a-z0-9](?:[a-z0-9_.-]{1,46}[a-z0-9])$/;
 
-// Top-level route segments this app actually serves, plus a few common
-// admin-ish words — a handle matching one of these would either 404 forever
-// (shadowed by the real route) or read as an impersonation of a system page.
+// A handle only ever resolves under /t/[handle] (see app/t/[handle]/page.tsx)
+// — that segment has no static siblings, so it can never actually be
+// route-shadowed by another top-level path like /book or /join, no matter
+// what the handle is. What's reserved here instead is words that would read
+// as impersonating a real system page if a tutor's page lived at
+// /t/<word> — a parent mistaking /t/settings or /t/login for an actual
+// Slate account page. Ordinary business-name words (book, join, new, ...)
+// were removed after a review caught them being rejected with no real
+// collision or impersonation risk behind it.
 export const RESERVED_HANDLES = new Set([
-  "t",
-  "tutor",
-  "parent",
-  "api",
-  "book",
-  "join",
   "login",
   "signup",
-  "onboarding",
   "settings",
-  "about",
-  "terms",
-  "privacy",
-  "accept-terms",
-  "resources",
   "admin",
-  "www",
-  "app",
-  "auth",
-  "static",
-  "public",
   "help",
   "support",
   "billing",
-  "dashboard",
-  "new",
+  "accept-terms",
 ]);
 
 export function normalizeHandle(raw: string): string {
@@ -54,7 +42,9 @@ export function normalizeHandle(raw: string): string {
 
 /** Returns a user-facing error message, or null if the handle is well-formed. Does not check availability. */
 export function validateHandleFormat(handle: string): string | null {
-  if (handle.length < HANDLE_MIN || handle.length > HANDLE_MAX || !HANDLE_RE.test(handle)) {
+  // HANDLE_RE's {1,46} quantifier already bounds length to HANDLE_MIN..HANDLE_MAX
+  // (1 + 1..46 + 1 = 3..48 chars) — no separate length check needed.
+  if (!HANDLE_RE.test(handle)) {
     return `Use letters, numbers, hyphens, underscores, or periods (${HANDLE_MIN}-${HANDLE_MAX} characters), starting and ending with a letter or number.`;
   }
   if (RESERVED_HANDLES.has(handle)) {

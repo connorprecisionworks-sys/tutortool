@@ -80,6 +80,7 @@ export async function createStudentAction(
     // Re-checked server-side (not just trusting the form field) so SMS
     // can't be opted into via a raw POST while it's platform-wide disabled.
     p_sms_opt_in: isSmsConfigured() && formData.get("sms_opt_in") === "on",
+    p_needs_goals: (String(formData.get("needs_goals") ?? "").trim() || null) as unknown as string,
   });
 
   if (error) return { error: error.message };
@@ -152,6 +153,7 @@ export async function updateStudentAction(
       is_philanthropic: formData.get("is_philanthropic") === "on",
       scheduling_mode: parseSchedulingMode(formData.get("scheduling_mode")),
       notes: String(formData.get("notes") ?? "").trim() || null,
+      needs_goals: String(formData.get("needs_goals") ?? "").trim() || null,
       sms_opt_in: smsOptIn,
     })
     .eq("id", studentId);

@@ -58,7 +58,12 @@ export async function updatePublicProfileAction(
   const showPhone = formData.get("show_phone") === "on";
 
   if (isPublic && !handleRaw) return { error: "Pick a handle before publishing your page." };
-  if (handleRaw) {
+  // Skip re-validation when the handle is unchanged — mirrors useHandleCheck's
+  // "current" bypass. Without this, a tutor who already owns a handle that
+  // later becomes reserved (RESERVED_HANDLES can grow over time) would be
+  // unable to save ANY field on this form, since the same handle they never
+  // touched would fail validateHandleFormat on every submit.
+  if (handleRaw && handleRaw !== normalizeHandle(tutor.handle ?? "")) {
     const formatError = validateHandleFormat(handleRaw);
     if (formatError) return { error: formatError };
   }

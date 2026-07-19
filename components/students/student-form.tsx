@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea, FieldHint } from "@/components/ui/input";
+import { PrivacyPill } from "@/components/ui/privacy-pill";
 import {
   RATE_TYPE_LABELS,
   RATE_TYPES_REQUIRING_CUSTOM_RATE,
@@ -44,52 +45,70 @@ export function StudentForm({
     <form action={formAction} className="space-y-6">
       {student && <input type="hidden" name="id" value={student.id} />}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <Label htmlFor="student_name">Student name</Label>
-          <Input
-            id="student_name"
-            name="student_name"
-            defaultValue={student?.student_name}
-            placeholder="e.g. Maya Chen"
-            required
-          />
-        </div>
-        <div>
-          <Label htmlFor="payer_name">Payer name</Label>
-          <Input
-            id="payer_name"
-            name="payer_name"
-            defaultValue={student?.payer_name ?? ""}
-            placeholder="Parent / guardian"
-          />
-        </div>
-        <div>
-          <Label htmlFor="payer_email">Payer email</Label>
-          <Input
-            id="payer_email"
-            name="payer_email"
-            type="email"
-            defaultValue={student?.payer_email ?? ""}
-          />
-        </div>
-        <div>
-          <Label htmlFor="payer_phone">Payer phone</Label>
-          <Input id="payer_phone" name="payer_phone" type="tel" defaultValue={student?.payer_phone ?? ""} />
-        </div>
+      <div>
+        <Label htmlFor="student_name">Student name</Label>
+        <Input
+          id="student_name"
+          name="student_name"
+          defaultValue={student?.student_name}
+          placeholder="e.g. Maya Chen"
+          required
+        />
       </div>
 
-      {smsConfigured && (
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            name="sms_opt_in"
-            defaultChecked={student?.sms_opt_in ?? false}
-            className="h-4 w-4 rounded border-border"
+      <div className="border-t border-border pt-6">
+        <h2 className="mb-1 text-sm font-semibold">Student intake</h2>
+        <p className="mb-4 text-xs text-text-tertiary">
+          Parent/guardian contact (also used as the billing payer on invoices) and their needs and goals.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <Label htmlFor="payer_name">Payer name</Label>
+            <Input
+              id="payer_name"
+              name="payer_name"
+              defaultValue={student?.payer_name ?? ""}
+              placeholder="Parent / guardian"
+            />
+          </div>
+          <div>
+            <Label htmlFor="payer_email">Payer email</Label>
+            <Input
+              id="payer_email"
+              name="payer_email"
+              type="email"
+              defaultValue={student?.payer_email ?? ""}
+            />
+          </div>
+          <div>
+            <Label htmlFor="payer_phone">Payer phone</Label>
+            <Input id="payer_phone" name="payer_phone" type="tel" defaultValue={student?.payer_phone ?? ""} />
+          </div>
+        </div>
+
+        {smsConfigured && (
+          <label className="mt-4 flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              name="sms_opt_in"
+              defaultChecked={student?.sms_opt_in ?? false}
+              className="h-4 w-4 rounded border-border"
+            />
+            Parent has agreed to receive text reminders at this number
+          </label>
+        )}
+
+        <div className="mt-4">
+          <Label htmlFor="needs_goals">Needs &amp; goals (optional)</Label>
+          <Textarea
+            id="needs_goals"
+            name="needs_goals"
+            defaultValue={student?.needs_goals ?? ""}
+            rows={3}
+            placeholder="Learning goals, challenges, accommodations, or anything else worth knowing."
           />
-          Parent has agreed to receive text reminders at this number
-        </label>
-      )}
+        </div>
+      </div>
 
       <div className="border-t border-border pt-6">
         <h2 className="mb-4 text-sm font-semibold">Rate rule</h2>
@@ -182,9 +201,13 @@ export function StudentForm({
         </FieldHint>
       </div>
 
-      <div>
-        <Label htmlFor="notes">Notes</Label>
+      <div className="border-t border-border pt-6">
+        <Label htmlFor="notes">
+          Tutor Notes
+          <PrivacyPill shared={false} className="ml-2" />
+        </Label>
         <Textarea id="notes" name="notes" defaultValue={student?.notes ?? ""} rows={3} />
+        <FieldHint>Private — never shown to parents or students. General notes about this student.</FieldHint>
       </div>
 
       {state.error && <p className="text-sm text-text">{state.error}</p>}
