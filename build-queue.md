@@ -720,7 +720,42 @@ chrome (document itself always renders as a fixed white page).
 - Add "Download PDF" / printable view for an invoice (tutor and parent). Clean, branded, itemized.
 - Acceptance: an invoice downloads as a well-formatted PDF that matches the on-screen invoice.
 
-## D8 — Packages upgrade  [ ]
+## D8 — Packages upgrade  [x] `a8e745a`
+
+Packages can be general (client_id now nullable — usable by any student,
+activates immediately with a full balance, no invoice, since there's no
+single payer to bill) or student-specific (unchanged draft-invoice ->
+pending_payment -> active-on-paid flow). The builder computes price from a
+selected service or a custom per-session rate × session count, supports a
+percent/amount discount with a live-updating total, and a general package
+can be toggled onto the public tutor page (`/t/[handle]`) — enforced with
+a DB CHECK that only a general package can ever be public, and the
+`packages_select_parent` RLS policy updated so a parent can never see a
+general package (it isn't their family's purchase). xhigh review found and
+fixed 16 real issues, most severe a cluster of 3 billing-correctness bugs:
+the package form defaulted the student picker to "general" (silently
+skipping invoicing) and the percent-discount field defaulted to a
+non-zero 10%, both now default safely (real student pre-selected when one
+exists, discount starts empty); session-form.tsx left a stale
+package/service selection after switching students, which could silently
+downgrade an intended package-draw session to hourly billing — now reset
+on student change. Also fixed: general packages were invisible on a
+student's own detail page despite being drawable against (now shown,
+labeled "General — shared"); a depleted package could be toggled public
+with no error while never actually appearing on the public page (which
+only shows active packages) — now blocked at the RPC layer and hidden in
+the UI once non-active; the public toggle silently reverted on failure
+with no visible error and never resynced across tabs/refreshes (fixed via
+error display + key-based remount); a deleted custom-price validation
+regressed to a misleading error message; total_sessions had no upper
+bound (int overflow risk, capped at 365); two number inputs snapped to 0
+mid-edit (now string-backed); and `revalidatePath` was invalidating every
+tutor's public page instead of just the acting tutor's. QA'd end-to-end
+across two fresh tutor accounts: general 4-session package with a 10%
+discount (live total $200→$180, appears on `/t/<handle>`, disappears when
+toggled off), a student-specific package still builds a draft invoice, a
+parent never sees a general package on `/parent/billing`, and the
+session-form + student-detail fixes confirmed directly in the browser.
 
 - Package can be general (usable by any of the tutor's students) OR bound to a specific student (make student_id optional).
 - Package builder auto-calculates the price from selected sessions/services and supports a discount (percent or amount) with the total shown live.
