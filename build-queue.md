@@ -915,7 +915,7 @@ clean; migration applied to the linked dev project and types regenerated.
 - Let tutors set different hours for specific days (override the weekly default per weekday) and block off specific dates/ranges as unavailable (vacations, one-offs). Booking respects both.
 - Acceptance: a tutor sets Fri to 1-3pm (different from the Mon-Thu default) and blocks a specific date; booking offers reflect both.
 
-## D12 — Auto-send invoices  [x] (pending commit)
+## D12 — Auto-send invoices  [x] (4d73894)
 
 Per-client opt-in (`clients.auto_invoice_enabled`, default false), one of three
 tutor-chosen triggers (`auto_invoice_trigger`): `weekly` (cadence, driven by a
