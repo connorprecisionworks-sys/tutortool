@@ -1,0 +1,14 @@
+[
+  {"event_name": "tutor_signed_up", "event_description": "A new tutor created an account.", "file": "app/(auth)/actions.ts"},
+  {"event_name": "parent_signed_up", "event_description": "A new parent created an account.", "file": "app/(auth)/actions.ts"},
+  {"event_name": "student_added", "event_description": "A tutor added a new student to their roster.", "file": "app/tutor/students/actions.ts"},
+  {"event_name": "session_logged", "event_description": "A tutor logged a completed tutoring session.", "file": "app/tutor/sessions/actions.ts"},
+  {"event_name": "invoice_created", "event_description": "A tutor created a draft invoice.", "file": "app/tutor/invoices/actions.ts"},
+  {"event_name": "invoice_sent", "event_description": "A tutor sent an invoice to a parent.", "file": "app/tutor/invoices/actions.ts"},
+  {"event_name": "invoice_paid", "event_description": "An invoice was paid via Stripe checkout.", "file": "app/api/webhooks/stripe/route.ts"},
+  {"event_name": "invoice_paid_manually", "event_description": "A tutor marked an invoice as paid manually.", "file": "app/tutor/invoices/actions.ts"},
+  {"event_name": "stripe_connect_started", "event_description": "A tutor started Stripe Connect onboarding.", "file": "app/tutor/settings/stripe-actions.ts"},
+  {"event_name": "payment_reminder_sent", "event_description": "A tutor sent a payment reminder email to a parent.", "file": "app/tutor/invoices/reminder-actions.ts"},
+  {"event_name": "session_booking_requested", "event_description": "A parent submitted a session booking request.", "file": "app/parent/schedule/actions.ts"},
+  {"event_name": "parent_invite_redeemed", "event_description": "A parent redeemed a student invite code to link their child.", "file": "app/parent/actions.ts"}
+]
