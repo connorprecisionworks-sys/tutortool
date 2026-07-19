@@ -987,7 +987,7 @@ look but out of scope for this item.
 - Option to automatically generate and send invoices on a cadence (e.g., weekly) or trigger (e.g., after each session / when a package runs out), tutor-configurable per client, with a clear on/off and preview. Reuses the reminder job infrastructure.
 - Acceptance: a tutor enables weekly auto-invoicing for a client and an invoice is generated + queued to send on schedule (delivery gated on Resend, same as D9).
 
-## D13 — Gated / paid resources + invoice add-ons  [x] (pending commit)
+## D13 — Gated / paid resources + invoice add-ons  [x] (de0ab7c)
 
 Money-touching + new sharing surface — /terms and /privacy updated (v2.0 →
 v2.1, both effective 2026-07-19) and logged in legal/legal-changelog.md per
