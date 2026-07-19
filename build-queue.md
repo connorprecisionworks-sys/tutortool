@@ -1095,7 +1095,7 @@ all clean.
 - Make Slate installable (web app manifest, icons from the brand kit, standalone display) so "Add to Home Screen" in Safari opens a real app shell, and keep the session persistent so the user stays logged in in the installed app.
 - Acceptance: adding Slate to the Home Screen on iOS Safari opens a standalone app that stays logged in across launches.
 
-## D15 — Integrations (calendar, video, email)  [x] (pending commit) / [!] two-way calendar sync blocked
+## D15 — Integrations (calendar, video, email)  [x] (d7db32f) / [!] two-way calendar sync blocked
 
 Built the two credential-free pieces; two-way calendar sync genuinely needs
 OAuth credentials Connor hasn't provided.
