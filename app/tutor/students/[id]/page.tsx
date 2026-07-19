@@ -34,7 +34,12 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
         .eq("student_id", id)
         .order("sent_at", { ascending: false }),
       supabase.from("credits").select("remaining_cents").eq("client_id", id).gt("remaining_cents", 0),
-      supabase.from("packages").select("*").eq("client_id", id).eq("status", "active").order("created_at"),
+      supabase
+        .from("packages")
+        .select("*")
+        .or(`client_id.eq.${id},client_id.is.null`)
+        .eq("status", "active")
+        .order("created_at"),
     ]);
 
   if (!student) notFound();
@@ -83,7 +88,10 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
             <ul className="space-y-1 text-sm">
               {packages.map((p) => (
                 <li key={p.id} className="flex justify-between">
-                  <span>{p.name}</span>
+                  <span>
+                    {p.name}
+                    {p.client_id == null && <span className="ml-2 text-xs text-text-tertiary">General — shared</span>}
+                  </span>
                   <span className="text-text-secondary">
                     {p.remaining_sessions} of {p.total_sessions} left
                   </span>

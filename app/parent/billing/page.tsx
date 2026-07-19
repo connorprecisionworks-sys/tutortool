@@ -63,7 +63,7 @@ export default async function ParentBillingPage({
             {packages.map((p) => (
               <li key={p.id} className="flex justify-between">
                 <span>
-                  {studentNames.get(p.client_id) ?? "—"} — {p.name}
+                  {studentNames.get(p.client_id ?? "") ?? "—"} — {p.name}
                 </span>
                 <span className="text-text-secondary">
                   {p.remaining_sessions} of {p.total_sessions} left

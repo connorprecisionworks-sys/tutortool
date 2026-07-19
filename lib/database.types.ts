@@ -767,9 +767,10 @@ export type Database = {
       }
       packages: {
         Row: {
-          client_id: string
+          client_id: string | null
           created_at: string
           id: string
+          is_public: boolean
           name: string
           price_cents: number
           purchase_invoice_id: string | null
@@ -780,9 +781,10 @@ export type Database = {
           tutor_id: string
         }
         Insert: {
-          client_id: string
+          client_id?: string | null
           created_at?: string
           id?: string
+          is_public?: boolean
           name: string
           price_cents: number
           purchase_invoice_id?: string | null
@@ -793,9 +795,10 @@ export type Database = {
           tutor_id: string
         }
         Update: {
-          client_id?: string
+          client_id?: string | null
           created_at?: string
           id?: string
+          is_public?: boolean
           name?: string
           price_cents?: number
           purchase_invoice_id?: string | null
@@ -1576,12 +1579,16 @@ export type Database = {
       create_package: {
         Args: {
           p_client_id: string
+          p_custom_price_per_session_cents: number
+          p_discount_amount_cents: number
+          p_discount_percent: number
+          p_discount_type: string
+          p_is_public: boolean
           p_name: string
-          p_price_cents: number
           p_service_id: string
           p_total_sessions: number
         }
-        Returns: string
+        Returns: Json
       }
       create_session_for_booking: {
         Args: {
@@ -1776,6 +1783,10 @@ export type Database = {
           p_stripe_checkout_session_id: string
           p_stripe_payment_url: string
         }
+        Returns: undefined
+      }
+      set_package_public: {
+        Args: { p_is_public: boolean; p_package_id: string }
         Returns: undefined
       }
       update_session: {

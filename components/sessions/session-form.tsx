@@ -42,7 +42,7 @@ export function SessionForm({
   const [packageId, setPackageId] = useState(session?.package_id ?? NO_PACKAGE);
   const [duration, setDuration] = useState(session?.duration_minutes ?? 60);
   const [travel, setTravel] = useState(session?.travel_minutes ?? 0);
-  const clientPackages = packages.filter((p) => p.client_id === clientId);
+  const clientPackages = packages.filter((p) => p.client_id === clientId || p.client_id === null);
 
   const [state, formAction, pending] = useActionState(async (prev: SessionFormResult, formData: FormData) => {
     const result = await action(prev, formData);
@@ -103,7 +103,15 @@ export function SessionForm({
           id="client_id"
           name="client_id"
           value={clientId}
-          onChange={(e) => setClientId(e.target.value)}
+          onChange={(e) => {
+            setClientId(e.target.value);
+            // A package/service picked for the previous student may not
+            // apply to the new one (client-specific packages belong to one
+            // student) — reset both rather than silently keep a selection
+            // the new student can't actually use.
+            setPackageId(NO_PACKAGE);
+            setServiceId(NO_SERVICE);
+          }}
           disabled={!!session}
         >
           {clients.map((c) => (

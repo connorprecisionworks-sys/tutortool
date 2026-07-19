@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { StatusDot, type StatusKind } from "@/components/ui/status-dot";
+import { PackagePublicToggle } from "@/components/packages/package-public-toggle";
 import { formatCents } from "@/lib/money";
 
 const STATUS_KIND: Record<string, StatusKind> = {
@@ -70,7 +71,9 @@ export default async function PackagesPage() {
               {packages.map((p) => (
                 <tr key={p.id} className="border-t border-border hover:bg-hover">
                   <td className="px-5 py-3">
-                    {(p.clients as unknown as { student_name: string } | null)?.student_name ?? "—"}
+                    {p.client_id == null
+                      ? "General"
+                      : ((p.clients as unknown as { student_name: string } | null)?.student_name ?? "—")}
                   </td>
                   <td className="px-5 py-3 text-text-secondary">{p.name}</td>
                   <td className="px-5 py-3 text-text-secondary">
@@ -81,13 +84,22 @@ export default async function PackagesPage() {
                     <StatusDot status={STATUS_KIND[p.status] ?? "draft"} label={STATUS_LABEL[p.status] ?? p.status} />
                   </td>
                   <td className="px-5 py-3 text-right">
-                    {p.status === "pending_payment" && p.purchase_invoice_id && (
-                      <Link
-                        href={`/tutor/invoices/${p.purchase_invoice_id}`}
-                        className="text-xs text-text-tertiary hover:text-text"
-                      >
-                        View invoice
-                      </Link>
+                    {p.client_id == null ? (
+                      p.status === "active" ? (
+                        <PackagePublicToggle key={String(p.is_public)} packageId={p.id} initialIsPublic={p.is_public} />
+                      ) : (
+                        p.is_public && <span className="text-xs text-text-tertiary">Not shown — {STATUS_LABEL[p.status] ?? p.status}</span>
+                      )
+                    ) : (
+                      p.status === "pending_payment" &&
+                      p.purchase_invoice_id && (
+                        <Link
+                          href={`/tutor/invoices/${p.purchase_invoice_id}`}
+                          className="text-xs text-text-tertiary hover:text-text"
+                        >
+                          View invoice
+                        </Link>
+                      )
                     )}
                   </td>
                 </tr>

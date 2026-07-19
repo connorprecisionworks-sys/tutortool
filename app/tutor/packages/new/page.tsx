@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireTutor } from "@/lib/auth/tutor";
 import { PageHeader } from "@/components/ui/page-header";
@@ -14,18 +13,14 @@ export default async function NewPackagePage() {
     supabase.from("services").select("*").eq("tutor_id", tutor.id).eq("is_active", true).order("name"),
   ]);
 
-  if (!clients || clients.length === 0) {
-    redirect("/tutor/students/new");
-  }
-
   return (
     <div>
       <PageHeader
         title="New package"
-        description="Sell a block of prepaid sessions. We'll build a draft invoice for the prepayment — send it like any other invoice, and the package activates once it's paid."
+        description="Sell a block of prepaid sessions to one student, or build a general package any student can draw from — those can also be featured on your public page."
       />
       <Card className="max-w-lg">
-        <PackageForm clients={clients} services={services ?? []} />
+        <PackageForm clients={clients ?? []} services={services ?? []} />
       </Card>
     </div>
   );

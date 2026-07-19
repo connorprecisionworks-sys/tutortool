@@ -14,6 +14,13 @@ interface PublicTutorService {
   price_cents: number | null;
 }
 
+interface PublicTutorPackage {
+  id: string;
+  name: string;
+  total_sessions: number;
+  price_cents: number | null;
+}
+
 interface PublicTutorProfile {
   found: boolean;
   name?: string;
@@ -25,6 +32,7 @@ interface PublicTutorProfile {
   booking_cta_label?: string;
   phone?: string | null;
   services?: PublicTutorService[];
+  packages?: PublicTutorPackage[];
   booking_token?: string | null;
 }
 
@@ -100,6 +108,26 @@ export default async function PublicTutorPage({ params }: { params: Promise<{ ha
           ))
         )}
       </div>
+
+      {(profile.packages ?? []).length > 0 && (
+        <div className="mt-8">
+          <h2 className="mb-3 text-sm font-semibold text-text-secondary">Packages</h2>
+          <div className="space-y-3">
+            {profile.packages!.map((p) => (
+              <Card key={p.id} className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <p className="font-medium">{p.name}</p>
+                  <p className="mt-1 text-xs text-text-tertiary">
+                    {p.total_sessions} sessions
+                    {p.price_cents != null && ` · ${formatCents(p.price_cents)}`}
+                  </p>
+                </div>
+                <p className="shrink-0 text-xs text-text-tertiary">Ask about this package when you book</p>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* C3: availability-driven booking (per-service, above) is the default
           path. A manually-created booking link (Q2's specific offered
