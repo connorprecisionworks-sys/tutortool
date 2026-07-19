@@ -606,7 +606,31 @@ via direct DOM inspection.
 - Add tutor contact fields (phone, and any contact info) in Settings, and optionally surface on the public page (tutor-controlled visibility). Also used to prefill SMS/contact features later.
 - Acceptance: a tutor saves a phone/contact, and it persists and can be shown/hidden on the public page.
 
-## D4 — Date format M/D/Y app-wide  [ ]
+## D4 — Date format M/D/Y app-wide  [x] (2757e5d)
+
+Full sweep (agent-assisted inventory) of every raw/inconsistent date
+render: sessions, invoices, expenses, recurring sessions, parent
+portal, reminder emails were showing literal ISO "2026-07-19" with no
+formatting. New lib/date.ts (formatDate for plain `date` columns,
+formatTimestampDate for timestamptz) applied app-wide; a migration
+also fixes invoice line-item descriptions ("Session on Jul 05, 2026"
+→ "7/5/2026"), generated server-side in SQL. Left untouched on
+purpose: date-input values, formatBookingWhen's weekday format, CSV
+export. Reviewed (high effort, twice) and fixed real bugs both passes
+— see D1's entry for the first pass (folded in here since it landed
+before this item started); this pass caught formatTimestampDate
+resolving via the server's local timezone in SSR instead of a pinned
+one (could show a different calendar date per deploy environment, and
+would have caused a hydration mismatch on the one client-component
+call site), fixed by pinning UTC everywhere. Also deduped a
+tripled localStorage dismiss-store pattern into
+lib/hooks/use-dismissible.ts and a doubled handle-availability hint
+into components/settings/handle-check-hint.tsx. QA'd end-to-end
+(sessions/expenses lists, a full draft→sent→paid invoice cycle
+including the regenerated line-item description, both dashboard
+dismiss cards + the announcement bar all independently
+dismiss/persist correctly after the refactor), light+dark,
+desktop+mobile.
 
 - Change the sessions page (and other date displays) to M/D/Y format for consistency. Sweep the app for inconsistent date rendering and standardize.
 - Acceptance: sessions and key screens show dates as M/D/Y.
