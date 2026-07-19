@@ -874,7 +874,43 @@ rework didn't disturb the underlying booking logic. Checked light+dark and
 - Make the public booking flow more visual and polished (service cards, clearer availability/time selection, tutor photo/branding), keeping the Slate frame. Mobile-first.
 - Acceptance: the booking page looks visual and inviting, not a bare list, at desktop and mobile.
 
-## D11 — Availability: per-day hours + unavailability  [ ]
+## D11 — Availability: per-day hours + unavailability  [x] (16a0352)
+
+"Different hours for specific days" was already fully covered by the
+existing weekday-keyed `availability` table (C2) — each weekday's windows
+are independent rows, so a tutor can already batch-apply Mon-Thu and
+separately apply a different range to Fri alone; no schema change needed
+for that half, confirmed by re-reading C2/AvailabilityManager rather than
+assumed. The real new piece was one-off date/range blocking. New
+`availability_blocks` (tutor_id, start_date, end_date, note nullable) —
+same select/insert/delete-own RLS shape and delete-then-re-add convention
+(no update policy) as `availability` itself. Gated in exactly one shared
+place per side: C3's `generate_open_slots()` (the day-level slot generator
+both the per-service and open-availability pickers already funnel through
+post-C3-dedup) short-circuits to zero candidates before even looping
+weekly windows when the requested date falls in a block, and B4's
+`is_slot_bookable()` (the confirm-time gate both `confirm_open_booking_link`
+and `confirm_public_service_booking` call) re-checks the same condition as
+defense-in-depth against a block added between picker-load and confirm —
+same `(timestamp at time zone 'utc')::date` reading convention B4/C3
+already use elsewhere for date extraction. Q2's tutor-curated fixed-slot
+links are deliberately NOT gated by this — those are explicit,
+individually-offered times, not availability-derived, so blocking a date
+doesn't retroactively invalidate a slot the tutor specifically chose to
+offer. New "Blocked dates" card on the Schedule page (server actions
+mirroring the existing add/removeAvailabilityAction pattern exactly) sits
+directly below the weekly availability editor. QA'd end-to-end: found and
+fixed a real bug during testing myself — leaving the optional End date
+field blank sent an empty string (not absent), and `formData.get(...) ??
+startDate` only falls back on null/undefined, not `""`, so the empty
+string won and failed its own `endDate < startDate` check every time;
+fixed with `.trim() || startDate`. After the fix: blocked tomorrow (a
+Monday inside Mon-Fri availability) on a fresh disposable tutor, confirmed
+the public booking page's day-strip showed zero time slots for that exact
+date while Tuesday the very next day still offered its normal Afternoon/
+Evening slots — proving the block is scoped to the specific date, not the
+whole weekday. `npx tsc --noEmit`, `npm run lint`, `npm run build` all
+clean; migration applied to the linked dev project and types regenerated.
 
 - Let tutors set different hours for specific days (override the weekly default per weekday) and block off specific dates/ranges as unavailable (vacations, one-offs). Booking respects both.
 - Acceptance: a tutor sets Fri to 1-3pm (different from the Mon-Thu default) and blocks a specific date; booking offers reflect both.
