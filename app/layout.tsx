@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 
@@ -19,6 +19,28 @@ const interTight = localFont({
 export const metadata: Metadata = {
   title: "Slate",
   description: "The back office that runs the money side of independent tutoring.",
+  // Renders the apple-mobile-web-app-* meta tags iOS Safari needs to open
+  // an "Add to Home Screen" install as a standalone app shell (no browser
+  // chrome/URL bar) instead of just a bookmarked tab — the web app manifest
+  // (app/manifest.ts) alone isn't enough on iOS the way it is on Android.
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Slate",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  // 'cover' extends content under the notch/home-indicator safe areas on
+  // an installed standalone app (no Safari chrome to absorb them) — the
+  // app itself is responsible for safe-area padding where it matters.
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f7f7f7" },
+    { media: "(prefers-color-scheme: dark)", color: "#161616" },
+  ],
 };
 
 const THEME_INIT_SCRIPT = `

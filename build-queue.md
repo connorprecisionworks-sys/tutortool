@@ -1057,7 +1057,40 @@ rejects a second call on an already-unlocked gate. `npx tsc --noEmit`,
 - Payment reuses the existing Stripe/invoice path; gated content stays locked until payment is confirmed. Manual mark-as-paid also unlocks.
 - Acceptance: a parent sees a locked resource, pays (or the tutor marks paid), and it unlocks; RLS prevents access before payment.
 
-## D14 — Installable app + persistent login (PWA)  [ ]
+## D14 — Installable app + persistent login (PWA)  [x] (pending commit)
+
+Most of this already existed outside the queue (`app/manifest.ts` with brand
+icons + standalone display was added in an earlier untracked commit,
+`229c426`) — this pass finished it rather than starting fresh. What was
+missing: the `app/layout.tsx` root layout had no `viewport` export
+(theme-color, `viewport-fit: cover` for safe-area on a notched device with
+no Safari chrome to absorb them) and no `metadata.appleWebApp` config —
+iOS Safari doesn't reliably read the web manifest for standalone display
+the way Android/Chrome does; it needs its own meta tags, which Next.js's
+`appleWebApp` API generates (verified live: `mobile-web-app-capable`,
+`apple-mobile-web-app-title`, `apple-mobile-web-app-status-bar-style` all
+render — Next 16 emits the modern unprefixed `mobile-web-app-capable` name,
+not the legacy `apple-`-prefixed one some older references expect). Also
+completed `manifest.ts`: added `id`/`scope`/`orientation`, changed
+`theme_color` from the accent blue to match `background_color` (Slate's
+chrome is monochrome — a blue splash/toolbar would clash with every screen
+the launch transitions into), and added a plain (`purpose: "any"`) SVG icon
+entry alongside the existing maskable one, since a maskable-only icon can
+get cropped by launchers that don't apply safe-zone masking.
+
+Persistent login required no code changes: verified in
+`@supabase/ssr`'s own source (`DEFAULT_COOKIE_OPTIONS`) that the session
+cookie already defaults to a 400-day `maxAge` (matching Chrome's own
+cookie-lifetime cap) — already genuinely persistent across app launches,
+not a browser-session-only cookie. No RLS/auth/money/public-route logic
+touched (pure metadata/presentation), so skipped the heavy /review pass per
+the same scoping D2/D10 used; verified instead with direct HTTP checks
+against the running dev server: `/manifest.webmanifest` returns valid JSON
+with 3 icons, all icon asset URLs 200, and every expected meta tag
+(`viewport` with `viewport-fit=cover`, both light/dark `theme-color`
+variants, the manifest `<link>`, all three Apple Web App tags) present in
+the rendered `<head>`. `npx tsc --noEmit`, `npm run lint`, `npm run build`
+all clean.
 
 - Make Slate installable (web app manifest, icons from the brand kit, standalone display) so "Add to Home Screen" in Safari opens a real app shell, and keep the session persistent so the user stays logged in in the installed app.
 - Acceptance: adding Slate to the Home Screen on iOS Safari opens a standalone app that stays logged in across launches.
