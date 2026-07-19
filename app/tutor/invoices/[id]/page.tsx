@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { StatusDot } from "@/components/ui/status-dot";
 import { formatCents } from "@/lib/money";
+import { formatDate, formatTimestampDate } from "@/lib/date";
 import { AddLineForm } from "@/components/invoices/add-line-form";
 import { RemoveLineButton } from "@/components/invoices/remove-line-button";
 import {
@@ -58,7 +59,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
     <div>
       <PageHeader
         title={client?.student_name ?? "Invoice"}
-        description={`${invoice.period_start} – ${invoice.period_end}`}
+        description={`${formatDate(invoice.period_start)} – ${formatDate(invoice.period_end)}`}
         action={<StatusDot status={invoice.status} />}
       />
 
@@ -128,19 +129,19 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <dt className="text-text-secondary">Due</dt>
-                <dd>{invoice.due_date ?? "—"}</dd>
+                <dd>{invoice.due_date ? formatDate(invoice.due_date) : "—"}</dd>
               </div>
               {invoice.sent_at && (
                 <div className="flex justify-between">
                   <dt className="text-text-secondary">Sent</dt>
-                  <dd>{new Date(invoice.sent_at).toLocaleDateString()}</dd>
+                  <dd>{formatTimestampDate(invoice.sent_at)}</dd>
                 </div>
               )}
               {invoice.paid_at && (
                 <div className="flex justify-between">
                   <dt className="text-text-secondary">Paid</dt>
                   <dd>
-                    {new Date(invoice.paid_at).toLocaleDateString()}
+                    {formatTimestampDate(invoice.paid_at)}
                     {invoice.paid_method ? ` · ${invoice.paid_method}` : ""}
                   </dd>
                 </div>

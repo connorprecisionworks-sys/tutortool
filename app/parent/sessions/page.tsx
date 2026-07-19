@@ -4,6 +4,7 @@ import { getLinkedStudents } from "@/lib/auth/linked-students";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Card } from "@/components/ui/card";
+import { formatDate } from "@/lib/date";
 
 interface VisibleSession {
   id: string;
@@ -77,7 +78,7 @@ export default async function ParentSessionsPage() {
             <Card key={s.id}>
               <div className="flex items-baseline justify-between">
                 <p className="text-sm font-medium">
-                  {s.occurred_on} · {studentNames.get(s.client_id)}
+                  {formatDate(s.occurred_on)} · {studentNames.get(s.client_id)}
                 </p>
                 <p className="text-xs text-text-secondary">{s.duration_minutes} min</p>
               </div>

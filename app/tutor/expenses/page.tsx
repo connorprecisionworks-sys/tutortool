@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { formatCents } from "@/lib/money";
+import { formatDate } from "@/lib/date";
 import { EXPENSE_CATEGORIES, EXPENSE_CATEGORY_LABELS, type ExpenseCategory } from "@/lib/expenses";
 import { DeleteExpenseRowButton } from "@/components/expenses/delete-expense-row-button";
 import { ReceiptLink } from "@/components/expenses/receipt-link";
@@ -128,7 +129,7 @@ export default async function ExpensesPage({
                 const studentName = (e.clients as unknown as { student_name: string } | null)?.student_name;
                 return (
                   <tr key={e.id} className="border-t border-border hover:bg-hover">
-                    <td className="px-5 py-3 text-text-secondary">{e.incurred_on}</td>
+                    <td className="px-5 py-3 text-text-secondary">{formatDate(e.incurred_on)}</td>
                     <td className="px-5 py-3">
                       <Link href={`/tutor/expenses/${e.id}`} className="font-medium">
                         {EXPENSE_CATEGORY_LABELS[cat]}

@@ -1,42 +1,9 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
 import Link from "next/link";
 import clsx from "clsx";
 import { Card } from "@/components/ui/card";
-
-// Same client-only dismiss pattern as OnboardingChecklist (D2): a tiny
-// external store instead of useEffect+setState so server and first-client
-// render agree (getServerSnapshot always "not dismissed"), then React
-// reconciles the real localStorage value right after hydration.
-const dismissCache = new Map<string, boolean>();
-const listeners = new Set<() => void>();
-
-function dismissKey(tutorId: string) {
-  return `slate:how-it-works-dismissed:${tutorId}`;
-}
-
-function subscribe(callback: () => void) {
-  listeners.add(callback);
-  return () => listeners.delete(callback);
-}
-
-function getSnapshot(tutorId: string) {
-  if (!dismissCache.has(tutorId)) {
-    dismissCache.set(tutorId, localStorage.getItem(dismissKey(tutorId)) === "1");
-  }
-  return dismissCache.get(tutorId)!;
-}
-
-function getServerSnapshot() {
-  return false;
-}
-
-function dismiss(tutorId: string) {
-  localStorage.setItem(dismissKey(tutorId), "1");
-  dismissCache.set(tutorId, true);
-  listeners.forEach((callback) => callback());
-}
+import { useDismissible } from "@/lib/hooks/use-dismissible";
 
 const STEPS = [
   { label: "Add a student", description: "Their rate, contact, and a Student Code for their parent.", href: "/tutor/students/new" },
@@ -53,14 +20,14 @@ const STEPS = [
  * to actually do each week.
  */
 export function HowSlateWorksCard({ tutorId, className }: { tutorId: string; className?: string }) {
-  const dismissed = useSyncExternalStore(subscribe, () => getSnapshot(tutorId), getServerSnapshot);
+  const { dismissed, dismiss } = useDismissible(`slate:how-it-works-dismissed:${tutorId}`);
   if (dismissed) return null;
 
   return (
     <Card className={clsx("relative", className)}>
       <button
         type="button"
-        onClick={() => dismiss(tutorId)}
+        onClick={dismiss}
         aria-label="Dismiss how Slate works card"
         className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-lg text-text-tertiary hover:bg-hover hover:text-text"
       >

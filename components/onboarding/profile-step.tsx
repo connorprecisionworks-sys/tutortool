@@ -3,9 +3,10 @@
 import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Input, Label, Textarea, FieldHint } from "@/components/ui/input";
+import { Input, Label, Textarea } from "@/components/ui/input";
 import { updatePublicProfileAction, type PublicProfileFormResult } from "@/app/tutor/settings/profile-actions";
-import { useHandleCheck } from "@/lib/hooks/use-handle-check";
+import { useHandleCheck, isHandleBlocked } from "@/lib/hooks/use-handle-check";
+import { HandleCheckHint } from "@/components/settings/handle-check-hint";
 import type { Tables } from "@/lib/database.types";
 
 const initialState: PublicProfileFormResult = {};
@@ -20,7 +21,7 @@ export function ProfileStep({ tutor, nextHref }: { tutor: Tables<"tutors">; next
 
   const [handle, setHandle] = useState(tutor.handle ?? "");
   const handleCheck = useHandleCheck(handle, tutor.handle);
-  const handleBlocked = handleCheck.status === "taken" || handleCheck.status === "invalid";
+  const handleBlocked = isHandleBlocked(handleCheck.status);
 
   return (
     <form action={formAction} className="space-y-4">
@@ -46,15 +47,10 @@ export function ProfileStep({ tutor, nextHref }: { tutor: Tables<"tutors">; next
           autoFocus
           required
         />
-        <FieldHint>
-          {handleCheck.status === "checking" && "Checking availability…"}
-          {handleCheck.status === "available" && "Available."}
-          {handleCheck.status === "taken" && handleCheck.message}
-          {handleCheck.status === "invalid" && handleCheck.message}
-          {handleCheck.status === "error" && handleCheck.message}
-          {(handleCheck.status === "idle" || handleCheck.status === "current") &&
-            "Your page lives at /t/your-handle — letters, numbers, hyphens, underscores, or periods."}
-        </FieldHint>
+        <HandleCheckHint
+          handleCheck={handleCheck}
+          idleText="Your page lives at /t/your-handle — letters, numbers, hyphens, underscores, or periods."
+        />
       </div>
 
       <div>

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireTutor } from "@/lib/auth/tutor";
 import { sendEmail } from "@/lib/email";
 import { formatCents } from "@/lib/money";
+import { formatDate } from "@/lib/date";
 import { interpolateTemplate, type ReminderTemplates } from "@/lib/reminders";
 import { getPostHogClient } from "@/lib/posthog-server";
 
@@ -49,7 +50,7 @@ export async function sendReminderNowAction(
     student: client.student_name,
     tutor: tutor.name,
     amount: formatCents(invoice.total_cents),
-    due_date: invoice.due_date ?? "",
+    due_date: invoice.due_date ? formatDate(invoice.due_date) : "",
     link: invoice.stripe_payment_url ?? "",
   });
 

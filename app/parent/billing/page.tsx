@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Card } from "@/components/ui/card";
 import { StatusDot, type StatusKind } from "@/components/ui/status-dot";
 import { formatCents } from "@/lib/money";
+import { formatDate } from "@/lib/date";
 
 export default async function ParentBillingPage() {
   const parentUser = await requireParent();
@@ -75,7 +76,7 @@ export default async function ParentBillingPage() {
                     </Link>
                   </td>
                   <td className="px-5 py-3 text-text-secondary">
-                    {inv.period_start} – {inv.period_end}
+                    {formatDate(inv.period_start)} – {formatDate(inv.period_end)}
                   </td>
                   <td className="px-5 py-3 text-right tabular-nums">{formatCents(inv.total_cents)}</td>
                   <td className="px-5 py-3">

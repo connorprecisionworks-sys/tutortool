@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { ExpenseForm } from "@/components/expenses/expense-form";
 import { updateExpenseAction } from "@/app/tutor/expenses/actions";
+import { formatDate } from "@/lib/date";
 
 export default async function EditExpensePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -32,7 +33,7 @@ export default async function EditExpensePage({ params }: { params: Promise<{ id
 
   return (
     <div>
-      <PageHeader title="Edit expense" description={`Logged ${expense.incurred_on}.`} />
+      <PageHeader title="Edit expense" description={`Logged ${formatDate(expense.incurred_on)}.`} />
       <Card className="max-w-2xl">
         <ExpenseForm
           expense={expense}

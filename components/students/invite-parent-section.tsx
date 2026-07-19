@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
 import { Input, Label } from "@/components/ui/input";
+import { formatTimestampDate } from "@/lib/date";
 import { buildInviteMessage } from "@/lib/invite-message";
 import {
   logInviteCopyAction,
@@ -207,7 +208,7 @@ export function InviteParentSection({
               {redemptions.map((r) => (
                 <li key={r.id} className="flex items-center justify-between gap-3 text-sm">
                   <span className="truncate">{r.parent_name || r.parent_email}</span>
-                  <span className="shrink-0 text-text-tertiary">{new Date(r.created_at).toLocaleDateString()}</span>
+                  <span className="shrink-0 text-text-tertiary">{formatTimestampDate(r.created_at)}</span>
                 </li>
               ))}
             </ul>
@@ -224,7 +225,7 @@ export function InviteParentSection({
               {pendingInvites.map((p) => (
                 <li key={p.id} className="flex items-center justify-between gap-3 text-sm">
                   <span className="truncate">{p.parent_name || p.parent_email}</span>
-                  <span className="shrink-0 text-text-tertiary">{new Date(p.sent_at).toLocaleDateString()}</span>
+                  <span className="shrink-0 text-text-tertiary">{formatTimestampDate(p.sent_at)}</span>
                 </li>
               ))}
             </ul>

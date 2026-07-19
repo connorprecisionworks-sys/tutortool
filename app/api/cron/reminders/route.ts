@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail } from "@/lib/email";
 import { isSmsConfigured, maskPhone, normalizePhoneToE164, sendSms } from "@/lib/sms";
 import { formatCents } from "@/lib/money";
+import { formatDate } from "@/lib/date";
 import { formatBookingWhen, nowAsStoredWallClockIso } from "@/lib/scheduling";
 import {
   DEFAULT_OFFSETS_DAYS,
@@ -174,7 +175,7 @@ async function runReminderJob(request: NextRequest): Promise<NextResponse> {
       student: client!.student_name,
       tutor: tutor.name,
       amount: formatCents(invoice.total_cents),
-      due_date: invoice.due_date,
+      due_date: formatDate(invoice.due_date),
       link: invoice.stripe_payment_url ?? "",
     });
 

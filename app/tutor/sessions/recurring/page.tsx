@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { StatusDot } from "@/components/ui/status-dot";
 import { WEEKDAY_LABELS } from "@/lib/recurring-sessions";
 import { EndSeriesButton } from "@/components/sessions/end-series-button";
+import { formatDate } from "@/lib/date";
 
 export default async function RecurringSessionsPage() {
   const tutor = await requireTutor();
@@ -62,8 +63,8 @@ export default async function RecurringSessionsPage() {
                     {serviceName ? ` — ${serviceName}` : ""}
                   </p>
                   <p className="mt-1 text-xs text-text-tertiary">
-                    Starting {s.start_date}
-                    {s.end_date ? ` through ${s.end_date}` : " — ongoing"}
+                    Starting {formatDate(s.start_date)}
+                    {s.end_date ? ` through ${formatDate(s.end_date)}` : " — ongoing"}
                   </p>
                 </div>
                 {s.status === "active" && <EndSeriesButton recurringSessionId={s.id} fromDate={today} label="End series" />}

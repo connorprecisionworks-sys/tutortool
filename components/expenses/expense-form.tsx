@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea, FieldHint } from "@/components/ui/input";
 import { EXPENSE_CATEGORIES, EXPENSE_CATEGORY_LABELS, type ExpenseCategory } from "@/lib/expenses";
+import { formatDate } from "@/lib/date";
 import type { ExpenseFormResult } from "@/app/tutor/expenses/actions";
 import type { Tables } from "@/lib/database.types";
 
@@ -124,7 +125,7 @@ export function ExpenseForm({
                 <option value="">None</option>
                 {sessions.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.occurred_on} — {s.travel_minutes} min travel logged
+                    {formatDate(s.occurred_on)} — {s.travel_minutes} min travel logged
                   </option>
                 ))}
               </Select>

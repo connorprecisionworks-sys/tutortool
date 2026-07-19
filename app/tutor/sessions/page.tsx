@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { StatusDot } from "@/components/ui/status-dot";
 import { computeSessionAmountCents } from "@/lib/billing";
 import { formatCents } from "@/lib/money";
+import { formatDate } from "@/lib/date";
 import { DeleteSessionRowButton } from "@/components/sessions/delete-session-row-button";
 
 export default async function SessionsPage({
@@ -122,7 +123,7 @@ export default async function SessionsPage({
                           session still needs to be reachable to cancel a paid session
                           (Q4) even though its edit form is locked once billed. */}
                       <Link href={`/tutor/sessions/${s.id}`} className="font-medium">
-                        {s.occurred_on}
+                        {formatDate(s.occurred_on)}
                       </Link>
                     </td>
                     <td className="px-5 py-3 text-text-secondary" data-label="Student">

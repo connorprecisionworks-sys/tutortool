@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Select, Label } from "@/components/ui/input";
 import { endRecurringSeriesAction } from "@/app/tutor/sessions/recurring/actions";
+import { formatDate } from "@/lib/date";
 
 const NO_OVERRIDE = "";
 
@@ -45,7 +46,7 @@ export function EndSeriesButton({
     <div className="space-y-3 rounded-lg border border-border bg-surface-sunken p-4">
       <div>
         <Label htmlFor={`end-series-handling-${recurringSessionId}`}>
-          How should upcoming sessions from {fromDate} on be handled?
+          How should upcoming sessions from {formatDate(fromDate)} on be handled?
         </Label>
         <Select
           id={`end-series-handling-${recurringSessionId}`}

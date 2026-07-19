@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { StatusDot } from "@/components/ui/status-dot";
 import { formatCents } from "@/lib/money";
+import { formatDate, formatTimestampDate } from "@/lib/date";
 
 export default async function ParentInvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -36,7 +37,7 @@ export default async function ParentInvoiceDetailPage({ params }: { params: Prom
     <div>
       <PageHeader
         title={client?.student_name ?? "Invoice"}
-        description={`${invoice.period_start} – ${invoice.period_end}`}
+        description={`${formatDate(invoice.period_start)} – ${formatDate(invoice.period_end)}`}
         action={<StatusDot status={invoice.status} />}
       />
 
@@ -70,7 +71,7 @@ export default async function ParentInvoiceDetailPage({ params }: { params: Prom
           <Card className="space-y-3">
             {invoice.status === "paid" && (
               <p className="text-sm text-text-secondary">
-                Paid{invoice.paid_at ? ` on ${invoice.paid_at.slice(0, 10)}` : ""}
+                Paid{invoice.paid_at ? ` on ${formatTimestampDate(invoice.paid_at)}` : ""}
                 {invoice.paid_method ? ` · ${invoice.paid_method}` : ""}.
               </p>
             )}

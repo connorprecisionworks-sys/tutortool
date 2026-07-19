@@ -1,47 +1,11 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
 import Link from "next/link";
 import clsx from "clsx";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useDismissible } from "@/lib/hooks/use-dismissible";
 import type { OnboardingStatus } from "@/lib/onboarding";
-
-// Dismissal is a client-only UI preference (not derived from the DB, unlike
-// every checklist item's `done` state). It's tracked with a tiny external
-// store rather than useEffect+setState so the server-rendered markup and
-// the client's first render always agree — useSyncExternalStore's
-// getServerSnapshot always reports "not dismissed", and React reconciles
-// the real localStorage value right after hydration, matching the pattern
-// ThemeToggle uses for the other browser-only preference in this app.
-const dismissCache = new Map<string, boolean>();
-const listeners = new Set<() => void>();
-
-function dismissKey(tutorId: string) {
-  return `slate:onboarding-dismissed:${tutorId}`;
-}
-
-function subscribe(callback: () => void) {
-  listeners.add(callback);
-  return () => listeners.delete(callback);
-}
-
-function getSnapshot(tutorId: string) {
-  if (!dismissCache.has(tutorId)) {
-    dismissCache.set(tutorId, localStorage.getItem(dismissKey(tutorId)) === "1");
-  }
-  return dismissCache.get(tutorId)!;
-}
-
-function getServerSnapshot() {
-  return false;
-}
-
-function dismissOnboarding(tutorId: string) {
-  localStorage.setItem(dismissKey(tutorId), "1");
-  dismissCache.set(tutorId, true);
-  listeners.forEach((callback) => callback());
-}
 
 export function OnboardingChecklist({
   tutorId,
@@ -52,7 +16,7 @@ export function OnboardingChecklist({
   status: OnboardingStatus;
   className?: string;
 }) {
-  const dismissed = useSyncExternalStore(subscribe, () => getSnapshot(tutorId), getServerSnapshot);
+  const { dismissed, dismiss } = useDismissible(`slate:onboarding-dismissed:${tutorId}`);
 
   const remaining = status.steps.filter((s) => !s.done);
   if (dismissed || remaining.length === 0) return null;
@@ -66,7 +30,7 @@ export function OnboardingChecklist({
       <Card className={clsx("relative", className)}>
         <button
           type="button"
-          onClick={() => dismissOnboarding(tutorId)}
+          onClick={dismiss}
           aria-label="Dismiss reminder"
           className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-lg text-text-tertiary hover:bg-hover hover:text-text"
         >
@@ -103,7 +67,7 @@ export function OnboardingChecklist({
     <Card className={clsx("relative", className)}>
       <button
         type="button"
-        onClick={() => dismissOnboarding(tutorId)}
+        onClick={dismiss}
         aria-label="Dismiss checklist"
         className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-lg text-text-tertiary hover:bg-hover hover:text-text"
       >

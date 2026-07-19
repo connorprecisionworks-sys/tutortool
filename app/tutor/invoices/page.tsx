@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { StatusDot } from "@/components/ui/status-dot";
 import { formatCents } from "@/lib/money";
+import { formatDate } from "@/lib/date";
 import { DeleteInvoiceRowButton } from "@/components/invoices/delete-invoice-row-button";
 
 const TABS = ["all", "draft", "sent", "overdue", "paid", "void"] as const;
@@ -99,7 +100,7 @@ export default async function InvoicesPage({
                     </Link>
                   </td>
                   <td className="px-5 py-3 text-text-secondary" data-label="Period">
-                    {inv.period_start} – {inv.period_end}
+                    {formatDate(inv.period_start)} – {formatDate(inv.period_end)}
                   </td>
                   <td className="px-5 py-3 text-right tabular-nums" data-label="Total">
                     {formatCents(inv.total_cents)}
@@ -108,7 +109,7 @@ export default async function InvoicesPage({
                     <StatusDot status={inv.status} />
                   </td>
                   <td className="px-5 py-3 text-text-secondary" data-label="Due">
-                    {inv.due_date ?? "—"}
+                    {inv.due_date ? formatDate(inv.due_date) : "—"}
                   </td>
                   <td className="cell-action px-5 py-3 text-right">
                     {inv.status === "draft" && <DeleteInvoiceRowButton invoiceId={inv.id} />}

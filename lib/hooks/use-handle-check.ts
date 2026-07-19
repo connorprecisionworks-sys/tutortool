@@ -87,3 +87,8 @@ export function useHandleCheck(rawHandle: string, currentHandle?: string | null)
   if (checked && checked.handle === handle) return checked.state;
   return { status: "checking", message: null };
 }
+
+/** A handle in this state should never be submittable — surfaces the reason inline instead of failing silently on submit. */
+export function isHandleBlocked(status: HandleCheckStatus): boolean {
+  return status === "taken" || status === "invalid";
+}
