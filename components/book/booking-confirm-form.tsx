@@ -43,10 +43,10 @@ export function BookingConfirmForm({
             key={slot.id}
             type="button"
             onClick={() => setSlotId(slot.id)}
-            className="flex w-full items-center justify-between rounded-lg border border-border px-4 py-3 text-left text-sm hover:bg-hover"
+            className="flex w-full items-center justify-between rounded-lg border border-border bg-surface px-4 py-3.5 text-left text-sm font-medium transition motion-safe:hover:-translate-y-0.5 hover:border-accent hover:bg-hover"
           >
             <span>{formatBookingWhen(slot.start_ts)}</span>
-            <span className="text-text-secondary">{slot.duration_minutes} min</span>
+            <span className="font-normal text-text-secondary">{slot.duration_minutes} min</span>
           </button>
         ))}
       </div>

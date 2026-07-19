@@ -32,8 +32,8 @@ export default async function PublicServiceBookingPage({
   const service = data as unknown as PublicServiceData;
 
   return (
-    <div className="flex min-h-full items-center justify-center px-4 py-16">
-      <Card className="w-full max-w-md">
+    <div className="flex min-h-full items-center justify-center px-4 py-12 sm:py-16">
+      <Card className="w-full max-w-lg">
         <Mark className="mb-4 h-6" />
 
         {!service?.found ? (
@@ -46,11 +46,13 @@ export default async function PublicServiceBookingPage({
         ) : (
           <>
             <h1 className="mb-1 text-xl font-semibold">Book with {service.tutor_name}</h1>
-            <p className="mb-6 text-sm text-text-secondary">
-              {service.service_name}
-              {service.price_cents != null && ` — ${formatCents(service.price_cents)}`} ({service.duration_minutes}{" "}
-              min)
-            </p>
+            <div className="mb-6 flex flex-wrap items-center gap-2 text-sm text-text-secondary">
+              <span className="font-medium text-text">{service.service_name}</span>
+              <span className="rounded-full bg-surface-sunken px-2 py-0.5 text-xs text-text-tertiary">
+                {service.duration_minutes} min
+              </span>
+              {service.price_cents != null && <span className="font-semibold text-text">{formatCents(service.price_cents)}</span>}
+            </div>
             <ServiceAvailabilityBookingForm
               handle={handle}
               serviceId={serviceId}

@@ -82,3 +82,21 @@ export function formatIsoSlotTime(iso: string): string {
   const hours12 = hours24 % 12 === 0 ? 12 : hours24 % 12;
   return `${hours12}:${String(minutes).padStart(2, "0")} ${period}`;
 }
+
+/**
+ * Buckets a flat list of open-slot ISO timestamps into Morning/Afternoon/
+ * Evening sections for a more scannable picker — same getUTCHours() reading
+ * as formatIsoSlotTime, so a slot lands in the same period a tutor would see
+ * its time-of-day rendered as. Empty buckets are omitted; slots stay sorted
+ * within each bucket since the input is already chronological.
+ */
+export function groupSlotsByPeriod(slots: string[]): { label: string; slots: string[] }[] {
+  const buckets: { label: string; test: (h: number) => boolean }[] = [
+    { label: "Morning", test: (h) => h < 12 },
+    { label: "Afternoon", test: (h) => h >= 12 && h < 17 },
+    { label: "Evening", test: (h) => h >= 17 },
+  ];
+  return buckets
+    .map(({ label, test }) => ({ label, slots: slots.filter((s) => test(new Date(s).getUTCHours())) }))
+    .filter((b) => b.slots.length > 0);
+}

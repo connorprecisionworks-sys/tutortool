@@ -3,6 +3,8 @@
 import { useActionState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input, Label, FieldHint } from "@/components/ui/input";
+import { DateStrip } from "@/components/book/date-strip";
+import { TimeSlotGrid } from "@/components/book/time-slot-grid";
 import {
   confirmPublicServiceBookingAction,
   getPublicServiceSlotsAction,
@@ -56,14 +58,12 @@ export function ServiceAvailabilityBookingForm({
     );
   }
 
-  const today = new Date().toISOString().slice(0, 10);
-
   if (!selectedSlot) {
     return (
       <div className="space-y-4">
         <div>
-          <Label htmlFor="pick_date">Pick a date</Label>
-          <Input id="pick_date" type="date" min={today} value={date} onChange={(e) => setDate(e.target.value)} />
+          <Label>Pick a date</Label>
+          <DateStrip value={date} onChange={setDate} />
         </div>
         {slotsError ? (
           <p className="text-sm text-text">{slotsError}</p>
@@ -72,18 +72,7 @@ export function ServiceAvailabilityBookingForm({
         ) : slots.length === 0 ? (
           <p className="text-sm text-text-secondary">No open times that day — try another date.</p>
         ) : (
-          <div className="grid grid-cols-2 gap-2">
-            {slots.map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setSelectedSlot(s)}
-                className="rounded-lg border border-border px-4 py-3 text-center text-sm hover:bg-hover"
-              >
-                {formatTime(s)}
-              </button>
-            ))}
-          </div>
+          <TimeSlotGrid slots={slots} onSelect={setSelectedSlot} />
         )}
       </div>
     );
