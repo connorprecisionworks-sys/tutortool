@@ -55,6 +55,7 @@ export async function updatePublicProfileAction(
   const isPublic = formData.get("is_public") === "on";
   const showBio = formData.get("show_bio") === "on";
   const showPrices = formData.get("show_prices") === "on";
+  const showPhone = formData.get("show_phone") === "on";
 
   if (isPublic && !handleRaw) return { error: "Pick a handle before publishing your page." };
   if (handleRaw) {
@@ -74,6 +75,7 @@ export async function updatePublicProfileAction(
     is_public: isPublic,
     show_bio: showBio,
     show_prices: showPrices,
+    show_phone: showPhone,
   };
   if (publicDisplayName !== undefined) updates.public_display_name = publicDisplayName || null;
   if (headline !== undefined) updates.headline = headline || null;

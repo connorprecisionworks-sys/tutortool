@@ -36,9 +36,11 @@ export function PublicProfileForm({
   const [bookingCtaLabel, setBookingCtaLabel] = useState(tutor.booking_cta_label || "Book");
   const [showBio, setShowBio] = useState(tutor.show_bio);
   const [showPrices, setShowPrices] = useState(tutor.show_prices);
+  const [showPhone, setShowPhone] = useState(tutor.show_phone);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(avatarPublicUrl(tutor.avatar_path));
   const handleCheck = useHandleCheck(handle, tutor.handle);
   const handleBlocked = handleCheck.status === "taken" || handleCheck.status === "invalid";
+  const hasPhone = Boolean(tutor.phone);
 
   const publicUrl = tutor.handle ? `${publicAppUrl()}/t/${tutor.handle}` : null;
   const displayName = publicDisplayName.trim() || tutor.name;
@@ -180,6 +182,28 @@ export function PublicProfileForm({
             />
             Show service prices
           </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              name="show_phone"
+              // checked is gated on hasPhone (not just the local showPhone
+              // state) so the two always agree — otherwise, if the phone
+              // number gets cleared via the separate settings form on this
+              // same page (revalidatePath refreshes this component's props
+              // without remounting it, so this state, seeded once at mount,
+              // never resyncs on its own), the checkbox could render
+              // checked-and-disabled: unclickable, and silently excluded
+              // from the next form submission entirely (native HTML never
+              // submits a disabled field), flipping show_phone to false in
+              // the DB without the tutor ever having touched the checkbox.
+              checked={showPhone && hasPhone}
+              onChange={(e) => setShowPhone(e.target.checked)}
+              disabled={!hasPhone}
+              className="h-4 w-4 rounded border-border"
+            />
+            Show my phone number
+          </label>
+          {!hasPhone && <FieldHint>Add a phone number in Settings above to enable this.</FieldHint>}
         </div>
 
         {state.error && <p className="text-sm text-text">{state.error}</p>}
@@ -206,6 +230,7 @@ export function PublicProfileForm({
           {subjects.trim() && <p className="mt-1 text-sm text-text-secondary">{subjects}</p>}
           {showBio && bio.trim() && <p className="mt-3 text-sm leading-relaxed text-text">{bio}</p>}
           {welcomeNote.trim() && <p className="mt-3 text-sm text-text-secondary">{welcomeNote}</p>}
+          {showPhone && hasPhone && <p className="mt-2 text-sm text-text-secondary">{tutor.phone}</p>}
 
           <div className="mt-5 space-y-2">
             {services.length === 0 ? (

@@ -25,14 +25,15 @@ export function ProfileStep({ tutor, nextHref }: { tutor: Tables<"tutors">; next
   return (
     <form action={formAction} className="space-y-4">
       {/* This step's one job is picking a handle and publishing — the fuller
-          visibility toggles (show bio / show prices) stay in Settings, so
-          preserve whatever they're currently set to instead of silently
-          flipping them off just because this trimmed form doesn't render
-          those checkboxes. */}
+          visibility toggles (show bio / show prices / show phone) stay in
+          Settings, so preserve whatever they're currently set to instead of
+          silently flipping them off just because this trimmed form doesn't
+          render those checkboxes. */}
       <input type="hidden" name="is_public" value="on" />
       <input type="hidden" name="subjects" value={tutor.subjects ?? ""} />
       {tutor.show_bio !== false && <input type="hidden" name="show_bio" value="on" />}
       {tutor.show_prices !== false && <input type="hidden" name="show_prices" value="on" />}
+      {tutor.show_phone && <input type="hidden" name="show_phone" value="on" />}
 
       <div>
         <Label htmlFor="handle">Handle</Label>

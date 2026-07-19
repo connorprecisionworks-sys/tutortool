@@ -1304,11 +1304,13 @@ export type Database = {
           is_public: boolean
           mileage_rate_cents: number
           name: string
+          phone: string | null
           public_display_name: string | null
           reminder_cadence: Json
           reminder_templates: Json
           session_reminder_lead_hours: number
           show_bio: boolean
+          show_phone: boolean
           show_prices: boolean
           sms_enabled: boolean
           standard_rate_cents: number
@@ -1337,11 +1339,13 @@ export type Database = {
           is_public?: boolean
           mileage_rate_cents?: number
           name: string
+          phone?: string | null
           public_display_name?: string | null
           reminder_cadence?: Json
           reminder_templates?: Json
           session_reminder_lead_hours?: number
           show_bio?: boolean
+          show_phone?: boolean
           show_prices?: boolean
           sms_enabled?: boolean
           standard_rate_cents?: number
@@ -1370,11 +1374,13 @@ export type Database = {
           is_public?: boolean
           mileage_rate_cents?: number
           name?: string
+          phone?: string | null
           public_display_name?: string | null
           reminder_cadence?: Json
           reminder_templates?: Json
           session_reminder_lead_hours?: number
           show_bio?: boolean
+          show_phone?: boolean
           show_prices?: boolean
           sms_enabled?: boolean
           standard_rate_cents?: number

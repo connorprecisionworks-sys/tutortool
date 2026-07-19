@@ -18,6 +18,12 @@ export function SettingsForm({ tutor, smsConfigured }: { tutor: Tables<"tutors">
         <Input id="name" name="name" defaultValue={tutor.name} required />
       </div>
 
+      <div>
+        <Label htmlFor="phone">Phone (optional)</Label>
+        <Input id="phone" name="phone" type="tel" maxLength={30} defaultValue={tutor.phone ?? ""} placeholder="e.g. (555) 123-4567" />
+        <FieldHint>Used for your own records and to prefill contact/SMS features. Not shown publicly unless you enable it below.</FieldHint>
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <Label htmlFor="standard_rate_cents">Standard hourly rate ($)</Label>

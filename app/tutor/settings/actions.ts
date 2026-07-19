@@ -28,6 +28,7 @@ export async function updateTutorSettingsAction(
   const invoiceTerms = String(formData.get("invoice_terms") ?? "due_on_receipt");
   const billTravelDefault = formData.get("bill_travel_default") === "on";
   const name = String(formData.get("name") ?? "").trim();
+  const phone = String(formData.get("phone") ?? "").trim().slice(0, 30);
 
   if (!name) return { error: "Name is required." };
 
@@ -66,6 +67,7 @@ export async function updateTutorSettingsAction(
     .from("tutors")
     .update({
       name,
+      phone: phone || null,
       standard_rate_cents: dollarsToCents(standardRate),
       travel_rate_cents: travelRateRaw ? dollarsToCents(Number(travelRateRaw)) : null,
       bill_travel_default: billTravelDefault,

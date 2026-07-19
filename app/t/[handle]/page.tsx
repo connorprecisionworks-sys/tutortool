@@ -23,6 +23,7 @@ interface PublicTutorProfile {
   subjects?: string | null;
   welcome_note?: string | null;
   booking_cta_label?: string;
+  phone?: string | null;
   services?: PublicTutorService[];
   booking_token?: string | null;
 }
@@ -70,6 +71,13 @@ export default async function PublicTutorPage({ params }: { params: Promise<{ ha
       {profile.subjects && <p className="mt-1 text-sm text-text-secondary">{profile.subjects}</p>}
       {profile.bio && <p className="mt-4 text-sm leading-relaxed text-text sm:text-base">{profile.bio}</p>}
       {profile.welcome_note && <p className="mt-4 text-sm leading-relaxed text-text-secondary">{profile.welcome_note}</p>}
+      {profile.phone && (
+        <p className="mt-2 text-sm text-text-secondary">
+          <a href={`tel:${profile.phone}`} className="hover:text-text hover:underline">
+            {profile.phone}
+          </a>
+        </p>
+      )}
 
       <div className="mt-8 space-y-3">
         {(profile.services ?? []).length === 0 ? (

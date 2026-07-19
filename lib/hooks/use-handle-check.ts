@@ -1,10 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { checkHandleAvailabilityAction } from "@/app/tutor/settings/profile-actions";
+import { checkHandleAvailabilityAction, type HandleCheckResult } from "@/app/tutor/settings/profile-actions";
 import { normalizeHandle, validateHandleFormat } from "@/lib/handle";
 
-export type HandleCheckStatus = "idle" | "current" | "checking" | "available" | "taken" | "invalid" | "error";
+// Derived from the server action's own result type (rather than a
+// hand-duplicated union) so a new status value added there can't silently
+// fall through the switch below into "idle" — see the `never` check.
+// "empty" is excluded: the hook never sends an empty handle over the wire in
+// the first place (the `immediate` check below short-circuits to "idle"
+// first), so the server action can never actually return it here.
+export type HandleCheckStatus = "idle" | "current" | "checking" | Exclude<HandleCheckResult["status"], "empty">;
 
 export interface HandleCheckState {
   status: HandleCheckStatus;
@@ -45,17 +51,33 @@ export function useHandleCheck(rawHandle: string, currentHandle?: string | null)
     const timer = setTimeout(async () => {
       const result = await checkHandleAvailabilityAction(handle);
       if (id !== requestId.current) return; // a newer keystroke's check started before this one resolved
-      if (result.status === "available") setChecked({ handle, state: { status: "available", message: null } });
-      else if (result.status === "taken")
-        setChecked({ handle, state: { status: "taken", message: result.message ?? "That handle is already taken." } });
-      else if (result.status === "invalid")
-        setChecked({ handle, state: { status: "invalid", message: result.message ?? "Not a valid handle." } });
-      else if (result.status === "error")
-        // Non-blocking on purpose — a transient RPC hiccup shouldn't trap a
-        // tutor typing a valid handle behind a disabled submit button. The
-        // save action re-validates format/uniqueness server-side regardless.
-        setChecked({ handle, state: { status: "error", message: result.message ?? "Couldn't check availability." } });
-      else setChecked({ handle, state: { status: "idle", message: null } });
+      switch (result.status) {
+        case "available":
+          setChecked({ handle, state: { status: "available", message: null } });
+          break;
+        case "taken":
+          setChecked({ handle, state: { status: "taken", message: result.message ?? "That handle is already taken." } });
+          break;
+        case "invalid":
+          setChecked({ handle, state: { status: "invalid", message: result.message ?? "Not a valid handle." } });
+          break;
+        case "error":
+          // Non-blocking on purpose — a transient RPC hiccup shouldn't trap
+          // a tutor typing a valid handle behind a disabled submit button.
+          // The save action re-validates format/uniqueness regardless.
+          setChecked({ handle, state: { status: "error", message: result.message ?? "Couldn't check availability." } });
+          break;
+        case "empty":
+          setChecked({ handle, state: { status: "idle", message: null } });
+          break;
+        default: {
+          // Compile-time guard: a new HandleCheckResult status added to the
+          // server action without a case here fails the build instead of
+          // silently falling through to "idle" at runtime.
+          const _exhaustive: never = result.status;
+          void _exhaustive;
+        }
+      }
     }, DEBOUNCE_MS);
 
     return () => clearTimeout(timer);
