@@ -12,6 +12,7 @@ interface VisibleSession {
   occurred_on: string;
   duration_minutes: number;
   location: string | null;
+  meeting_link: string | null;
 }
 
 export default async function ParentSessionsPage() {
@@ -50,6 +51,7 @@ export default async function ParentSessionsPage() {
       occurred_on: s.occurred_on,
       duration_minutes: s.duration_minutes,
       location: s.location,
+      meeting_link: s.meeting_link,
     }));
 
   const sessionIds = sessions.map((s) => s.id);
@@ -83,6 +85,18 @@ export default async function ParentSessionsPage() {
                 <p className="text-xs text-text-secondary">{s.duration_minutes} min</p>
               </div>
               {s.location && <p className="mt-1 text-xs text-text-tertiary">{s.location}</p>}
+              {s.meeting_link && (
+                <p className="mt-1 text-xs">
+                  <a
+                    href={s.meeting_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent underline underline-offset-2 hover:text-text"
+                  >
+                    Join meeting ↗
+                  </a>
+                </p>
+              )}
               {note ? (
                 <p className="mt-2 whitespace-pre-wrap text-sm text-text-secondary">{note.body}</p>
               ) : (

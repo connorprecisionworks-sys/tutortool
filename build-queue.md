@@ -1095,9 +1095,67 @@ all clean.
 - Make Slate installable (web app manifest, icons from the brand kit, standalone display) so "Add to Home Screen" in Safari opens a real app shell, and keep the session persistent so the user stays logged in in the installed app.
 - Acceptance: adding Slate to the Home Screen on iOS Safari opens a standalone app that stays logged in across launches.
 
-## D15 — Integrations (calendar, video, email)  [ ]
+## D15 — Integrations (calendar, video, email)  [x] (pending commit) / [!] two-way calendar sync blocked
 
-Mostly credential-dependent; build what's buildable, mark the OAuth/key pieces [!] blocked with what Connor must provide.
+Built the two credential-free pieces; two-way calendar sync genuinely needs
+OAuth credentials Connor hasn't provided.
+
+**Video links (built):** `sessions.meeting_link` (manual paste, per the
+"keep it light" note — no Zoom/Google Meet OAuth auto-generation). Wired
+through `update_session` (extended, not replaced — see bug below) and the
+create-session insert path; shown as a "Join meeting" link on the tutor's
+session detail page (works even for a billed/cancelled session, where the
+edit form itself is hidden) and on the parent's Sessions & Notes page (the
+`parent_visible_sessions` view needed the new column added explicitly,
+since it has an explicit column list, not `select *`). Package-drawn
+sessions don't get a meeting link at creation time (the package RPC has its
+own fixed signature) — documented as a scope cut, addable via edit
+afterward since `update_session` isn't package-aware either way.
+
+**Send email directly from Slate (built):** a "Send a message" card on the
+student detail page — a one-off, tutor-composed email to the payer on
+file, reusing the exact same `sendEmail`/`parentFacingIdentity` pipeline
+every other email in the app uses (From "{Tutor} via Slate", Reply-To the
+tutor). Deliberately not a template (no notification-settings toggle to
+check — the tutor is explicitly choosing to send this one message).
+
+**[!] BLOCKED — Google Calendar / Outlook two-way sync:** needs a Google
+Cloud OAuth client (Calendar API scope) and/or a Microsoft Entra app
+registration (Graph API) from Connor — client id/secret, redirect URI
+allowlisted, consent screen configured. The existing one-way iCal feed
+(B5) covers read-only "see Slate sessions in your calendar" in the
+meantime. **[!] Auto-generating a Zoom/Google Meet link** on booking is
+also blocked on the same two credential sets (Zoom OAuth app or Google
+Meet API access) — manual paste (above) is the unblocked interim.
+
+Caught two real bugs before this was done, both from directly testing
+against a real database rather than just reading the SQL: (1) a security
+bug — `meeting_link` (and, it turned out, the pre-existing link-type
+`resources.url_or_path` from D13/P8) was validated with a bare
+`new URL(...)` try/catch, which happily accepts `javascript:` URIs (`new
+URL("javascript:alert(1)")` doesn't throw); both are rendered as a raw
+`href` a parent clicks, including in `OpenResourceButton`'s
+`tab.location.href = result.url` — a compromised or malicious tutor
+account could have planted a script URI that ran in a parent's
+authenticated session. Fixed with a shared `lib/url-validate.ts`
+(`isSafeHttpUrl`, restricts to `http:`/`https:`) applied to both the new
+meeting-link validation and the pre-existing resource-link validation.
+(2) `create or replace function update_session(...)` with an added 8th
+parameter doesn't replace the old 7-arg function — Postgres treats
+different arg counts as a distinct overload, silently leaving BOTH
+versions in the catalog, which made every 7-arg call fail with a "could not
+choose the best candidate function" ambiguity error (caught by an
+authenticated RPC round-trip test, not visible from reading the migration).
+Fixed by explicitly `drop function`-ing the old signature first; the
+rollback script does the same in reverse.
+
+QA'd via disposable-tutor RPC/table assertions (deleted after): insert with
+a meeting link persists, `update_session` accepts and persists a new
+`p_meeting_link` alongside its existing fields, and the same call
+succeeds when `p_meeting_link` is omitted entirely (true backward
+compatibility, not just "doesn't error this one way"). `isSafeHttpUrl`
+verified directly to reject `javascript:`/`data:` and accept `https:`.
+`npx tsc --noEmit`, `npm run lint`, `npm run build` all clean.
 
 - Google Calendar / Outlook two-way sync (beyond the existing one-way iCal feed). Needs Google/Microsoft OAuth credentials from Connor; build the integration and block on the creds if absent.
 - Video links: attach a Zoom or Google Meet link to a session/booking (manual paste first; auto-generation needs Zoom/Google OAuth, block on that). "Not super necessary" per Connor, so keep it light.

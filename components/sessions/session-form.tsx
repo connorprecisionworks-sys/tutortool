@@ -250,6 +250,21 @@ export function SessionForm({
       </div>
 
       <div>
+        <Label htmlFor="meeting_link">Meeting link (optional)</Label>
+        <Input
+          id="meeting_link"
+          name="meeting_link"
+          type="url"
+          defaultValue={session?.meeting_link ?? ""}
+          placeholder="https://zoom.us/j/… or a Google Meet link"
+        />
+        <FieldHint>
+          Paste a Zoom or Google Meet link — shown to the parent as &quot;Join session.&quot;
+          {!session && packageId && " Not saved yet for a package session — add it after logging by editing the session."}
+        </FieldHint>
+      </div>
+
+      <div>
         <Label htmlFor="notes">
           Tutor Notes
           <PrivacyPill shared={false} className="ml-2" />

@@ -105,6 +105,18 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
               : "That series has already ended."}
           </p>
         )}
+        {session.meeting_link && (
+          <p className="text-sm">
+            <a
+              href={session.meeting_link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-accent underline underline-offset-2 hover:text-text"
+            >
+              Join meeting ↗
+            </a>
+          </p>
+        )}
         {isCancelled && (
           <Card className="max-w-2xl border-border-strong">
             <p className="text-sm">

@@ -1301,6 +1301,7 @@ export type Database = {
           id: string
           invoice_id: string | null
           location: string | null
+          meeting_link: string | null
           notes: string | null
           occurred_on: string
           package_id: string | null
@@ -1325,6 +1326,7 @@ export type Database = {
           id?: string
           invoice_id?: string | null
           location?: string | null
+          meeting_link?: string | null
           notes?: string | null
           occurred_on: string
           package_id?: string | null
@@ -1349,6 +1351,7 @@ export type Database = {
           id?: string
           invoice_id?: string | null
           location?: string | null
+          meeting_link?: string | null
           notes?: string | null
           occurred_on?: string
           package_id?: string | null
@@ -1581,6 +1584,7 @@ export type Database = {
           duration_minutes: number | null
           id: string | null
           location: string | null
+          meeting_link: string | null
           occurred_on: string | null
           start_time: string | null
           status: Database["public"]["Enums"]["session_status"] | null
@@ -1593,6 +1597,7 @@ export type Database = {
           duration_minutes?: number | null
           id?: string | null
           location?: string | null
+          meeting_link?: string | null
           occurred_on?: string | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["session_status"] | null
@@ -1605,6 +1610,7 @@ export type Database = {
           duration_minutes?: number | null
           id?: string | null
           location?: string | null
+          meeting_link?: string | null
           occurred_on?: string | null
           start_time?: string | null
           status?: Database["public"]["Enums"]["session_status"] | null
@@ -1989,6 +1995,7 @@ export type Database = {
         Args: {
           p_duration_minutes: number
           p_location: string
+          p_meeting_link?: string
           p_notes: string
           p_occurred_on: string
           p_session_id: string

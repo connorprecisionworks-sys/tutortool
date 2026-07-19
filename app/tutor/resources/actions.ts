@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireTutor } from "@/lib/auth/tutor";
+import { isSafeHttpUrl } from "@/lib/url-validate";
 
 export interface ResourceFormResult {
   error?: string;
@@ -30,10 +31,8 @@ export async function createResourceAction(
   if (type === "link") {
     const url = String(formData.get("url") ?? "").trim();
     if (!url) return { error: "Enter a URL." };
-    try {
-      new URL(url);
-    } catch {
-      return { error: "Enter a valid URL (including https://)." };
+    if (!isSafeHttpUrl(url)) {
+      return { error: "Enter a valid http(s) URL." };
     }
     urlOrPath = url;
   } else {
@@ -116,10 +115,8 @@ export async function updateResourceAction(
 
     const url = String(formData.get("url") ?? "").trim();
     if (!url) return { error: "Enter a URL." };
-    try {
-      new URL(url);
-    } catch {
-      return { error: "Enter a valid URL (including https://)." };
+    if (!isSafeHttpUrl(url)) {
+      return { error: "Enter a valid http(s) URL." };
     }
     update.url_or_path = url;
   }

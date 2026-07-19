@@ -14,6 +14,7 @@ import { isEmailConfigured } from "@/lib/email";
 import { isSmsConfigured } from "@/lib/sms";
 import { formatCents } from "@/lib/money";
 import { AutoInvoiceSettingsCard } from "@/components/students/auto-invoice-settings-card";
+import { MessageParentCard } from "@/components/students/message-parent-card";
 import { computeSessionAmountCents } from "@/lib/billing";
 
 export default async function StudentDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -160,6 +161,12 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
             pendingInvites={pendingInvites}
           />
         </Card>
+
+        <MessageParentCard
+          clientId={student.id}
+          payerEmail={student.payer_email}
+          resendConfigured={isEmailConfigured()}
+        />
       </div>
     </div>
   );

@@ -13,6 +13,7 @@ import { getPostHogClient } from "@/lib/posthog-server";
 import { getStripe, isStripeConfigured } from "@/lib/stripe/client";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { claimAndRunAutoInvoice } from "@/lib/auto-invoice";
+import { isSafeHttpUrl } from "@/lib/url-validate";
 
 export interface SessionFormResult {
   error?: string;
@@ -34,10 +35,14 @@ export async function createSessionAction(
   const travelMinutes = Number(formData.get("travel_minutes") ?? "0");
   const location = String(formData.get("location") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim();
+  const meetingLink = String(formData.get("meeting_link") ?? "").trim();
 
   if (!clientId) return { error: "Pick a student." };
   if (!occurredOn) return { error: "Date is required." };
   if (!durationMinutes || durationMinutes <= 0) return { error: "Duration must be more than 0 minutes." };
+  if (meetingLink && !isSafeHttpUrl(meetingLink)) {
+    return { error: "Enter a valid http(s) meeting URL." };
+  }
   if (travelMinutes < 0) return { error: "Travel minutes can't be negative." };
 
   // A package session draws down a prepaid balance instead of billing
@@ -144,6 +149,7 @@ export async function createSessionAction(
       effective_rate_cents: effectiveRateCents,
       travel_rate_cents: travelRateCents,
       notes: notes || null,
+      meeting_link: meetingLink || null,
     })
     .select("id")
     .single();
@@ -197,10 +203,14 @@ export async function updateSessionAction(
   const travelMinutes = Number(formData.get("travel_minutes") ?? "0");
   const location = String(formData.get("location") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim();
+  const meetingLink = String(formData.get("meeting_link") ?? "").trim();
 
   if (!occurredOn) return { error: "Date is required." };
   if (!durationMinutes || durationMinutes <= 0) return { error: "Duration must be more than 0 minutes." };
   if (travelMinutes < 0) return { error: "Travel minutes can't be negative." };
+  if (meetingLink && !isSafeHttpUrl(meetingLink)) {
+    return { error: "Enter a valid http(s) meeting URL." };
+  }
 
   // update_session (SECURITY DEFINER) re-resolves the rate snapshot from
   // the client's *current* rate rule, blocks edits on a billed session, and
@@ -218,6 +228,7 @@ export async function updateSessionAction(
     p_travel_minutes: Math.round(travelMinutes),
     p_location: (location || null) as unknown as string,
     p_notes: (notes || null) as unknown as string,
+    p_meeting_link: (meetingLink || null) as unknown as string,
   });
 
   if (error) return { error: error.message };
