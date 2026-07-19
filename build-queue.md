@@ -915,7 +915,74 @@ clean; migration applied to the linked dev project and types regenerated.
 - Let tutors set different hours for specific days (override the weekly default per weekday) and block off specific dates/ranges as unavailable (vacations, one-offs). Booking respects both.
 - Acceptance: a tutor sets Fri to 1-3pm (different from the Mon-Thu default) and blocks a specific date; booking offers reflect both.
 
-## D12 — Auto-send invoices  [ ]
+## D12 — Auto-send invoices  [x] (pending commit)
+
+Per-client opt-in (`clients.auto_invoice_enabled`, default false), one of three
+tutor-chosen triggers (`auto_invoice_trigger`): `weekly` (cadence, driven by a
+new daily cron reading `auto_invoice_next_date`), `after_session` (fires
+synchronously right after a regular session is logged for that client), or
+`package_depleted` (fires when a package tied to that client hits 0 remaining
+sessions — sweeps up whatever else is unbilled; only for a student-specific
+package, a general/shared package has no single client to attribute the event
+to). All three funnel through one new SECURITY DEFINER function,
+`run_client_auto_invoice()` — money logic (session eligibility, credit
+application, line items, send/due-date resolution) copied verbatim from the
+current `create_draft_invoice`/`send_invoice` sources of truth rather than
+reimplemented, since this function is deliberately NOT keyed off
+`current_tutor_id()`/`auth.uid()` (its callers are the cron and
+already-authenticated server actions using the admin client, never a tutor's
+own RLS-scoped session). New `auto_invoice_runs` claim table (insert-first,
+unique on `(client_id, trigger_key)`) dedupes exactly like `reminders` (Q6).
+Since a client has exactly one trigger mode at a time, the weekly cron and
+the two synchronous triggers can never race each other for the same client.
+New `auto_invoice_sent` system email template (D9 pattern: seeded onto every
+tutor row + column default updated) since there's no tutor in the loop to
+manually share the payment link the way the manual flow assumes — gated on
+a new `parent_auto_invoice` notification toggle and the existing
+Resend-configured/no-op-and-log pattern. Settings live on the student detail
+page (`AutoInvoiceSettingsCard`): on/off, trigger picker, next-date hint, and
+a live read-only preview of unbilled sessions/total if generated right now.
+
+High-effort review (self-directed manual pass; caught and fixed 2 real
+issues before this could be called done): (1) `period_start`/`period_end`
+were originally computed via a separate `min/max` query before the
+row-locking loop — a session becoming eligible in the gap between the two
+queries could land outside the invoice's own displayed period. Fixed by
+inserting the invoice with placeholder dates and deriving the real period
+from the sessions actually locked and claimed inside the loop itself. (2) A
+genuinely critical grant bug, caught only by testing with
+`has_function_privilege()` against each role after applying the migration,
+not by reading the SQL: this Supabase project has default privileges that
+grant EXECUTE on every new function directly to `anon`/`authenticated` (not
+inherited through PUBLIC), so `revoke execute ... from public` alone left
+both roles still able to call `run_client_auto_invoice()` directly for any
+client — a real privilege-escalation path around the enabled-gate. Fixed by
+explicitly revoking from `authenticated` and `anon` too, then re-verified
+`service_role_can_exec=true, authenticated_can_exec=false,
+anon_can_exec=false`. Saved as a durable memory since it affects any future
+service-role-only function in this project. QA'd end-to-end with a
+disposable tutor+student (`connor.precisionworks+d12qa@gmail.com`, deleted
+after): direct SQL-level test of `run_client_auto_invoice` (disabled-client
+rejection, correct total/period/due-date/status, second call on an
+already-clean client returns null); then full app-layer runs through a real
+headless browser + the live cron route for all three triggers — toggled the
+setting on/off and confirmed the preview and "On"/"Off" state persist,
+logged a session with `after_session` enabled and got a real sent, $60,
+Auto-badged invoice; set `weekly` with a due `next_date` and hit
+`/api/cron/auto-invoice` directly, got a correctly-priced ($90) invoice and
+`auto_invoice_next_date` advanced by 7 days, re-ran the cron immediately and
+confirmed zero re-processing; drew a 1-session package to depletion via the
+real session form and confirmed it correctly swept up a separate unbilled
+30-min session into a third $30 auto-invoice while leaving the package-drawn
+session alone. `npx tsc --noEmit`, `npm run lint`, `npm run build` all
+clean. TODO(connor): while seeding this QA fixture, hit a real but
+pre-existing, unrelated flake in the `/accept-terms` legal-consent gate —
+`requireCurrentAgreement`'s check intermittently didn't recognize a fresh
+acceptance on the very next navigation for one admin-API-created test
+account (seeding the `agreements` row directly worked around it for this
+QA). Only reproduced against a synthetic test account, not confirmed against
+a real signup — flagging since it's a legal-consent surface, worth a closer
+look but out of scope for this item.
 
 - Option to automatically generate and send invoices on a cadence (e.g., weekly) or trigger (e.g., after each session / when a package runs out), tutor-configurable per client, with a clear on/off and preview. Reuses the reminder job infrastructure.
 - Acceptance: a tutor enables weekly auto-invoicing for a client and an invoice is generated + queued to send on schedule (delivery gated on Resend, same as D9).

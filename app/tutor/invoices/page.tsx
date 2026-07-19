@@ -89,6 +89,11 @@ export default async function InvoicesPage({
                     <Link href={`/tutor/invoices/${inv.id}`} className="font-medium">
                       {(inv.clients as unknown as { student_name: string } | null)?.student_name ?? "—"}
                     </Link>
+                    {inv.auto_generated && (
+                      <span className="ml-2 rounded-full border border-border px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-text-tertiary">
+                        Auto
+                      </span>
+                    )}
                   </td>
                   <td className="px-5 py-3 text-text-secondary" data-label="Period">
                     {formatDate(inv.period_start)} – {formatDate(inv.period_end)}

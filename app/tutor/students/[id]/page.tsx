@@ -13,13 +13,15 @@ import { generateJoinQrSvg } from "@/lib/qrcode";
 import { isEmailConfigured } from "@/lib/email";
 import { isSmsConfigured } from "@/lib/sms";
 import { formatCents } from "@/lib/money";
+import { AutoInvoiceSettingsCard } from "@/components/students/auto-invoice-settings-card";
+import { computeSessionAmountCents } from "@/lib/billing";
 
 export default async function StudentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const tutor = await requireTutor();
   const supabase = await createClient();
 
-  const [{ data: student }, { data: invites }, { data: redemptions }, { data: sends }, { data: credits }, { data: packages }] =
+  const [{ data: student }, { data: invites }, { data: redemptions }, { data: sends }, { data: credits }, { data: packages }, { data: unbilledSessions }] =
     await Promise.all([
       supabase.from("clients").select("*").eq("id", id).eq("tutor_id", tutor.id).maybeSingle(),
       supabase.from("invites").select("*").eq("student_id", id).order("created_at", { ascending: false }).limit(1),
@@ -40,11 +42,36 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
         .or(`client_id.eq.${id},client_id.is.null`)
         .eq("status", "active")
         .order("created_at"),
+      // Same eligibility filter as run_client_auto_invoice() — a read-only
+      // preview of what auto-invoicing would bill right now, no side effects.
+      supabase
+        .from("sessions")
+        .select("duration_minutes, travel_minutes, effective_rate_cents, bill_travel, travel_rate_cents, service_price_cents")
+        .eq("tutor_id", tutor.id)
+        .eq("client_id", id)
+        .is("invoice_id", null)
+        .eq("status", "logged")
+        .is("cancelled_at", null)
+        .is("package_id", null),
     ]);
 
   if (!student) notFound();
 
   const availableCreditCents = (credits ?? []).reduce((sum, c) => sum + c.remaining_cents, 0);
+
+  const previewTotalCents = (unbilledSessions ?? []).reduce(
+    (sum, s) =>
+      sum +
+      computeSessionAmountCents({
+        durationMinutes: s.duration_minutes,
+        travelMinutes: s.travel_minutes,
+        effectiveRateCents: s.effective_rate_cents,
+        billTravel: s.bill_travel,
+        travelRateCents: s.travel_rate_cents ?? 0,
+        servicePriceCents: s.service_price_cents,
+      }),
+    0
+  );
 
   // At most one row per student can have status='active' (partial unique
   // index) and revoke/regenerate always leave the newest row as either
@@ -100,6 +127,16 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
             </ul>
           </Card>
         )}
+
+        <AutoInvoiceSettingsCard
+          clientId={student.id}
+          enabled={student.auto_invoice_enabled}
+          trigger={student.auto_invoice_trigger}
+          nextDate={student.auto_invoice_next_date}
+          previewCount={unbilledSessions?.length ?? 0}
+          previewTotalCents={previewTotalCents}
+          resendConfigured={isEmailConfigured()}
+        />
 
         <Card className="max-w-2xl">
           <StudentForm

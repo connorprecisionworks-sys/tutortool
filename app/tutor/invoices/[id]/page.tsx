@@ -59,7 +59,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
     <div>
       <PageHeader
         title={client?.student_name ?? "Invoice"}
-        description={`${formatDate(invoice.period_start)} – ${formatDate(invoice.period_end)}`}
+        description={`${formatDate(invoice.period_start)} – ${formatDate(invoice.period_end)}${invoice.auto_generated ? " · Auto-generated" : ""}`}
         action={<StatusDot status={invoice.status} />}
       />
 

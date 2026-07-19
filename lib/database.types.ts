@@ -63,6 +63,45 @@ export type Database = {
         }
         Relationships: []
       }
+      auto_invoice_runs: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          invoice_id: string | null
+          trigger_key: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          invoice_id?: string | null
+          trigger_key: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          invoice_id?: string | null
+          trigger_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auto_invoice_runs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auto_invoice_runs_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       availability: {
         Row: {
           created_at: string
@@ -360,6 +399,9 @@ export type Database = {
       clients: {
         Row: {
           archived: boolean
+          auto_invoice_enabled: boolean
+          auto_invoice_next_date: string | null
+          auto_invoice_trigger: string
           bill_travel: boolean | null
           class_id: string | null
           created_at: string
@@ -381,6 +423,9 @@ export type Database = {
         }
         Insert: {
           archived?: boolean
+          auto_invoice_enabled?: boolean
+          auto_invoice_next_date?: string | null
+          auto_invoice_trigger?: string
           bill_travel?: boolean | null
           class_id?: string | null
           created_at?: string
@@ -402,6 +447,9 @@ export type Database = {
         }
         Update: {
           archived?: boolean
+          auto_invoice_enabled?: boolean
+          auto_invoice_next_date?: string | null
+          auto_invoice_trigger?: string
           bill_travel?: boolean | null
           class_id?: string | null
           created_at?: string
@@ -730,6 +778,7 @@ export type Database = {
       }
       invoices: {
         Row: {
+          auto_generated: boolean
           client_id: string
           created_at: string
           due_date: string | null
@@ -748,6 +797,7 @@ export type Database = {
           tutor_id: string
         }
         Insert: {
+          auto_generated?: boolean
           client_id: string
           created_at?: string
           due_date?: string | null
@@ -766,6 +816,7 @@ export type Database = {
           tutor_id: string
         }
         Update: {
+          auto_generated?: boolean
           client_id?: string
           created_at?: string
           due_date?: string | null
@@ -1673,6 +1724,9 @@ export type Database = {
         }
         Returns: {
           archived: boolean
+          auto_invoice_enabled: boolean
+          auto_invoice_next_date: string | null
+          auto_invoice_trigger: string
           bill_travel: boolean | null
           class_id: string | null
           created_at: string
@@ -1806,6 +1860,10 @@ export type Database = {
       regenerate_invite: { Args: { p_student_id: string }; Returns: string }
       remove_line_item: { Args: { p_line_item_id: string }; Returns: undefined }
       revoke_invite: { Args: { p_student_id: string }; Returns: undefined }
+      run_client_auto_invoice: {
+        Args: { p_client_id: string }
+        Returns: string
+      }
       send_invoice: { Args: { p_invoice_id: string }; Returns: undefined }
       session_amount_cents: {
         Args: {

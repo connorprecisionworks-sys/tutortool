@@ -71,6 +71,16 @@ export const SYSTEM_EMAIL_TEMPLATES: EmailTemplateDef[] = [
     ctaLabel: "Pay invoice",
   },
   {
+    key: "auto_invoice_sent",
+    name: "Auto-invoice sent",
+    audience: "parent",
+    trigger: "Sent automatically when auto-invoicing generates and sends an invoice for this student.",
+    variables: ["student", "tutor", "amount", "due_date", "link"],
+    defaultSubject: "{{student}}'s invoice is ready",
+    defaultBody: "Hi! {{tutor}} just sent an automatic invoice for {{student}} — {{amount}}, due {{due_date}}. Pay anytime here: {{link}}",
+    ctaLabel: "Pay invoice",
+  },
+  {
     key: "invite_parent",
     name: "Parent invite",
     audience: "parent",

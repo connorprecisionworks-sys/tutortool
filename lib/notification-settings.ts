@@ -3,6 +3,7 @@ export interface NotificationSettings {
   parent_booking_confirmation?: boolean;
   parent_session_reminder?: boolean;
   parent_invoice_reminders?: boolean;
+  parent_auto_invoice?: boolean;
 }
 
 export const NOTIFICATION_TOGGLES: {
@@ -34,6 +35,12 @@ export const NOTIFICATION_TOGGLES: {
     audience: "parent",
     label: "Invoice reminders",
     description: "Email parents when an invoice is due or past due.",
+  },
+  {
+    key: "parent_auto_invoice",
+    audience: "parent",
+    label: "Auto-invoice sent",
+    description: "Email parents when auto-invoicing generates and sends an invoice.",
   },
 ];
 

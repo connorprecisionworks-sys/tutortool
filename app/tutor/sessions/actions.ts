@@ -11,6 +11,8 @@ import {
 } from "@/lib/billing";
 import { getPostHogClient } from "@/lib/posthog-server";
 import { getStripe, isStripeConfigured } from "@/lib/stripe/client";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { claimAndRunAutoInvoice } from "@/lib/auto-invoice";
 
 export interface SessionFormResult {
   error?: string;
@@ -55,9 +57,38 @@ export async function createSessionAction(
     });
     if (packageSessionError) return { error: packageSessionError.message };
 
+    // Best-effort package_depleted auto-invoice trigger — only for a
+    // package bound to this specific student; a general/shared package
+    // (D8) has no single client to attribute a depletion event to for
+    // billing, so package_depleted never fires off one. Never blocks the
+    // session log itself on failure.
+    try {
+      const [{ data: pkg }, { data: autoClient }] = await Promise.all([
+        supabase.from("packages").select("status, client_id").eq("id", packageId).maybeSingle(),
+        supabase
+          .from("clients")
+          .select("auto_invoice_enabled, auto_invoice_trigger")
+          .eq("id", clientId)
+          .eq("tutor_id", tutor.id)
+          .maybeSingle(),
+      ]);
+      if (
+        pkg?.status === "depleted" &&
+        pkg.client_id === clientId &&
+        autoClient?.auto_invoice_enabled &&
+        autoClient.auto_invoice_trigger === "package_depleted"
+      ) {
+        const admin = createAdminClient();
+        await claimAndRunAutoInvoice(admin, clientId, `package:${packageId}`);
+      }
+    } catch (autoInvoiceError) {
+      console.error("Auto-invoice (package_depleted) trigger failed:", autoInvoiceError);
+    }
+
     revalidatePath("/tutor/sessions");
     revalidatePath("/tutor/packages");
     revalidatePath(`/tutor/students/${clientId}`);
+    revalidatePath("/tutor/invoices");
     revalidatePath("/tutor");
     return {};
   }
@@ -97,23 +128,38 @@ export async function createSessionAction(
     ? resolveTravelRateCents(client.travel_rate_cents, tutor.travel_rate_cents, effectiveRateCents)
     : null;
 
-  const { error } = await supabase.from("sessions").insert({
-    tutor_id: tutor.id,
-    client_id: clientId,
-    service_id: serviceId || null,
-    service_price_cents: servicePriceCents,
-    occurred_on: occurredOn,
-    start_time: startTime || null,
-    duration_minutes: Math.round(durationMinutes),
-    travel_minutes: Math.round(travelMinutes),
-    location: location || null,
-    bill_travel: billTravel,
-    effective_rate_cents: effectiveRateCents,
-    travel_rate_cents: travelRateCents,
-    notes: notes || null,
-  });
+  const { data: insertedSession, error } = await supabase
+    .from("sessions")
+    .insert({
+      tutor_id: tutor.id,
+      client_id: clientId,
+      service_id: serviceId || null,
+      service_price_cents: servicePriceCents,
+      occurred_on: occurredOn,
+      start_time: startTime || null,
+      duration_minutes: Math.round(durationMinutes),
+      travel_minutes: Math.round(travelMinutes),
+      location: location || null,
+      bill_travel: billTravel,
+      effective_rate_cents: effectiveRateCents,
+      travel_rate_cents: travelRateCents,
+      notes: notes || null,
+    })
+    .select("id")
+    .single();
 
   if (error) return { error: error.message };
+
+  // Best-effort after_session auto-invoice trigger. Never blocks the
+  // session log itself on failure.
+  if (client.auto_invoice_enabled && client.auto_invoice_trigger === "after_session") {
+    try {
+      const admin = createAdminClient();
+      await claimAndRunAutoInvoice(admin, clientId, `session:${insertedSession.id}`);
+    } catch (autoInvoiceError) {
+      console.error("Auto-invoice (after_session) trigger failed:", autoInvoiceError);
+    }
+  }
 
   const posthog = getPostHogClient();
   posthog.capture({
@@ -130,6 +176,7 @@ export async function createSessionAction(
   await posthog.flush();
 
   revalidatePath("/tutor/sessions");
+  revalidatePath("/tutor/invoices");
   revalidatePath("/tutor");
   return {};
 }
