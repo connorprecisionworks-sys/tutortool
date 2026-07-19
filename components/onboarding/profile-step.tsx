@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea, FieldHint } from "@/components/ui/input";
 import { updatePublicProfileAction, type PublicProfileFormResult } from "@/app/tutor/settings/profile-actions";
+import { useHandleCheck } from "@/lib/hooks/use-handle-check";
 import type { Tables } from "@/lib/database.types";
 
 const initialState: PublicProfileFormResult = {};
@@ -16,6 +17,10 @@ export function ProfileStep({ tutor, nextHref }: { tutor: Tables<"tutors">; next
     if (!result.error) router.push(nextHref);
     return result;
   }, initialState);
+
+  const [handle, setHandle] = useState(tutor.handle ?? "");
+  const handleCheck = useHandleCheck(handle, tutor.handle);
+  const handleBlocked = handleCheck.status === "taken" || handleCheck.status === "invalid";
 
   return (
     <form action={formAction} className="space-y-4">
@@ -34,12 +39,21 @@ export function ProfileStep({ tutor, nextHref }: { tutor: Tables<"tutors">; next
         <Input
           id="handle"
           name="handle"
-          defaultValue={tutor.handle ?? ""}
+          value={handle}
+          onChange={(e) => setHandle(e.target.value)}
           placeholder="e.g. jane-tutoring"
           autoFocus
           required
         />
-        <FieldHint>Your page lives at /t/your-handle — lowercase letters, numbers, hyphens.</FieldHint>
+        <FieldHint>
+          {handleCheck.status === "checking" && "Checking availability…"}
+          {handleCheck.status === "available" && "Available."}
+          {handleCheck.status === "taken" && handleCheck.message}
+          {handleCheck.status === "invalid" && handleCheck.message}
+          {handleCheck.status === "error" && handleCheck.message}
+          {(handleCheck.status === "idle" || handleCheck.status === "current") &&
+            "Your page lives at /t/your-handle — letters, numbers, hyphens, underscores, or periods."}
+        </FieldHint>
       </div>
 
       <div>
@@ -55,7 +69,7 @@ export function ProfileStep({ tutor, nextHref }: { tutor: Tables<"tutors">; next
 
       {state.error && <p className="text-sm text-text">{state.error}</p>}
 
-      <Button type="submit" className="w-full" disabled={pending}>
+      <Button type="submit" className="w-full" disabled={pending || handleBlocked}>
         {pending ? "Saving…" : "Continue"}
       </Button>
     </form>

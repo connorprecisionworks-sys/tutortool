@@ -8,6 +8,7 @@ import { updatePublicProfileAction, type PublicProfileFormResult } from "@/app/t
 import { publicAppUrl } from "@/lib/app-url";
 import { avatarPublicUrl } from "@/lib/avatar-url";
 import { formatCents } from "@/lib/money";
+import { useHandleCheck } from "@/lib/hooks/use-handle-check";
 import type { Tables } from "@/lib/database.types";
 
 const initialState: PublicProfileFormResult = {};
@@ -36,6 +37,8 @@ export function PublicProfileForm({
   const [showBio, setShowBio] = useState(tutor.show_bio);
   const [showPrices, setShowPrices] = useState(tutor.show_prices);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(avatarPublicUrl(tutor.avatar_path));
+  const handleCheck = useHandleCheck(handle, tutor.handle);
+  const handleBlocked = handleCheck.status === "taken" || handleCheck.status === "invalid";
 
   const publicUrl = tutor.handle ? `${publicAppUrl()}/t/${tutor.handle}` : null;
   const displayName = publicDisplayName.trim() || tutor.name;
@@ -79,7 +82,15 @@ export function PublicProfileForm({
         <div>
           <Label htmlFor="handle">Handle</Label>
           <Input id="handle" name="handle" value={handle} onChange={(e) => setHandle(e.target.value)} placeholder="e.g. jane-tutoring" />
-          <FieldHint>Lowercase letters, numbers, and hyphens only. Your page lives at /t/your-handle.</FieldHint>
+          <FieldHint>
+            {handleCheck.status === "checking" && "Checking availability…"}
+            {handleCheck.status === "available" && "Available."}
+            {handleCheck.status === "taken" && handleCheck.message}
+            {handleCheck.status === "invalid" && handleCheck.message}
+            {handleCheck.status === "error" && handleCheck.message}
+            {(handleCheck.status === "idle" || handleCheck.status === "current") &&
+              "Letters, numbers, hyphens, underscores, or periods. Your page lives at /t/your-handle."}
+          </FieldHint>
         </div>
 
         <div>
@@ -174,7 +185,7 @@ export function PublicProfileForm({
         {state.error && <p className="text-sm text-text">{state.error}</p>}
         {state.success && <p className="text-sm text-text-secondary">Saved.</p>}
 
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" disabled={pending || handleBlocked}>
           {pending ? "Saving…" : "Save profile"}
         </Button>
       </form>

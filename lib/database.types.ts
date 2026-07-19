@@ -1687,6 +1687,7 @@ export type Database = {
         Args: { p_code: string }
         Returns: Json
       }
+      is_handle_available: { Args: { p_handle: string }; Returns: boolean }
       is_parent_of_session: { Args: { p_session_id: string }; Returns: boolean }
       is_parent_of_student: { Args: { p_student_id: string }; Returns: boolean }
       is_slot_bookable: {

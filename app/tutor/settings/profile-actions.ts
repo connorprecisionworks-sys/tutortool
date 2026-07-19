@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireTutor } from "@/lib/auth/tutor";
+import { normalizeHandle, validateHandleFormat } from "@/lib/handle";
 import type { TablesUpdate } from "@/lib/database.types";
 
 export interface PublicProfileFormResult {
@@ -12,10 +13,10 @@ export interface PublicProfileFormResult {
   success?: boolean;
 }
 
-// Trailing group is mandatory (no `?`) so the minimum match length is
-// 1 + 1 + 1 = 3 chars, matching the "3-32 characters" copy shown to the
-// tutor — an earlier optional-group version accepted 1-character handles.
-const HANDLE_RE = /^[a-z0-9](?:[a-z0-9-]{1,30}[a-z0-9])$/;
+export interface HandleCheckResult {
+  status: "empty" | "invalid" | "taken" | "available" | "error";
+  message?: string;
+}
 
 // Raster formats only — no image/svg+xml. An SVG is XML: a browser that
 // opens the (public, unauthenticated) avatar URL directly executes any
@@ -48,7 +49,7 @@ export async function updatePublicProfileAction(
   const tutor = await requireTutor();
   const supabase = await createClient();
 
-  const handleRaw = String(formData.get("handle") ?? "").trim().toLowerCase();
+  const handleRaw = normalizeHandle(String(formData.get("handle") ?? ""));
   const bio = String(formData.get("bio") ?? "").trim();
   const subjects = String(formData.get("subjects") ?? "").trim();
   const isPublic = formData.get("is_public") === "on";
@@ -56,8 +57,9 @@ export async function updatePublicProfileAction(
   const showPrices = formData.get("show_prices") === "on";
 
   if (isPublic && !handleRaw) return { error: "Pick a handle before publishing your page." };
-  if (handleRaw && !HANDLE_RE.test(handleRaw)) {
-    return { error: "Handle can only use lowercase letters, numbers, and hyphens (3-32 characters)." };
+  if (handleRaw) {
+    const formatError = validateHandleFormat(handleRaw);
+    if (formatError) return { error: formatError };
   }
 
   const publicDisplayName = optionalField(formData, "public_display_name");
@@ -145,4 +147,40 @@ export async function updatePublicProfileAction(
   revalidatePath("/tutor/settings");
   revalidatePath(`/t/${handleRaw}`);
   return { success: true };
+}
+
+/**
+ * Live pre-submit check (D1): same format/reserved rules as the save path
+ * above via the shared lib/handle helpers, so a handle that passes here can
+ * never fail the save for a reason the tutor wasn't already warned about.
+ * Availability goes through is_handle_available() (SECURITY DEFINER) since
+ * the tutors_select_own RLS policy blocks a plain client-side lookup of
+ * another tutor's row.
+ *
+ * Deliberately does NOT call requireTutor() — this fires on every debounced
+ * keystroke pause, and requireTutor()'s legal-agreement gate can throw a
+ * redirect() to /accept-terms. A redirect from a directly-invoked Server
+ * Action still navigates the browser, which would yank a tutor off the
+ * settings/onboarding page mid-edit and discard their unsaved form state.
+ * A plain auth.getUser() is enough: the page that rendered this form already
+ * ran the full gate once to get here, and is_handle_available() itself reads
+ * auth.uid() straight from the JWT for the self-exclusion check.
+ */
+export async function checkHandleAvailabilityAction(rawHandle: string): Promise<HandleCheckResult> {
+  const handle = normalizeHandle(rawHandle);
+  if (!handle) return { status: "empty" };
+
+  const formatError = validateHandleFormat(handle);
+  if (formatError) return { status: "invalid", message: formatError };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { status: "error", message: "Couldn't check that handle right now — try again." };
+
+  const { data, error } = await supabase.rpc("is_handle_available", { p_handle: handle });
+  if (error) return { status: "error", message: "Couldn't check that handle right now — try again." };
+
+  return data ? { status: "available" } : { status: "taken", message: "That handle is already taken." };
 }
