@@ -762,9 +762,68 @@ session-form + student-detail fixes confirmed directly in the browser.
 - Advertise packages/services/offers on the public tutor page (a tutor can feature them).
 - Acceptance: a tutor builds a general 4-session package with a 10% discount, the total auto-calculates, and it can appear on the public page.
 
-## D9 — Email center (templates + preview + custom + notifications)  [ ]
+## D9 — Email center (templates + preview + custom + notifications)  [x] (fcdc597)
 
-Depends on Resend for actual delivery (Connor adds RESEND_API_KEY + EMAIL_FROM in env; if absent, build everything and mark delivery [!] blocked on the key, preview/editor still work).
+Rewrote the 6 system templates (booking confirmation, session reminder, 3
+invoice offsets, invite) with on-brand copy in a single `SYSTEM_EMAIL_TEMPLATES`
+source of truth (`lib/email-templates.ts`), backfilled onto existing tutor rows
+and the column DEFAULT via the migration, same "only touch untouched defaults"
+guard as prior template migrations. `invite_parent` becomes a real
+`reminder_templates` key for the first time — replaces the old hardcoded
+`lib/invite-email.ts` builder, so the invite email is now tutor-editable like
+the other 5. New `notification_settings` (per-tutor on/off switches, absent-key-
+means-on for backward compat) and `custom_email_templates` (tutor-authored,
+preview-only, not wired to a send trigger) columns. `EmailCenter` renders all 6
+system cards collapsed-by-default (shadcn-style `Collapsible`), each with a
+variable inserter and a live preview rendered inside a sandboxed iframe via
+`renderTemplateEmailHtml`. Parent-facing sends now go through
+`parentFacingIdentity()` (`lib/email-identity.ts`): From address stays Slate's
+verified domain, From display name becomes "{Tutor} via Slate", Reply-To is the
+tutor's own email (D3) so a parent's reply reaches the tutor, not Slate.
+
+xhigh multi-agent code review (7 finders across correctness/security angles,
+concurrently) found and fixed 4 real issues before commit: (1) the Resend
+`from` header spliced a tutor's raw, unrestricted display name unquoted into an
+RFC 5322 mailbox position — a name containing a comma or `<...>` (nothing in
+Settings blocks either) either broke Resend's parsing or could be misread as a
+second address; fixed by always wrapping the display name in a quoted-string
+with `\`/`"` escaped (`lib/email.ts`'s new `quoteMailboxName`), verified live
+with a tutor named "Smith, D9 Tutoring" — saved cleanly, no header break. (2)
+the cron invoice-reminder loop dropped its old `if (!template) continue` guard
+when refactored onto `resolveSystemTemplate` (which returns a blank
+subject/body object, not null, for an unrecognized key) — not reachable today
+since `reminder_cadence.offsets_days` has no editing UI and always defaults to
+`[0,3,7]` (all valid keys), but a real latent regression against a DB column
+with no CHECK constraint stopping a future cadence editor; restored the guard
+via the existing `SYSTEM_EMAIL_TEMPLATES.some(...)` pattern already used in
+`reminder-actions.ts`. (3) the rollback script restored every tutor row's
+`reminder_templates` content but never reversed the forward migration's `alter
+column ... set default`, so a tutor row created after a rollback would still
+start from D9's copy — added the matching `alter column ... set default` back
+to the pre-D9 (Q6) copy. (4) the default `booking_confirmation` body ended in
+"...See the details here: {{link}}", which dead-ends in a bare colon for any
+tutor without a public handle set (reachable — C1 onboarding's handle+bio step
+is skippable) since `link` renders empty and the CTA button already
+conditionally carries it; dropped the redundant trailing sentence from both the
+TS default and the SQL backfill/column-default copies (kept in sync per the
+migration's own comment), and pushed the corrected copy to the already-applied
+live migration via `supabase db query --linked`. `npx tsc --noEmit` and `npm
+run lint` both clean after fixes. QA'd end-to-end in a headless browser: fresh
+disposable tutor, skipped onboarding to reach Settings, confirmed the Email
+Center renders all 4 notification toggles + 6 collapsed template cards,
+expanded "Booking confirmation" and confirmed the live iframe preview
+correctly substitutes sample values ("You're all set! Jamie L.'s session with
+Alex Rivera is confirmed for Wed, Jan 14 at 3:00 PM." — no dangling link text),
+edited the body and confirmed it persisted after a reload, checked dark mode
+and 390px mobile (both clean, no overflow). Delivery itself untested — no live
+Resend key in this dev environment — but the stub-and-log no-op path (same
+pattern as every prior email feature) is unchanged. TODO(connor): the
+"{{parent}}" personalization the old hardcoded invite email had ("Hi Jordan,"
+vs "Hi,") isn't in the new default `invite_parent` body — the variable is
+still available in the inserter for a tutor to add themselves, but wiring a
+safe empty-name fallback into the default copy itself was left out of scope
+this pass (the template engine has no conditional-on-empty-variable support,
+and `parentName` is optional at the call site).
 
 - Rewrite the premade email + notification templates so they read well and on-brand (booking confirmation, reminder, invoice, invite). The current ones are weak.
 - Let tutors preview what each email/notification looks like.
