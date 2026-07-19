@@ -1057,7 +1057,7 @@ rejects a second call on an already-unlocked gate. `npx tsc --noEmit`,
 - Payment reuses the existing Stripe/invoice path; gated content stays locked until payment is confirmed. Manual mark-as-paid also unlocks.
 - Acceptance: a parent sees a locked resource, pays (or the tutor marks paid), and it unlocks; RLS prevents access before payment.
 
-## D14 — Installable app + persistent login (PWA)  [x] (pending commit)
+## D14 — Installable app + persistent login (PWA)  [x] (1dd1fda)
 
 Most of this already existed outside the queue (`app/manifest.ts` with brand
 icons + standalone display was added in an earlier untracked commit,
