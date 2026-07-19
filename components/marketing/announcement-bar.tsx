@@ -1,6 +1,7 @@
 "use client";
 
 import { useDismissible } from "@/lib/hooks/use-dismissible";
+import { DismissButton } from "@/components/ui/dismiss-button";
 
 const KEY = "slate-announcement-dismissed";
 
@@ -12,15 +13,11 @@ export function AnnouncementBar({ message }: { message: string }) {
   return (
     <div className="flex items-center justify-center gap-3 bg-accent/10 px-4 py-2 text-center text-xs text-text sm:text-sm">
       <p>{message}</p>
-      <button
+      <DismissButton
         onClick={dismiss}
-        aria-label="Dismiss announcement"
+        label="Dismiss announcement"
         className="flex h-11 w-11 shrink-0 items-center justify-center text-text-secondary hover:text-text sm:h-auto sm:w-auto"
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M18 6 6 18M6 6l12 12" />
-        </svg>
-      </button>
+      />
     </div>
   );
 }

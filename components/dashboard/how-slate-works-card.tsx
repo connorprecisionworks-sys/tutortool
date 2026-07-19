@@ -3,6 +3,7 @@
 import Link from "next/link";
 import clsx from "clsx";
 import { Card } from "@/components/ui/card";
+import { DismissButton } from "@/components/ui/dismiss-button";
 import { useDismissible } from "@/lib/hooks/use-dismissible";
 
 const STEPS = [
@@ -25,16 +26,11 @@ export function HowSlateWorksCard({ tutorId, className }: { tutorId: string; cla
 
   return (
     <Card className={clsx("relative", className)}>
-      <button
-        type="button"
+      <DismissButton
         onClick={dismiss}
-        aria-label="Dismiss how Slate works card"
+        label="Dismiss how Slate works card"
         className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-lg text-text-tertiary hover:bg-hover hover:text-text"
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M18 6 6 18M6 6l12 12" />
-        </svg>
-      </button>
+      />
 
       <h2 className="pr-8 text-sm font-semibold">Learn how to use Slate</h2>
       <p className="mt-1 text-sm text-text-secondary">

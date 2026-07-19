@@ -69,6 +69,11 @@ export default async function ParentInvoiceDetailPage({ params }: { params: Prom
 
         <div className="space-y-4">
           <Card className="space-y-3">
+            {isPayable && invoice.due_date && (
+              <p className="text-sm text-text-secondary">
+                {invoice.status === "overdue" ? "Was due" : "Due"} {formatDate(invoice.due_date)}.
+              </p>
+            )}
             {invoice.status === "paid" && (
               <p className="text-sm text-text-secondary">
                 Paid{invoice.paid_at ? ` on ${formatTimestampDate(invoice.paid_at)}` : ""}

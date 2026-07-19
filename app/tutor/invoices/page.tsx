@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { StatusDot } from "@/components/ui/status-dot";
+import { StatusFilterTabs } from "@/components/ui/status-filter-tabs";
 import { formatCents } from "@/lib/money";
 import { formatDate } from "@/lib/date";
 import { DeleteInvoiceRowButton } from "@/components/invoices/delete-invoice-row-button";
@@ -53,17 +54,7 @@ export default async function InvoicesPage({
         }
       />
 
-      <div className="mb-4 flex flex-wrap gap-x-3 gap-y-1 text-sm">
-        {TABS.map((t) => (
-          <Link
-            key={t}
-            href={t === "all" ? "/tutor/invoices" : `/tutor/invoices?status=${t}`}
-            className={filter === t ? "font-medium text-text" : "text-text-secondary hover:text-text"}
-          >
-            {t === "all" ? "All" : t[0].toUpperCase() + t.slice(1)}
-          </Link>
-        ))}
-      </div>
+      <StatusFilterTabs tabs={TABS} current={filter} basePath="/tutor/invoices" />
 
       {!invoices || invoices.length === 0 ? (
         <EmptyState

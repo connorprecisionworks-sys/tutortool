@@ -4,6 +4,8 @@ import Link from "next/link";
 import clsx from "clsx";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Pill } from "@/components/ui/pill";
+import { DismissButton } from "@/components/ui/dismiss-button";
 import { useDismissible } from "@/lib/hooks/use-dismissible";
 import type { OnboardingStatus } from "@/lib/onboarding";
 
@@ -28,16 +30,11 @@ export function OnboardingChecklist({
   if (status.allRequiredDone) {
     return (
       <Card className={clsx("relative", className)}>
-        <button
-          type="button"
+        <DismissButton
           onClick={dismiss}
-          aria-label="Dismiss reminder"
+          label="Dismiss reminder"
           className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-lg text-text-tertiary hover:bg-hover hover:text-text"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M18 6 6 18M6 6l12 12" />
-          </svg>
-        </button>
+        />
         <h2 className="pr-8 text-sm font-semibold">A couple of optional steps left</h2>
         <ul className="mt-3 divide-y divide-border">
           {remaining.map((step) => (
@@ -65,16 +62,11 @@ export function OnboardingChecklist({
 
   return (
     <Card className={clsx("relative", className)}>
-      <button
-        type="button"
+      <DismissButton
         onClick={dismiss}
-        aria-label="Dismiss checklist"
+        label="Dismiss checklist"
         className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-lg text-text-tertiary hover:bg-hover hover:text-text"
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M18 6 6 18M6 6l12 12" />
-        </svg>
-      </button>
+      />
 
       <h2 className="pr-8 text-sm font-semibold">Get set up</h2>
       <p className="mt-1 text-sm text-text-secondary">
@@ -118,11 +110,7 @@ export function OnboardingChecklist({
                 <div>
                   <p className={clsx("text-sm font-medium", step.done && "text-text-secondary line-through")}>
                     {step.label}
-                    {step.optional && (
-                      <span className="ml-2 rounded-full border border-border px-1.5 py-0.5 text-[10px] font-normal uppercase tracking-wide text-text-tertiary">
-                        Optional
-                      </span>
-                    )}
+                    {step.optional && <Pill className="ml-2">Optional</Pill>}
                   </p>
                   <p className="text-xs text-text-tertiary">{step.description}</p>
                 </div>

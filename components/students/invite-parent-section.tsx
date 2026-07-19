@@ -28,7 +28,12 @@ type PendingInvite = Pick<Tables<"invite_sends">, "id" | "parent_name" | "parent
 // secondary list (parent joins/invites), not a money or privacy surface, so
 // the tradeoff favors accuracy for the viewer over hydration purity.
 function formatLocalDate(isoTimestamp: string): string {
-  return new Date(isoTimestamp).toLocaleDateString();
+  // "en-US" pins the M/D/Y ordering (this app's date-format standard,
+  // D4) — omitting it would format using the browser's own locale
+  // (e.g. DD/MM/YYYY in most of Europe). Timezone is deliberately left
+  // unpinned (see comment above) so only the day-order is fixed, not
+  // which calendar day it resolves to.
+  return new Date(isoTimestamp).toLocaleDateString("en-US");
 }
 
 export function InviteParentSection({

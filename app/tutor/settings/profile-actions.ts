@@ -180,12 +180,13 @@ export async function checkHandleAvailabilityAction(rawHandle: string): Promise<
   const formatError = validateHandleFormat(handle);
   if (formatError) return { status: "invalid", message: formatError };
 
+  // No explicit auth.getUser() check here — is_handle_available() is
+  // SECURITY DEFINER, revoked from public and granted only to authenticated,
+  // so an unauthenticated call already fails at the RPC layer and is caught
+  // by the error branch below with the same message. This fires on every
+  // 400ms-debounced keystroke (see use-handle-check.ts), so skipping a
+  // redundant round-trip to the Auth server matters for typing latency.
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { status: "error", message: "Couldn't check that handle right now — try again." };
-
   const { data, error } = await supabase.rpc("is_handle_available", { p_handle: handle });
   if (error) return { status: "error", message: "Couldn't check that handle right now — try again." };
 
