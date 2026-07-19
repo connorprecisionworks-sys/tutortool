@@ -833,7 +833,43 @@ and `parentName` is optional at the call site).
 - Billing/booking emails to parents must feel like they come from the tutor: send from the verified platform address (EMAIL_FROM, e.g. support@slatetutor.com) but set the From DISPLAY NAME to "{Tutor Name} via Slate" and set Reply-To to the tutor's own email (from their contact info, D3), so a parent's reply goes to the tutor, not to Slate. Never put the tutor's raw email in the From address (SPF/DKIM/DMARC will fail).
 - Acceptance: a tutor opens the email center, previews a booking-confirmation email, edits it with a {{link}} variable, and sees the preview render; a sent parent email shows "{Tutor} via Slate" as the sender with Reply-To = the tutor's email; delivery works once Resend is keyed.
 
-## D10 — Booking page more visual  [ ]
+## D10 — Booking page more visual  [x] (13ab21a)
+
+Pure presentation layer — no server action, RPC, RLS, or auth-touching file
+changed; only page.tsx rendering and client-side booking-form components, plus
+one new pure formatting helper. Skipped the heavy /review pass per the same
+"no money/Stripe/RLS/auth/public-route *logic* surface touched" scoping D2
+used — this only changes how already-public data renders, not what's fetched,
+validated, or written. New `components/book/date-strip.tsx`: a horizontal
+scrollable strip of the next 21 days as tappable pills (Cal.com-style),
+replacing the bare `<input type=date>` on both availability-driven pickers
+(C3's per-service flow and B4's open-availability booking-link flow) while
+keeping the exact same YYYY-MM-DD value contract `useSlotPicker` already
+expects — zero action/RPC changes needed. New `lib/scheduling.ts` helper
+`groupSlotsByPeriod()` buckets a day's open slots into Morning/Afternoon/
+Evening (same `getUTCHours()` reading convention as the existing
+`formatIsoSlotTime`), rendered by new `components/book/time-slot-grid.tsx` —
+shared by both pickers, replacing a flat 2-column button grid. `/t/[handle]`
+gets a slate-tinted gradient header panel with a bigger ring-bordered avatar
+(falls back to an initial badge when no photo), and its services/packages
+lists become a proper card grid (price emphasized, duration as a pill badge,
+hover lift) instead of flat list rows. The two booking-confirmation card
+wrappers (`/t/[handle]/book/[serviceId]`, `/book/[token]`) widened slightly
+(max-w-md → max-w-lg) to fit the day strip comfortably and got the same
+duration-pill/price treatment in their header line; Q2's fixed-slot list
+(`BookingConfirmForm`) got the same tactile button styling for visual
+consistency, unchanged otherwise (it's a tutor-curated cross-day list, not a
+single-day view, so it doesn't take the new period grouping). `npx tsc
+--noEmit`, `npm run lint`, and `npm run build` all clean. QA'd end-to-end in a
+headless browser with a disposable tutor (rate, Mon-Fri 3-6pm availability, a
+$50 service, published handle): public page renders the new hero header +
+service card in both themes; the booking flow's day strip correctly
+highlights the selected date and scrolls at 390px; slots correctly bucketed
+into "Afternoon" (3-4pm) and "Evening" (5pm) sections; completed a real
+booking through the new picker end-to-end and confirmed via direct DB query
+it landed as a session with the correct date/time/service linkage — the UI
+rework didn't disturb the underlying booking logic. Checked light+dark and
+390px/1280px throughout.
 
 - Make the public booking flow more visual and polished (service cards, clearer availability/time selection, tutor photo/branding), keeping the Slate frame. Mobile-first.
 - Acceptance: the booking page looks visual and inviting, not a bare list, at desktop and mobile.
