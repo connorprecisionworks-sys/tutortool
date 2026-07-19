@@ -98,6 +98,41 @@ export type Database = {
           },
         ]
       }
+      availability_blocks: {
+        Row: {
+          created_at: string
+          end_date: string
+          id: string
+          note: string | null
+          start_date: string
+          tutor_id: string
+        }
+        Insert: {
+          created_at?: string
+          end_date: string
+          id?: string
+          note?: string | null
+          start_date: string
+          tutor_id: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string
+          id?: string
+          note?: string | null
+          start_date?: string
+          tutor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "availability_blocks_tutor_id_fkey"
+            columns: ["tutor_id"]
+            isOneToOne: false
+            referencedRelation: "tutors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_link_slots: {
         Row: {
           booking_link_id: string

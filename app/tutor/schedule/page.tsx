@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { StatusDot } from "@/components/ui/status-dot";
 import { AvailabilityManager } from "@/components/schedule/availability-manager";
+import { AvailabilityBlocksManager } from "@/components/schedule/availability-blocks-manager";
 import { BookingRequests, type PendingBooking } from "@/components/schedule/booking-requests";
 import { CancelBookingButton } from "@/components/schedule/cancel-booking-button";
 import { approveBookingAction, declineBookingAction } from "@/app/tutor/schedule/actions";
@@ -13,8 +14,9 @@ export default async function SchedulePage() {
   const tutor = await requireTutor();
   const supabase = await createClient();
 
-  const [{ data: availability }, { data: requested }, { data: confirmed }] = await Promise.all([
+  const [{ data: availability }, { data: blocks }, { data: requested }, { data: confirmed }] = await Promise.all([
     supabase.from("availability").select("*").eq("tutor_id", tutor.id).order("weekday"),
+    supabase.from("availability_blocks").select("*").eq("tutor_id", tutor.id).order("start_date"),
     supabase
       .from("bookings")
       .select("*, clients(student_name)")
@@ -48,6 +50,14 @@ export default async function SchedulePage() {
       <Card>
         <h2 className="mb-4 text-sm font-semibold">Weekly availability</h2>
         <AvailabilityManager availability={availability ?? []} />
+      </Card>
+
+      <Card>
+        <h2 className="mb-1 text-sm font-semibold">Blocked dates</h2>
+        <p className="mb-4 text-sm text-text-secondary">
+          Vacations or one-off closures — booking never offers a time inside a blocked date.
+        </p>
+        <AvailabilityBlocksManager blocks={blocks ?? []} />
       </Card>
 
       <Card>

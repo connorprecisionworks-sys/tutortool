@@ -66,6 +66,47 @@ export async function removeAvailabilityAction(availabilityId: string): Promise<
   return {};
 }
 
+export interface AvailabilityBlockFormResult {
+  error?: string;
+}
+
+export async function addAvailabilityBlockAction(
+  _prev: AvailabilityBlockFormResult,
+  formData: FormData
+): Promise<AvailabilityBlockFormResult> {
+  const tutor = await requireTutor();
+  const supabase = await createClient();
+
+  const startDate = String(formData.get("start_date") ?? "");
+  const endDate = String(formData.get("end_date") ?? "").trim() || startDate;
+  const note = String(formData.get("note") ?? "").trim();
+
+  if (!startDate) return { error: "Pick a start date." };
+  if (endDate < startDate) return { error: "End date must be on or after the start date." };
+
+  const { error } = await supabase.from("availability_blocks").insert({
+    tutor_id: tutor.id,
+    start_date: startDate,
+    end_date: endDate,
+    note: note || null,
+  });
+  if (error) return { error: error.message };
+
+  revalidatePath("/tutor/schedule");
+  return {};
+}
+
+export async function removeAvailabilityBlockAction(blockId: string): Promise<{ error?: string }> {
+  await requireTutor();
+  const supabase = await createClient();
+
+  const { error } = await supabase.from("availability_blocks").delete().eq("id", blockId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/tutor/schedule");
+  return {};
+}
+
 export async function approveBookingAction(bookingId: string): Promise<{ error?: string }> {
   await requireTutor();
   const supabase = await createClient();
