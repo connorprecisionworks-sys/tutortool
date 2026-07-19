@@ -4,6 +4,7 @@ Track every change to the Terms of Service and Privacy Policy. Bump the Effectiv
 
 | Date | Docs | Version | What changed |
 |---|---|---|---|
+| 2026-07-19 | ToS + Privacy | 2.1 | D13: gated/paid resources. A Tutor can mark a resource as paid; a Parent must complete payment (via an invoice add-on, same Stripe processing already described) before it unlocks, or the Tutor can manually unlock it. Added a Payments and Billing bullet (ToS) and a data-collection bullet (Privacy) covering this — no new subprocessor, just a new access-control condition on existing resource/invoice data. |
 | 2026-07-18 | ToS + Privacy | 2.0 | Rewrote both to match current Slate: added scheduling/booking + public tutor pages, parent portal, session notes, file uploads (receipts/photos), expenses + mileage, email/SMS reminders + consent (STOP/HELP), and named subprocessors (Stripe, Supabase, Vercel, PostHog, Resend, Twilio). Added ToS boilerplate (entire agreement, severability, assignment, force majeure), informal dispute step, US data-location note. Set effective date. |
 | (template) | ToS + Privacy | 1.0 | Original template: billing-only description, Stripe, CCPA, Florida law, adults-only/COPPA framing. |
 

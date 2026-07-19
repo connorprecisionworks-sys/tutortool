@@ -105,6 +105,15 @@ export async function updateResourceAction(
   // underlying storage object isn't touched by this action (re-uploading
   // is a delete + re-add, same as before this change).
   if (existing.type === "link") {
+    const { data: gate } = await supabase
+      .from("resource_gates")
+      .select("status")
+      .eq("resource_id", resourceId)
+      .maybeSingle();
+    if (gate?.status === "unlocked") {
+      return { error: "This resource was paid for and unlocked — its link can't be changed anymore." };
+    }
+
     const url = String(formData.get("url") ?? "").trim();
     if (!url) return { error: "Enter a URL." };
     try {
@@ -135,6 +144,20 @@ export async function deleteResourceAction(resourceId: string): Promise<{ error?
 
   if (!resource) return { error: "Resource not found." };
 
+  const { data: gate } = await supabase
+    .from("resource_gates")
+    .select("status, unlock_invoice_id")
+    .eq("resource_id", resourceId)
+    .maybeSingle();
+  if (gate && (gate.status === "unlocked" || gate.unlock_invoice_id)) {
+    return {
+      error:
+        gate.status === "unlocked"
+          ? "This resource was paid for and unlocked — it can't be deleted."
+          : "This resource is on a draft invoice — remove it from the invoice first.",
+    };
+  }
+
   if (resource.type === "file") {
     const admin = createAdminClient();
     const { error: storageError } = await admin.storage.from("resources").remove([resource.url_or_path]);
@@ -148,5 +171,47 @@ export async function deleteResourceAction(resourceId: string): Promise<{ error?
   if (error) return { error: error.message };
 
   revalidatePath("/tutor/resources");
+  return {};
+}
+
+export async function setResourceGateAction(
+  _prev: ResourceFormResult,
+  formData: FormData
+): Promise<ResourceFormResult> {
+  await requireTutor();
+  const supabase = await createClient();
+
+  const resourceId = String(formData.get("resource_id") ?? "");
+  const priceDollars = Number(formData.get("price") ?? "0");
+  if (!resourceId) return { error: "Missing resource id." };
+  if (!priceDollars || Number.isNaN(priceDollars) || priceDollars <= 0) {
+    return { error: "Enter a price greater than zero." };
+  }
+
+  const { error } = await supabase.rpc("set_resource_gate", {
+    p_resource_id: resourceId,
+    p_price_cents: Math.round(priceDollars * 100),
+  });
+  if (error) return { error: error.message };
+
+  revalidatePath("/tutor/resources");
+  return {};
+}
+
+export async function removeResourceGateAction(resourceId: string): Promise<{ error?: string }> {
+  await requireTutor();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("remove_resource_gate", { p_resource_id: resourceId });
+  revalidatePath("/tutor/resources");
+  if (error) return { error: error.message };
+  return {};
+}
+
+export async function manuallyUnlockResourceGateAction(gateId: string): Promise<{ error?: string }> {
+  await requireTutor();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("manually_unlock_resource_gate", { p_gate_id: gateId });
+  revalidatePath("/tutor/resources");
+  if (error) return { error: error.message };
   return {};
 }

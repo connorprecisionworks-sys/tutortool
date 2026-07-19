@@ -987,9 +987,71 @@ look but out of scope for this item.
 - Option to automatically generate and send invoices on a cadence (e.g., weekly) or trigger (e.g., after each session / when a package runs out), tutor-configurable per client, with a clear on/off and preview. Reuses the reminder job infrastructure.
 - Acceptance: a tutor enables weekly auto-invoicing for a client and an invoice is generated + queued to send on schedule (delivery gated on Resend, same as D9).
 
-## D13 — Gated / paid resources + invoice add-ons  [ ]
+## D13 — Gated / paid resources + invoice add-ons  [x] (pending commit)
 
-Money-touching + new sharing surface, so /review and update /terms + /privacy per the LEGAL DOCS RULE.
+Money-touching + new sharing surface — /terms and /privacy updated (v2.0 →
+v2.1, both effective 2026-07-19) and logged in legal/legal-changelog.md per
+the LEGAL DOCS RULE.
+
+New `resource_gates` (1:1 with `resources`: price, `status`
+'locked'|'unlocked', `unlock_invoice_id`/`unlock_line_item_id`). Payment
+reuses the existing invoice/Stripe pipeline exactly like Q5/D8's package
+activation: `add_gated_resource_line_item()` attaches a locked, unattached
+gate to a draft invoice as a manual charge line; `mark_invoice_paid()` and
+the Stripe webhook both call a new `unlock_gated_resources_for_invoice()`
+(idempotent, self-guards on `invoices.status = 'paid'`, identical shape to
+`activate_package_for_invoice`). `remove_line_item` and `void_invoice` were
+extended (not replaced) to detach a still-locked gate cleanly (re-attachable
+elsewhere) while permanently blocking removal once unlocked/paid — same
+pattern Q4/D8 already established for credit lines and pending packages.
+Tutors also get a direct "unlock now (comp)" override, independent of any
+invoice.
+
+The real access-control problem: RLS is row-level, not column-level, but a
+parent must see a locked resource exists (title, price) while never reading
+its `url_or_path` (for a link resource that value IS the resource) before
+paying. Closed by dropping `resources_select_parent` entirely and replacing
+every parent-facing resource read with two new SECURITY DEFINER functions
+(`get_parent_resources`, `get_parent_resource_url`) that null the column
+themselves and re-derive `is_parent_of_student` authorization internally —
+a parent's own Supabase client can no longer SELECT `resources` directly at
+all, closing the "call the RPC from the app, but query the table directly
+from devtools" bypass a plain RLS policy could never close. Manual, thorough
+self-review (no gstack review tooling invoked this pass — reasoned through
+the checklist directly against the diff) caught and fixed two real issues
+before this could be called done: (1) while copying `void_invoice`'s body
+to add the new gate-detach line, the copy dropped the existing
+package-cancel-on-void statement and altered the sessions-reset condition —
+caught by diffing character-by-character against the actual latest (Q5)
+source rather than trusting memory of having already read it, restored
+verbatim plus the one new line. (2) `get_parent_resource_url` computed its
+`locked` boolean correctly but returned the real `url_or_path` unconditionally
+— the exact vulnerability the whole redesign exists to close, and it would
+have been invisible from the app's own UI (which only reads the `locked`
+flag and shows an error) since a parent calling the RPC directly would still
+get the raw value. Caught only by an authenticated round-trip test (real
+JWT via `@supabase/supabase-js`, not just reading the SQL), fixed with the
+same masking `case` expression `get_parent_resources` already had, then
+re-verified live. Empirically confirmed (not just read) that `authenticated`
+can call `get_parent_resources`/`get_parent_resource_url` while `anon`
+cannot, via `has_function_privilege()` — learned the hard way in D12 that
+this project's default privileges require checking every role explicitly.
+
+QA'd against a disposable tutor + parent + student (both
+`connor.precisionworks+d13qa*@gmail.com`, deleted after) via 21 real,
+authenticated-session RPC/table assertions (not just reading the SQL): a
+parent's direct `resources` table select returns zero rows; a locked
+resource shows in the list with a null URL and correct price;
+`set_resource_gate` creates/updates a gate and rejects a foreign resource
+id; a gated resource attaches to a draft invoice with the correct combined
+total; the still-locked line detaches cleanly on `remove_line_item` and
+re-attaches; changing price or deleting the gate is rejected once attached
+or unlocked; sending + paying the invoice flips the gate and the parent's
+next RPC call returns the real URL; voiding an invoice detaches a
+still-locked gate (re-attachable) without disturbing an already-unlocked
+one; the manual comp-unlock path works with zero invoice involvement and
+rejects a second call on an already-unlocked gate. `npx tsc --noEmit`,
+`npm run lint`, `npm run build` all clean.
 
 - Let a tutor mark a resource (or a section) as paid/gated: the parent must pay to unlock it. Support gated resources tied to a price, and an optional paid add-on line on an invoice that unlocks specific content/sections when paid.
 - Payment reuses the existing Stripe/invoice path; gated content stays locked until payment is confirmed. Manual mark-as-paid also unlocks.

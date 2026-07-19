@@ -1,7 +1,7 @@
 # Terms of Service
 
-**Effective Date:** July 18, 2026
-**Version:** 2.0
+**Effective Date:** July 19, 2026
+**Version:** 2.1
 
 Welcome to Slate ("Slate," "we," "us," or "our"), a software platform for independent tutors, operated by Solomon Caldwell LLC. These Terms of Service ("Terms") govern your access to and use of the Slate website (slatetutor.com) and related services (collectively, the "Service").
 
@@ -37,6 +37,7 @@ Payments are processed through Stripe, a third-party payment processor. Slate do
 - Tutors are solely responsible for setting their own rates, invoicing accurately, honoring their own cancellation and refund policies with Parents, issuing refunds where appropriate, and complying with applicable tax obligations.
 - Slate may charge Tutors a subscription or usage fee for the platform, as described at checkout or in your account settings. Any such fees are separate from, and not refundable based on, any dispute between a Tutor and a Parent.
 - Failed payments, chargebacks, or disputes between a Tutor and Parent are the responsibility of those parties. Slate may assist by providing transaction records but is not obligated to mediate disputes.
+- A Tutor may mark a resource shared through the Service as paid: the Parent must complete payment (via an invoice add-on charge, processed the same as any other payment above) before that resource unlocks. A Tutor may also manually unlock paid content without payment at their discretion.
 
 ## 5. Subscription Terms, Cancellation, and Refunds
 

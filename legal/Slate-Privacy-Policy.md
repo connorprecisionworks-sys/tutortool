@@ -1,7 +1,7 @@
 # Privacy Policy
 
-**Effective Date:** July 18, 2026
-**Version:** 2.0
+**Effective Date:** July 19, 2026
+**Version:** 2.1
 
 This Privacy Policy explains how Solomon Caldwell LLC ("Slate," "we," "us," or "our") collects, uses, and shares information in connection with the Slate website (slatetutor.com) and services (the "Service").
 
@@ -24,7 +24,7 @@ Students do not create Slate accounts and do not directly provide information to
 
 **From Parents/Guardians:**
 
-- Name, email, phone number, and payment information (handled via Stripe) used to view and pay for tutoring.
+- Name, email, phone number, and payment information (handled via Stripe) used to view and pay for tutoring, including any resource a Tutor has marked as paid.
 - Information you choose to provide about your student to help the Tutor deliver services, such as learning preferences, scheduling notes, or goals. This is optional and provided at your discretion.
 
 **Automatically collected:**

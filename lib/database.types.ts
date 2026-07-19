@@ -1092,6 +1092,61 @@ export type Database = {
           },
         ]
       }
+      resource_gates: {
+        Row: {
+          created_at: string
+          id: string
+          price_cents: number
+          resource_id: string
+          status: string
+          unlock_invoice_id: string | null
+          unlock_line_item_id: string | null
+          unlocked_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          price_cents: number
+          resource_id: string
+          status?: string
+          unlock_invoice_id?: string | null
+          unlock_line_item_id?: string | null
+          unlocked_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          price_cents?: number
+          resource_id?: string
+          status?: string
+          unlock_invoice_id?: string | null
+          unlock_line_item_id?: string | null
+          unlocked_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resource_gates_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: true
+            referencedRelation: "resources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resource_gates_unlock_invoice_id_fkey"
+            columns: ["unlock_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resource_gates_unlock_line_item_id_fkey"
+            columns: ["unlock_line_item_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_line_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       resources: {
         Row: {
           created_at: string
@@ -1579,6 +1634,10 @@ export type Database = {
         Args: { p_invoice_id: string }
         Returns: undefined
       }
+      add_gated_resource_line_item: {
+        Args: { p_invoice_id: string; p_resource_id: string }
+        Returns: string
+      }
       add_manual_line_item: {
         Args: {
           p_amount_cents: number
@@ -1787,6 +1846,28 @@ export type Database = {
         Args: { p_date: string; p_token: string }
         Returns: Json
       }
+      get_parent_resource_url: {
+        Args: { p_resource_id: string }
+        Returns: {
+          locked: boolean
+          type: Database["public"]["Enums"]["resource_type"]
+          url_or_path: string
+        }[]
+      }
+      get_parent_resources: {
+        Args: never
+        Returns: {
+          created_at: string
+          gate_price_cents: number
+          gate_status: string
+          id: string
+          student_id: string
+          student_name: string
+          title: string
+          type: Database["public"]["Enums"]["resource_type"]
+          url_or_path: string
+        }[]
+      }
       get_public_service: {
         Args: { p_handle: string; p_service_id: string }
         Returns: Json
@@ -1831,6 +1912,10 @@ export type Database = {
         }
         Returns: string
       }
+      manually_unlock_resource_gate: {
+        Args: { p_gate_id: string }
+        Returns: undefined
+      }
       mark_invoice_paid: {
         Args: { p_invoice_id: string; p_method: string }
         Returns: undefined
@@ -1859,6 +1944,10 @@ export type Database = {
       regenerate_ical_token: { Args: never; Returns: string }
       regenerate_invite: { Args: { p_student_id: string }; Returns: string }
       remove_line_item: { Args: { p_line_item_id: string }; Returns: undefined }
+      remove_resource_gate: {
+        Args: { p_resource_id: string }
+        Returns: undefined
+      }
       revoke_invite: { Args: { p_student_id: string }; Returns: undefined }
       run_client_auto_invoice: {
         Args: { p_client_id: string }
@@ -1886,6 +1975,14 @@ export type Database = {
       }
       set_package_public: {
         Args: { p_is_public: boolean; p_package_id: string }
+        Returns: undefined
+      }
+      set_resource_gate: {
+        Args: { p_price_cents: number; p_resource_id: string }
+        Returns: string
+      }
+      unlock_gated_resources_for_invoice: {
+        Args: { p_invoice_id: string }
         Returns: undefined
       }
       update_session: {

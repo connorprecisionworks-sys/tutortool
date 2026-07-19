@@ -120,6 +120,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: packageError.message }, { status: 500 });
   }
 
+  // Unlocks any gated resource (D13) this invoice was carrying a charge
+  // for — same idempotent self-guard-on-'paid' pattern as the package
+  // activation above, same reason for a 500 on failure.
+  const { error: gateError } = await admin.rpc("unlock_gated_resources_for_invoice", { p_invoice_id: invoiceId });
+  if (gateError) {
+    console.error(`Stripe webhook: failed to unlock gated resources for invoice ${invoiceId}:`, gateError.message);
+    return NextResponse.json({ error: gateError.message }, { status: 500 });
+  }
+
   if (tutorRow?.auth_user_id) {
     const posthog = getPostHogClient();
     posthog.capture({

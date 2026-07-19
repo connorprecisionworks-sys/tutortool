@@ -144,6 +144,27 @@ export async function addManualLineAction(
   return {};
 }
 
+export async function addGatedResourceLineAction(
+  _prev: InvoiceFormResult,
+  formData: FormData
+): Promise<InvoiceFormResult> {
+  await requireTutor();
+  const supabase = await createClient();
+
+  const invoiceId = String(formData.get("invoice_id") ?? "");
+  const resourceId = String(formData.get("resource_id") ?? "");
+  if (!resourceId) return { error: "Pick a resource." };
+
+  const { error } = await supabase.rpc("add_gated_resource_line_item", {
+    p_invoice_id: invoiceId,
+    p_resource_id: resourceId,
+  });
+  if (error) return { error: error.message };
+
+  revalidatePath(`/tutor/invoices/${invoiceId}`);
+  return {};
+}
+
 export async function removeLineItemAction(
   lineItemId: string,
   invoiceId: string

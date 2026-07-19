@@ -7,6 +7,7 @@ import { StatusDot } from "@/components/ui/status-dot";
 import { formatCents } from "@/lib/money";
 import { formatDate, formatTimestampDate } from "@/lib/date";
 import { AddLineForm } from "@/components/invoices/add-line-form";
+import { AddGatedResourceForm } from "@/components/invoices/add-gated-resource-form";
 import { RemoveLineButton } from "@/components/invoices/remove-line-button";
 import {
   SendInvoiceButton,
@@ -42,6 +43,18 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
     .from("reminders")
     .select("id", { count: "exact", head: true })
     .eq("invoice_id", id);
+
+  // Locked, unattached gated resources for this invoice's student — the
+  // only ones add_gated_resource_line_item will accept.
+  const { data: gatableResources } =
+    invoice.status === "draft"
+      ? await supabase
+          .from("resources")
+          .select("id, title, resource_gates!inner(price_cents, status, unlock_invoice_id)")
+          .eq("student_id", invoice.client_id)
+          .eq("resource_gates.status", "locked")
+          .is("resource_gates.unlock_invoice_id", null)
+      : { data: null };
 
   const client = invoice.clients as unknown as {
     student_name: string;
@@ -111,8 +124,16 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
             </tfoot>
           </table>
           {isDraft && (
-            <div className="px-5 py-4">
+            <div className="space-y-4 px-5 py-4">
               <AddLineForm invoiceId={invoice.id} />
+              <AddGatedResourceForm
+                invoiceId={invoice.id}
+                resources={(gatableResources ?? []).map((r) => {
+                  const gate = r.resource_gates as unknown as { price_cents: number } | { price_cents: number }[];
+                  const priceCents = Array.isArray(gate) ? gate[0]?.price_cents : gate.price_cents;
+                  return { id: r.id, title: r.title, price_cents: priceCents ?? 0 };
+                })}
+              />
             </div>
           )}
         </Card>
