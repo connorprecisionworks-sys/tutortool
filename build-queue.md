@@ -565,7 +565,18 @@ underscore/period, in both onboarding and Settings, light+dark, desktop
 - Relax handle rules so it can be almost anything the tutor wants (any URL-safe string, reasonable length); only reject truly invalid/taken handles.
 - Acceptance: typing a taken or invalid handle shows an inline flag immediately; a valid custom handle submits cleanly.
 
-## D2 — Dashboard "Getting Started / Learn Slate"  [ ]
+## D2 — Dashboard "Getting Started / Learn Slate"  [x] (4912145)
+
+Dismissible "Learn how to use Slate" card above the existing setup
+checklist: 4 steps (add a student, set availability, send a booking
+link, invoice) each linking to the real action. Distinct dismiss state
+from the checklist (own localStorage key) so it stays useful as a
+standing orientation even after required setup is done, not just for
+brand-new accounts. No money/Stripe/RLS/auth/email/public-route surface
+touched, so skipped the heavy /review per the loop's own scoping rule;
+QA'd end-to-end in a headless browser (renders alongside the checklist,
+dismiss persists independently, each link navigates correctly,
+light+dark, desktop+mobile).
 
 Tutors land on the dashboard and don't know what to do. Add an intro.
 
