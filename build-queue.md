@@ -666,7 +666,28 @@ Make it obvious who a note is for, and add a structured student-info template.
 - On the student detail page, add an intake template for the student's parent info, contact, and needs/goals (structured fields or a prefilled note template).
 - Acceptance: private tutor notes are clearly marked and never visible in the parent portal; a student has a parent-info/contact/needs section.
 
-## D6 — Parent billing: view all invoices  [ ]
+## D6 — Parent billing: view all invoices  [x] (8b4c7fa)
+
+The existing architecture already showed every non-draft invoice
+across all linked children (no single-invoice restriction anywhere) —
+verified via a seeded parent linked to 2 children with 4 invoices
+across different statuses, all showed correctly list+detail. Added
+what was actually missing for parity with the tutor's own list: status
+filter tabs (All/Sent/Overdue/Paid/Void) and a visible Due date on
+both the list and detail page, plus brought the table onto the app's
+responsive mobile pattern it had never used. High-effort review found
+no bugs in the new code but flagged real cross-item cleanup debt from
+this batch, fixed now: extracted StatusFilterTabs (shared by tutor +
+parent invoice lists), DismissButton (was hand-copied across 4
+components even after D4 consolidated the dismiss state hook), and a
+generic Pill (PrivacyPill's doc comment claimed it reused the
+checklist's "Optional" tag styling but never actually shared code with
+it); fixed D6's own date-locale gap (missing "en-US" pin, would've
+shown DD/MM/YYYY on non-US browsers); removed a redundant auth
+round-trip in D1's live handle-check action. QA'd end-to-end including
+confirming a draft invoice never appears to a parent, each filter tab,
+Due/Was-due rendering, and that the refactored shared components still
+behave identically. Light+dark, desktop+mobile.
 
 - Ensure a parent can view their invoices (list + detail) from the billing section of their portal, not just a single linked one.
 - Acceptance: a parent opens Billing and sees all their invoices with status and can open each.
