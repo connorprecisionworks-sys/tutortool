@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { WelcomeHero } from "@/components/dashboard/welcome-hero";
 import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist";
 import { OnboardingCookieSync } from "@/components/dashboard/onboarding-cookie-sync";
+import { HowSlateWorksCard } from "@/components/dashboard/how-slate-works-card";
 import { formatCents } from "@/lib/money";
 import { computeValueGivenCents } from "@/lib/billing";
 
@@ -105,6 +106,7 @@ export default async function TutorDashboardPage() {
       )}
 
       {onboarding.allRequiredDone && <OnboardingCookieSync />}
+      <HowSlateWorksCard tutorId={tutor.id} className="mb-6" />
       <OnboardingChecklist tutorId={tutor.id} status={onboarding} className="mb-6" />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
