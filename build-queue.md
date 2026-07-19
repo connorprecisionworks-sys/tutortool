@@ -583,7 +583,25 @@ Tutors land on the dashboard and don't know what to do. Add an intro.
 - A clear "Learn how to use Slate" / getting-started element on the dashboard: a short, dismissible intro card or a help panel with a few "here's how Slate works" steps (add a student, set availability, send a booking link, invoice). Link each to the real action. Calm, editorial, on-brand.
 - Acceptance: a new tutor sees an obvious intro/how-to on the dashboard that orients them and links to the key actions.
 
-## D3 — Tutor contact info  [ ]
+## D3 — Tutor contact info  [x] (094768c)
+
+Phone field in Settings + a "Show my phone number" public-page toggle
+(defaults hidden, unlike show_bio/show_prices, since a phone is more
+sensitive). get_public_tutor_profile extended to return it only when
+enabled. High-effort review caught and fixed three real bugs: a silent
+30-char server-side truncation with no client limit/feedback, a
+checked-vs-disabled staleness bug on the visibility checkbox (clearing
+phone via the sibling settings form on the same page, no reload, could
+leave it checked-and-disabled — unclickable, and silently dropped from
+the next submit since native HTML never submits disabled fields, which
+would've flipped show_phone to false without the tutor touching it),
+and a hand-duplicated status-union type on the D1 handle-check hook
+with no compile-time tie to the server action's result type. QA'd
+end-to-end (phone saves/persists, toggle starts disabled with no
+phone, public page shows/hides exactly per the toggle verified via
+both the raw DB row and the rendered page, light+dark, desktop
++mobile) including the specific stale-checkbox repro, confirmed fixed
+via direct DOM inspection.
 
 - Add tutor contact fields (phone, and any contact info) in Settings, and optionally surface on the public page (tutor-controlled visibility). Also used to prefill SMS/contact features later.
 - Acceptance: a tutor saves a phone/contact, and it persists and can be shown/hidden on the public page.
