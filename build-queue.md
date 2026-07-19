@@ -692,7 +692,30 @@ behave identically. Light+dark, desktop+mobile.
 - Ensure a parent can view their invoices (list + detail) from the billing section of their portal, not just a single linked one.
 - Acceptance: a parent opens Billing and sees all their invoices with status and can open each.
 
-## D7 — Printable / PDF invoices  [ ]
+## D7 — Printable / PDF invoices  [x] (d3e5a48)
+
+Browser-native print/save-as-PDF (no new rendering dependency) via a
+standalone /invoice/[id] route (no dashboard chrome), a "Print / Save
+as PDF" button, and a new get_invoice_document() SECURITY DEFINER RPC
+that does its own tutor-or-linked-parent authorization check (a parent
+has no RLS grant to read `tutors` directly for the branding info the
+document needs). "Download PDF" links added on both tutor and parent
+invoice detail pages. High-effort review found and fixed 5 real
+issues: a genuine privacy gap where changing a tutor's phone in
+Settings never reset show_phone, so a brand-new number could be
+silently republished from an old opt-in (now resets on any phone
+change, matching the client payer_phone/sms_opt_in re-consent
+pattern); a misleading "Due" line shown on already-paid/voided
+invoices; a swallowed RPC error rendering as a generic un-logged 404;
+a duplicated status-label lookup (now shared with StatusDot); and a
+resurfaced D4 gap — the date-format migration never backfilled old
+line-item description text, fixed via a new idempotent backfill
+migration. Also caught and fixed a real mobile bug during QA (From/
+Billed-to grid not collapsing below sm, overlapping long emails at
+390px). QA'd end-to-end including an actual generated PDF, a 404 for
+an unrelated tutor, and direct-DB verification of the phone re-consent
+and Due-line fixes. Desktop+mobile, both themes on the surrounding
+chrome (document itself always renders as a fixed white page).
 
 - Add "Download PDF" / printable view for an invoice (tutor and parent). Clean, branded, itemized.
 - Acceptance: an invoice downloads as a well-formatted PDF that matches the on-screen invoice.
