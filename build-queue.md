@@ -1353,12 +1353,83 @@ rows; cascade verified).
 
 `tsc --noEmit`, `npm run lint`, `npm run build` all clean.
 
-## E4 — Inline editing + fewer steps  [ ]
+## E4 — Inline editing + fewer steps  [x] (fdeb7f7)
 
-- Make list rows and detail fields editable in place (rates, session values, service prices, student names, notes) instead of routing to a separate edit page.
-- Auto-save inline edits where safe, with a subtle saved indicator; keep explicit save only where a batch of changes must commit together.
-- Remove unnecessary intermediate steps and dead-end confirmations (keeping the safety exception above).
-- Acceptance: changing a student's rate or a service price takes a click, a type, and no page navigation.
+Services list Price and Duration cells, and Students list Rate and Student
+name cells, are now click-to-edit — no navigation to the `[id]` detail/edit
+pages for these single-field changes:
+
+- **Services**: clicking Price or Duration turns it into a focused input;
+  Enter/blur saves via new `updateServicePriceAction`/
+  `updateServiceDurationMinutesAction` (`app/tutor/settings/services/actions.ts`)
+  — plain `.eq("id", x).eq("tutor_id", tutor.id)` column updates, not
+  SECURITY DEFINER, since price/duration are ordinary tutor-owned columns
+  rather than a money state machine. Validation extracted into
+  `validatePriceCents`/`validateDurationMinutes` and reused by both the
+  inline actions and the existing full-form `parseServiceForm`, so there's
+  no drift between the two paths' error text or rounding.
+- **Students**: clicking Rate reveals the 5-option `<select>` inline;
+  picking standard/pro_bono auto-saves immediately (nothing else needed),
+  picking professional_discount/friend/low_income reveals an inline $
+  input for `custom_rate_cents` (carrying over an existing custom rate if
+  switching between those three) and saves on Enter/blur via new
+  `updateStudentRateAction`. The Effective rate column updates
+  optimistically in the same render via `resolveEffectiveRateCents`
+  (`lib/billing.ts`) — the same resolution rule used everywhere else — so
+  it can never show a number that diverges from what's actually
+  persisted, and reverts on a failed save. Student name gets a
+  pencil-icon-triggered inline rename (`updateStudentNameAction`) rather
+  than overloading the name's own click target, since the name must stay a
+  working link to the student detail page (invite codes, packages,
+  session history) — clicking the name still navigates, clicking the
+  pencil edits.
+- Shared `lib/hooks/use-inline-save.ts` wires save/pending/error state to
+  the existing E3 `useToast()` hook (not a second indicator system) plus a
+  fading inline checkmark next to the field itself, since a toast alone is
+  easy to miss in a dense table mid-edit.
+- All four editors: Escape cancels and reverts with no save; a failed save
+  reverts its optimistic value.
+
+Self-review (this item touches money-adjacent price/rate columns) found
+and fixed a real bug before shipping: `cancel()` set a `skipBlurRef` flag
+to suppress the commit a subsequent blur event would otherwise trigger,
+but the flag was only ever reset back to `false` inside that same blur
+handler. React doesn't redeliver a synthetic blur to an already-unmounted
+fiber, so an Escape-cancel with no real blur following it left the flag
+stuck `true` — the *next* edit of that cell would have its legitimate
+commit silently swallowed (input just sits open, unsaved, focus already
+gone). Fixed by resetting the flag at the start of every new edit session
+in all four components. Reproduced the exact failure and the fix in a
+live browser: Escape → reopen → type → blur-to-commit now saves and
+persists, where it silently no-op'd before the fix.
+
+Skipped (judged not worth the added surface area for this batch, both
+left as explicit `// TODO(connor):`-commented judgment calls):
+sessions-list inline duration/travel (would need new guards for
+billed/cancelled/service-priced-locked sessions plus an amount recompute
+— more logic than "reuse the established pattern"), and session notes
+auto-save-on-blur (`saveSessionNoteAction` commits `body` and `shared`
+together, so a lone-textarea auto-save would silently re-submit whatever
+the sharing toggle currently shows on every blur — riskier pairing for a
+parent-visibility setting than keeping the explicit Save).
+
+QA: disposable tutor (admin-API pattern, `connor.precisionworks+e4qa@gmail.com`
+then a second `+e4qa2@gmail.com` for the bug-fix repro) — verified in a
+real browser: service price/duration click-to-edit persists after a full
+page reload with zero navigation away from the list; switching a
+student's rate to Friend rate + entering a custom $35/hr saved and the
+Effective rate column showed $35.00/hr immediately, matching by hand;
+switching back to Standard auto-saved with no typing and Effective rate
+returned to the tutor's $50.00/hr default; Escape reverted an in-progress
+price edit and an in-progress rate-type change without saving; student
+rename saved with no navigation and the name remained a working link to
+the detail page afterward. Checked light/dark and 390px mobile on both
+list pages — inline editors render correctly in the mobile stacked-card
+layout. Confirmed the "Delete student" confirmation still fires and
+still blocks the delete when dismissed (safety exception untouched). Both
+test tutors deleted after; cascade verified 0 tutor rows each time.
+
+`tsc --noEmit`, `npm run lint`, `npm run build` all clean.
 
 ## E5 — Command palette + keyboard  [ ]
 
