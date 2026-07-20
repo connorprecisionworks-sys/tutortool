@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { useRouter } from "next/navigation";
 import { acceptTermsAction, type AcceptTermsResult } from "./actions";
 import { signOutAction } from "@/app/(auth)/actions";
 import { Button } from "@/components/ui/button";
@@ -23,16 +22,13 @@ export function AcceptTermsCard({
   privacyEffectiveDate: string;
   next: string;
 }) {
-  const router = useRouter();
   const [agreed, setAgreed] = useState(false);
-  const [state, formAction, pending] = useActionState(async (_: AcceptTermsResult, formData: FormData) => {
-    const result = await acceptTermsAction(formData);
-    if (!result.error) {
-      router.push(next);
-      router.refresh();
-    }
-    return result;
-  }, initialState);
+  // On success, acceptTermsAction redirects server-side — this reducer only
+  // ever gets to return a value on the error path.
+  const [state, formAction, pending] = useActionState(
+    async (_: AcceptTermsResult, formData: FormData) => acceptTermsAction(formData),
+    initialState
+  );
 
   return (
     <Card className="w-full max-w-sm">
@@ -43,6 +39,7 @@ export function AcceptTermsCard({
         Slate.
       </p>
       <form action={formAction} className="space-y-4">
+        <input type="hidden" name="next" value={next} />
         <AgreementCheckbox checked={agreed} onChange={setAgreed} />
         {state.error && <p className="text-sm text-text">{state.error}</p>}
         <Button type="submit" className="w-full" disabled={pending || !agreed}>

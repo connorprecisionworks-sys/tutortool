@@ -18,7 +18,6 @@ function LoginForm() {
     const result = await signInAction(formData);
     if (!result.error) {
       router.push(safeNext(searchParams.get("next"), "/tutor"));
-      router.refresh();
     }
     return result;
   }, initialState);

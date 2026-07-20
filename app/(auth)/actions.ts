@@ -1,5 +1,6 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getPostHogClient } from "@/lib/posthog-server";
 import { TERMS_DOC, PRIVACY_DOC } from "@/lib/legal/docs";
@@ -111,7 +112,16 @@ async function signUpWithRole(role: "tutor" | "parent", formData: FormData): Pro
 }
 
 export async function signUpTutorAction(formData: FormData): Promise<AuthActionResult> {
-  return signUpWithRole("tutor", formData);
+  const result = await signUpWithRole("tutor", formData);
+  // Redirect server-side rather than leaving it to the client's
+  // `router.push("/tutor"); router.refresh()` — that pairing races (see the
+  // comment in accept-terms/actions.ts) and, chained right after signup,
+  // could land a brand-new tutor back on a stale pre-signup render instead
+  // of the dashboard. No further client-only work follows a tutor signup
+  // (unlike parent signup's optional code redemption), so this can redirect
+  // unconditionally.
+  if (!result.error && !result.needsEmailConfirmation) redirect("/tutor");
+  return result;
 }
 
 export async function signUpParentAction(formData: FormData): Promise<AuthActionResult> {
@@ -121,4 +131,12 @@ export async function signUpParentAction(formData: FormData): Promise<AuthAction
 export async function signOutAction(): Promise<void> {
   const supabase = await createClient();
   await supabase.auth.signOut();
+  // Server-side redirect — the two former call sites (the main app shell,
+  // the accept-terms gate's "sign out instead" escape hatch) each did their
+  // own client-side `router.push("/login")` (one paired with a racy
+  // `router.refresh()`, see accept-terms/actions.ts), which is how a second,
+  // slightly different navigation path could end up landing somewhere other
+  // than /login. One server action, one destination, no client navigation
+  // logic to duplicate or drift.
+  redirect("/login");
 }

@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { ReactNode, useState } from "react";
 import clsx from "clsx";
 import posthog from "posthog-js";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Mark } from "@/components/brand/logo";
-import { createClient } from "@/lib/supabase/client";
+import { signOutAction } from "@/app/(auth)/actions";
 
 export interface NavItem {
   href: string;
@@ -32,18 +32,19 @@ export function AppShell({
   children: ReactNode;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   async function signOut() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
     // Clear the PostHog identity so the next person to log in on this browser
     // (shared/family device) gets a fresh distinct_id instead of inheriting
-    // this user's events and session recording.
+    // this user's events and session recording. Runs first since
+    // signOutAction redirects — nothing after that call executes.
     posthog.reset();
-    router.push("/login");
-    router.refresh();
+    // Delegates to the shared server action, which signs out and redirects
+    // server-side — previously this called supabase.auth.signOut() directly
+    // and then did `router.push("/login"); router.refresh()`, which races
+    // (see the comment in app/(auth)/actions.ts's signOutAction).
+    await signOutAction();
   }
 
   return (

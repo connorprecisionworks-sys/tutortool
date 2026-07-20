@@ -31,8 +31,14 @@ function ParentSignupForm() {
       // them to /join to finish that, now that they're authenticated,
       // instead of auto-redeeming here the way a Student Code can.
       if (tutorCode) {
+        // push() alone is enough — these are all dynamic, uncached routes,
+        // so a fresh navigation always re-renders from a live server
+        // request. A trailing router.refresh() here raced push() (it
+        // re-fetches whatever route was current *at dispatch time*, i.e.
+        // this page, and could resolve after push() and overwrite the
+        // navigation) — see the comment in accept-terms/actions.ts for the
+        // confirmed repro of this same pattern.
         router.push(`/join?tutor_code=${tutorCode}`);
-        router.refresh();
         return result;
       }
       const trimmedCode = code.trim();
@@ -48,7 +54,6 @@ function ParentSignupForm() {
         }
       }
       router.push("/parent");
-      router.refresh();
     }
     return result;
   }, initialState);
@@ -78,10 +83,7 @@ function ParentSignupForm() {
         </p>
         <Button
           className="mt-6"
-          onClick={() => {
-            router.push("/parent");
-            router.refresh();
-          }}
+          onClick={() => router.push("/parent")}
         >
           Continue to Home
         </Button>

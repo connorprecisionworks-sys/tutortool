@@ -2,7 +2,6 @@
 
 import { useActionState, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { signUpTutorAction, type AuthActionResult } from "@/app/(auth)/actions";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
@@ -12,16 +11,13 @@ import { AgreementCheckbox } from "@/components/legal/agreement-checkbox";
 const initialState: AuthActionResult = {};
 
 export default function TutorSignupPage() {
-  const router = useRouter();
   const [agreed, setAgreed] = useState(false);
-  const [state, formAction, pending] = useActionState(async (_: AuthActionResult, formData: FormData) => {
-    const result = await signUpTutorAction(formData);
-    if (!result.error && !result.needsEmailConfirmation) {
-      router.push("/tutor");
-      router.refresh();
-    }
-    return result;
-  }, initialState);
+  // On success, signUpTutorAction redirects server-side — this reducer only
+  // ever gets to return a value on the error / needsEmailConfirmation path.
+  const [state, formAction, pending] = useActionState(
+    async (_: AuthActionResult, formData: FormData) => signUpTutorAction(formData),
+    initialState
+  );
 
   if (state.needsEmailConfirmation) {
     return (

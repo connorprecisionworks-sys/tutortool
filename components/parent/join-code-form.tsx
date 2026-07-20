@@ -13,8 +13,14 @@ export function JoinCodeForm({ code }: { code: string }) {
   const [state, formAction, pending] = useActionState(async (prev: RedeemInviteResult, formData: FormData) => {
     const result = await redeemInviteAction(prev, formData);
     if (!result.error) {
+      // push() alone is enough — /parent is a dynamic, uncached route, so a
+      // fresh navigation always re-renders from a live server request. A
+      // trailing router.refresh() here raced push() (it re-fetches whatever
+      // route was current *at dispatch time*, i.e. this page, and could
+      // resolve after push() and overwrite the navigation) — see the
+      // comment in app/accept-terms/actions.ts for the confirmed repro of
+      // this same pattern.
       router.push("/parent");
-      router.refresh();
     }
     return result;
   }, initialState);

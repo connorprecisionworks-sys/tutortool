@@ -42,8 +42,14 @@ export function StudentStep({ tutorCodeLink }: { tutorCodeLink: string }) {
   function finish() {
     startFinish(async () => {
       await ackOnboardingAction();
+      // push() alone is enough — /tutor is a dynamic, uncached route, so a
+      // fresh navigation always re-renders from a live server request. A
+      // trailing router.refresh() here raced push() (it re-fetches whatever
+      // route was current *at dispatch time*, i.e. this onboarding page, and
+      // could resolve after push() and overwrite the navigation) — see the
+      // comment in app/accept-terms/actions.ts for the confirmed repro of
+      // this same pattern.
       router.push("/tutor");
-      router.refresh();
     });
   }
 
