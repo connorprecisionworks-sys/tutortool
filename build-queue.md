@@ -1465,10 +1465,35 @@ Test tutor deleted after; cascade verified 0 rows (tutors/clients/sessions).
 
 `tsc --noEmit`, `npm run lint`, `npm run build` all clean.
 
-## E6 — Re-measure + report  [ ]
+## E6 — Re-measure + report  [x] (40d4524)
 
-- Re-run the E1 measurements on the same 10 flows and report before/after click + keystroke counts in `ux-friction-audit.md`.
-- Acceptance: a clear before/after table showing measured reduction on every flow, with any flow that didn't improve explained.
+Re-ran all 10 E1 flows in a real browser (disposable tutor,
+`connor.precisionworks+e6remeasure@gmail.com`, admin-API pattern), same
+nav-click entry points as E1 for a fair comparison (not the E5 palette).
+Set up one student with one real prior session (Tutoring session, 60 min)
+to exercise E2's repeat-session prefill, per the task's own acceptance
+line. Headline: totals across all 10 flows **33→31 clicks (6%), 65→22
+keystrokes (66%)**. Biggest win: booking links **5→3 clicks, 15→0
+keystrokes** (E2's standing-mode default + E3's auto-copy/auto-redirect,
+no more Copy/Done clicks). Package name and service price drop to 0 and 8
+keystrokes respectively with click counts unchanged (E2's
+auto-derivation/prefill, verified via each form's actual DOM value).
+Repeat-session logging now correctly prefills the real service instead of
+silently defaulting to "None" — same 2-click/0-keystroke count as E1's
+fresh-student baseline, but a real correctness fix (E2). Student-code copy
+gained a toast confirmation, same click count (E3; toast call verified in
+source — couldn't observe it firing live due to headless Chromium's
+clipboard-permission sandbox, the same limitation E3's own QA hit).
+Fresh-student first-time session logging re-confirmed unchanged (2
+clicks/0 keystrokes, Service still defaults to "None" with no history —
+verified against a second, zero-history student). Five flows (add student,
+cancel session, set availability, add expense, invoice send) show no
+change at all, honestly reported with reasons — invoice-send's trust gap
+(no payer email/Stripe, still shows "Sent") is unchanged since E2
+explicitly scoped that fix out. No regressions found anywhere in the
+walkthrough. Full before/after table in `ux-friction-audit.md`. Test
+tutor deleted after; cascade verified 0 rows (tutors/clients/sessions/
+invoices/packages/booking_links/expenses).
 
 ---
 
