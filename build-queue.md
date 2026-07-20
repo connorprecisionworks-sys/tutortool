@@ -1199,11 +1199,65 @@ Measure before changing anything.
 - Write `ux-friction-audit.md` with a table of each flow, its current click/keystroke count, every point of unnecessary friction, and the specific fix proposed.
 - Acceptance: the audit doc exists with real measured counts (not estimates) and a concrete fix list.
 
-## E2 — Smart defaults + prefill everywhere  [ ]
+## E2 — Smart defaults + prefill everywhere  [x] (7065f0b)
 
-- Prefill every form from real data: logging a session defaults to that student's usual service, duration, rate, and travel time (from their last session) and today's date; new invoice preselects all unbilled sessions; new service prefills a sensible duration/price; expenses default to today; packages prefill from the tutor's common service.
-- Cut required fields to the true minimum (e.g., adding a student should need only a name, everything else can come later).
-- Acceptance: logging a repeat session for an existing student takes no more than 2 clicks with zero typing when nothing has changed.
+Implemented every fix E1 proposed except invoice-send's warning (that's a
+trust-gap fix, out of scope for a pure-prefill item) and the "specific times"
+next-open-slot computation (judged not worth the extra availability-fetching
+complexity in a client component — did the cheap version instead: prefill
+tomorrow's date, leave time blank).
+
+- **Sessions** (biggest win, drives the acceptance bar): `sessions/new`
+  fetches every client's most recent session (`order by occurred_on desc,
+  created_at desc`, reduced client_id → first-row-wins in JS since Supabase
+  JS has no `DISTINCT ON`) and `SessionForm` seeds service/duration/travel
+  from it — both on first load and when switching students in the picker.
+  Guarded: a last-session `service_id` only gets reused if it's still in the
+  (`is_active`-filtered) services list, otherwise falls back to "no
+  service" but keeps the duration/travel, since those stay meaningful even
+  if the service was retired. Billing math (`computeSessionAmountCents`,
+  `effectiveRateCents`) untouched — this only changes what values a fresh
+  form starts with. Verified in browser: student, service, duration, and
+  travel all repeat automatically for a second session with an existing
+  student — quick-action click + submit click, zero typing.
+- **Services**: `ServiceForm` now takes `tutor` and prefills Price live from
+  `standard_rate_cents × duration / 60` while `priceTouched` stays false;
+  the instant the tutor types in Price directly it latches and stops
+  recomputing. Edit-service path is byte-for-byte unchanged (still just
+  `service.price_cents`, no recompute) — the latch only ever engages when
+  `!service`.
+- **Packages**: `packages/new` counts `service_id` occurrences across the
+  tutor's sessions in JS (no SQL aggregate needed for a per-tutor dataset
+  this small) and passes the mode as `mostCommonServiceId`; `PackageForm`
+  preselects it if still active, else `NO_SERVICE` same as before. Package
+  name auto-derives as `"{student} — {n}× {service}"` (or `"{n}× {service}"`
+  for a general package, `"Session"` when no service picked) and recomputes
+  live off client/service/session-count — same touched-latch pattern as
+  price above, so a typed name is never clobbered.
+- **Booking links**: flipped the default — `/tutor/booking-links/new` (no
+  param) now lands on `OpenAvailabilityLinkForm` (the standing, zero-typing
+  link); `?mode=fixed` is the new explicit opt-in for the typing-heavy
+  `BookingLinkForm`; `?mode=open` still works for anything bookmarked under
+  the old URL. `BookingLinkForm`'s first slot date now prefills to tomorrow
+  (`Date.now() + 1 day`, matching the app's existing
+  `toISOString().slice(0,10)` local-date convention) instead of blank —
+  wrapped in a `useState(() => ...)` lazy initializer, since a bare
+  `new Date()` call in the render body trips the repo's
+  `react-hooks/purity` lint rule (impure call during render).
+
+QA: disposable tutor via the GoTrue admin-API pattern
+(`connor.precisionworks+e2qa@gmail.com`), walked onboarding, logged one
+session for a new student (Tutoring session, 60 min, 15 min travel), then
+reproduced the acceptance flow from the dashboard quick action — second
+session for the same student came out identical (service/duration/travel)
+in exactly 2 clicks, 0 keystrokes. Verified service-price live-recompute and
+touched-latch, package name auto-derivation (student and general-package
+cases) and its touched-latch, and all three booking-link routes
+(default/`?mode=fixed`/`?mode=open`) land on the right form. Checked light,
+dark, and 390px mobile on every touched form — all clean. Test tutor deleted
+after (`select count(*) from tutors …` confirmed 0 rows).
+
+`tsc --noEmit`, `npm run lint`, `npm run build` all clean.
 
 ## E3 — One-click generate + auto-copy (the Resend pattern)  [ ]
 
