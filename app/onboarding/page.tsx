@@ -60,7 +60,7 @@ export default async function OnboardingPage({
     >
       {currentKey === "rates" && <RateStep tutor={tutor} nextHref={nextHref} />}
       {currentKey === "availability" && <AvailabilityStep availability={availability ?? []} nextHref={nextHref} />}
-      {currentKey === "service" && <ServiceStep nextHref={nextHref} />}
+      {currentKey === "service" && <ServiceStep tutor={tutor} nextHref={nextHref} />}
       {currentKey === "profile" && <ProfileStep tutor={tutor} nextHref={nextHref} />}
       {currentKey === "student" && <StudentStep tutorCodeLink={tutorCodeLink(tutor.tutor_code)} />}
     </StepShell>
