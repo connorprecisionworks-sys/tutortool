@@ -1259,12 +1259,99 @@ after (`select count(*) from tutors …` confirmed 0 rows).
 
 `tsc --noEmit`, `npm run lint`, `npm run build` all clean.
 
-## E3 — One-click generate + auto-copy (the Resend pattern)  [ ]
+## E3 — One-click generate + auto-copy (the Resend pattern)  [x] (d6918f4)
 
-- Anything generated or shareable auto-copies to the clipboard the moment it's created, with a clear toast: student codes, tutor join code, booking links, parent invite links, the public page URL, the iCal feed URL.
-- Add a native share action on mobile (Web Share API) alongside copy.
-- Where a link is the whole point (invite a parent, share a booking link), collapse it to a single primary button that creates + copies in one action.
-- Acceptance: creating a student surfaces its code already copied; sharing a booking link is one tap and it's on the clipboard.
+No toast system existed anywhere (confirmed by grep before starting). Built
+one focused primitive rather than a component library:
+
+- `components/ui/toast.tsx` — `ToastProvider` + `useToast()`, mounted once
+  in `app/layout.tsx` (root, not just `app/tutor/layout.tsx`) so it's
+  reusable from parent/public routes too even though nothing there needed
+  it yet. Bottom-center, `--surface` + hairline border per the design
+  system's own "Toasts / confirms" spec, `role="status"`/`aria-live="polite"`,
+  auto-dismiss 2.8s, stacks, `motion-safe:animate-[fade-rise-in_200ms...]`
+  (the same keyframe `step-shell.tsx` already uses — no new keyframe added).
+  Click-to-dismiss, otherwise time-based; no dismiss button, kept simple.
+- `components/ui/share-button.tsx` — Web Share API, feature-detected via
+  `useSyncExternalStore` (not `useEffect`+`setState`, which trips this
+  repo's `react-hooks/set-state-in-effect` lint rule and is the same
+  browser-only-value pattern `theme-toggle.tsx` already uses) so it renders
+  nothing without a hydration mismatch when `navigator.share` is absent
+  (most desktop browsers). Never replaces Copy — sits alongside it.
+- `CopyButton` gained an optional `toastMessage` prop for re-share clicks
+  where the existing "Copied" label-swap alone was judged insufficient
+  (dense table rows): Students list and Booking Links list "Copy link".
+
+Auto-copy-on-generation (the actual "just generated" moment, not a stable
+re-view):
+- **Student creation** (`app/tutor/students/actions.ts` `createStudentAction`) —
+  reads back the invite code `create_student` already issued (one extra
+  `select` on `invites`, no change to the RPC call or what gets written)
+  and returns it; `StudentForm` copies its join link + toasts the instant
+  creation succeeds, before redirecting to the Students list — satisfies
+  the acceptance line literally ("creating a student surfaces its code
+  already copied"). `updateStudentAction` never sets this field, so editing
+  an existing student never triggers it. Onboarding's `StudentStep` gets
+  the same auto-copy (tutor code) the moment it flips to "added."
+- **Booking links** (`booking-link-form.tsx`, `open-availability-link-form.tsx`,
+  both fixed-times and standing modes) — the instant `state.token` appears,
+  auto-copy + toast, then auto-return to `/tutor/booking-links` after
+  ~1.3s. Removes the old create → copy → Done three-step sequence; the
+  "Done" button is gone, replaced by an optional "back now" link for
+  anyone who doesn't want to wait out the 1.3s.
+- **Student Code regenerate/generate** (`invite-parent-section.tsx`) and
+  **iCal feed regenerate** (`ical-feed-section.tsx`) — auto-copy + toast
+  specifically on the regenerate action, since that's the real
+  "just generated" moment; each section's *initial* page-load display
+  stays manual-copy (existing behavior) with a toast added.
+
+Judgment calls (stable re-view vs. auto-copy-on-generation), all with
+`// TODO(connor):`-style reasoning in the relevant diff comment: tutor join
+code (`app/tutor/settings/page.tsx`) and public page URL
+(`public-profile-form.tsx`) are assigned once/stable and only ever
+re-viewed on these pages, not regenerated here — kept manual-copy +
+toast, not auto-copy-on-page-load, since that would be a surprising
+clipboard side-effect on every Settings visit, not a generation event.
+
+Added `ShareButton` next to Copy everywhere a link is meant to go to
+another person: student invite/join link, tutor code, booking links
+(both list and creation-confirmation), public page URL. Not added to the
+iCal feed URL (a calendar-app subscription target, not something sent to
+a person).
+
+Found and fixed a real, pre-existing mobile bug while doing the 390px QA
+this item requires: `components/shell/app-shell.tsx`'s content column and
+`<main>` were flex items without `min-w-0`, so an unbreakable long
+string anywhere in a page (a booking link, Student Code, public URL, iCal
+URL — exactly what this item put more of on-screen) could force the
+whole app wider than the viewport instead of letting `truncate` do its
+job; confirmed via `getBoundingClientRect`/`scrollWidth` in-browser that
+adding `min-w-0` at both flex levels (plus on each `<code
+className="flex-1 truncate">` box) fixes it with zero effect on desktop
+layout (screenshotted before/after at 1440px).
+
+QA: disposable tutor (`connor.precisionworks+e3qa@gmail.com`, admin-API
+pattern) walked onboarding through the student step — confirmed the toast
+fires the instant "added" renders (`Code copied — share it with the
+parent`, or the clipboard-blocked fallback message, since headless
+Chromium's CDP-driven clicks can't get clipboard-write permission granted
+— verified this is a sandbox limitation, not a regression, by confirming
+even the pre-existing untouched `CopyStudentCodeButton` fails the same
+way here). Created a student from `/tutor/students/new` directly — toast
+fired, redirected to the Students list where the new row's code/Copy
+button is the fallback. Created booking links in both fixed-times
+(`?mode=fixed`) and standing modes — caught the intermediate
+"created and copied" screen mid-transition (via `browse chain` timed
+right after `wait code`), confirmed the link, Copy, and Share affordances
+all render, and the auto-return to the list fires on its own with no
+extra click. Regenerated a Student Code and confirmed the distinct
+"New code generated…" toast fires. Checked light/dark and a 390px mobile
+viewport across Dashboard, Students, Settings, and the booking-link
+creation screens — all clean after the app-shell fix. Test tutor deleted
+after (`select email from tutors where email like '%e3qa%'` confirmed 0
+rows; cascade verified).
+
+`tsc --noEmit`, `npm run lint`, `npm run build` all clean.
 
 ## E4 — Inline editing + fewer steps  [ ]
 
