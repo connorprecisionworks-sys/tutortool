@@ -19,10 +19,19 @@ export interface StudentFormResult {
   studentId?: string;
 }
 
+const RATE_TYPE_VALUES: RateType[] = ["standard", "professional_discount", "friend", "low_income", "pro_bono"];
+
 function parseRateType(value: FormDataEntryValue | null): RateType {
-  const allowed: RateType[] = ["standard", "professional_discount", "friend", "low_income", "pro_bono"];
   const v = String(value ?? "standard");
-  return (allowed as string[]).includes(v) ? (v as RateType) : "standard";
+  return (RATE_TYPE_VALUES as string[]).includes(v) ? (v as RateType) : "standard";
+}
+
+// Shared with updateStudentRateAction (E4 inline editor) below — a rate type
+// arriving as a plain server-action argument (not FormData) isn't narrowed by
+// TypeScript at the call boundary, so this re-validates it against the same
+// allowed list parseRateType uses instead of trusting the client.
+function isValidRateType(value: string): value is RateType {
+  return (RATE_TYPE_VALUES as string[]).includes(value);
 }
 
 function parseOptionalCents(value: FormDataEntryValue | null): number | null {
@@ -175,6 +184,80 @@ export async function updateStudentAction(
       sms_opt_in: smsOptIn,
     })
     .eq("id", studentId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/tutor/students");
+  revalidatePath(`/tutor/students/${studentId}`);
+  return {};
+}
+
+export interface UpdateStudentFieldResult {
+  error?: string;
+}
+
+/**
+ * E4 (build-queue.md) — inline Rate editor on the Students list. Same
+ * plain-RLS-update shape as updateStudentAction's `rate_type` /
+ * `custom_rate_cents` write (a tutor-owned column, not a money
+ * state-machine), and the exact same "needs a custom rate" requirement as
+ * the full StudentForm — RATE_TYPES_REQUIRING_CUSTOM_RATE.includes(rateType)
+ * && customRateCents === null is rejected there too, so the inline editor
+ * can't persist a value the full form would have refused. custom_rate_cents
+ * is forced to null for standard/pro_bono either way, matching
+ * updateStudentAction line-for-line.
+ */
+export async function updateStudentRateAction(
+  studentId: string,
+  rateType: RateType,
+  customRateCents: number | null
+): Promise<UpdateStudentFieldResult> {
+  if (!isValidRateType(rateType)) return { error: "Invalid rate type." };
+
+  if (RATE_TYPES_REQUIRING_CUSTOM_RATE.includes(rateType) && customRateCents === null) {
+    return { error: "This rate type needs an hourly rate." };
+  }
+
+  const tutor = await requireTutor();
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("clients")
+    .update({
+      rate_type: rateType,
+      custom_rate_cents:
+        rateType === "standard" || rateType === "pro_bono"
+          ? null
+          : customRateCents !== null
+            ? Math.round(customRateCents)
+            : null,
+    })
+    .eq("id", studentId)
+    .eq("tutor_id", tutor.id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/tutor/students");
+  revalidatePath(`/tutor/students/${studentId}`);
+  return {};
+}
+
+/** E4 — inline student-name rename on the Students list. */
+export async function updateStudentNameAction(
+  studentId: string,
+  name: string
+): Promise<UpdateStudentFieldResult> {
+  const studentName = name.trim();
+  if (!studentName) return { error: "Student name is required." };
+
+  const tutor = await requireTutor();
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("clients")
+    .update({ student_name: studentName })
+    .eq("id", studentId)
+    .eq("tutor_id", tutor.id);
 
   if (error) return { error: error.message };
 

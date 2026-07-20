@@ -5,10 +5,11 @@ import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { formatCents } from "@/lib/money";
 import { ServiceActiveToggle } from "@/components/settings/service-active-toggle";
 import { DeleteServiceRowButton } from "@/components/settings/delete-service-row-button";
 import { ServiceReorderButtons } from "@/components/settings/service-reorder-buttons";
+import { InlinePriceCell } from "@/components/settings/inline-price-cell";
+import { InlineDurationCell } from "@/components/settings/inline-duration-cell";
 
 export default async function ServicesPage() {
   const tutor = await requireTutor();
@@ -74,12 +75,8 @@ export default async function ServicesPage() {
                       </div>
                     </div>
                   </td>
-                  <td className="px-5 py-3 text-text-secondary" data-label="Duration">
-                    {s.duration_minutes} min
-                  </td>
-                  <td className="px-5 py-3 text-right tabular-nums" data-label="Price">
-                    {formatCents(s.price_cents)}
-                  </td>
+                  <InlineDurationCell serviceId={s.id} durationMinutes={s.duration_minutes} />
+                  <InlinePriceCell serviceId={s.id} priceCents={s.price_cents} />
                   <td className="px-5 py-3" data-label="Status">
                     <ServiceActiveToggle serviceId={s.id} isActive={s.is_active} />
                   </td>

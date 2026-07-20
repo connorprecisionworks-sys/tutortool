@@ -47,6 +47,16 @@ export function NoteForm({ sessionId, note }: { sessionId: string; note: Tables<
       {state.error && <p className="text-sm text-text">{state.error}</p>}
       {state.success && <p className="text-sm text-text-secondary">Saved.</p>}
       {deleteError && <p className="text-sm text-text">{deleteError}</p>}
+      {/* TODO(connor): E4 (build-queue.md) considered auto-save-on-blur for
+          this textarea, same treatment as the Services/Students inline
+          editors. Skipped it: saveSessionNoteAction commits `body` and
+          `shared` together as one row, so a lone-textarea auto-save would
+          either need a second endpoint or silently re-submit the sharing
+          toggle's current value on every blur — more surface area than "a
+          single, low-risk field" for an item this batch marks optional.
+          Left as an explicit Save button; the toggle itself only takes
+          effect together with that same click, which is the safer pairing
+          for a parent-visibility setting. */}
       <div className="flex gap-3">
         <Button type="submit" size="sm" disabled={pending}>
           {pending ? "Saving…" : "Save note"}

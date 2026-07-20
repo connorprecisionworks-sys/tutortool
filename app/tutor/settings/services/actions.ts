@@ -16,15 +16,37 @@ interface ParsedServiceForm {
   priceCents: number;
 }
 
+// Shared with the E4 inline-edit actions below (updateServicePriceAction /
+// updateServiceDurationMinutesAction) so the single-column inline editors on
+// the Services list validate identically to a full form submit — same error
+// text, same non-negative/rounding rules, no drift between the two paths.
+function validateDurationMinutes(durationMinutes: number): string | null {
+  if (!Number.isFinite(durationMinutes) || durationMinutes <= 0) {
+    return "Duration must be more than 0 minutes.";
+  }
+  return null;
+}
+
+function validatePriceCents(priceCents: number): string | null {
+  if (!Number.isFinite(priceCents) || priceCents < 0) {
+    return "Price must be a positive number.";
+  }
+  return null;
+}
+
 function parseServiceForm(formData: FormData): ParsedServiceForm | { error: string } {
   const name = String(formData.get("name") ?? "").trim();
   if (!name) return { error: "Service name is required." };
 
   const durationMinutes = Number(formData.get("duration_minutes") ?? "0");
-  if (!durationMinutes || durationMinutes <= 0) return { error: "Duration must be more than 0 minutes." };
+  const durationError = validateDurationMinutes(durationMinutes);
+  if (durationError) return { error: durationError };
 
   const priceDollars = Number(formData.get("price_cents") ?? "0");
-  if (Number.isNaN(priceDollars) || priceDollars < 0) return { error: "Price must be a positive number." };
+  if (Number.isNaN(priceDollars)) return { error: "Price must be a positive number." };
+  const priceCents = dollarsToCents(priceDollars);
+  const priceError = validatePriceCents(priceCents);
+  if (priceError) return { error: priceError };
 
   const description = String(formData.get("description") ?? "").trim();
 
@@ -32,7 +54,7 @@ function parseServiceForm(formData: FormData): ParsedServiceForm | { error: stri
     name,
     description: description || null,
     durationMinutes: Math.round(durationMinutes),
-    priceCents: dollarsToCents(priceDollars),
+    priceCents,
   };
 }
 
@@ -86,6 +108,63 @@ export async function updateServiceAction(
     .eq("tutor_id", tutor.id);
 
   if (error) return { error: error.message };
+
+  revalidatePath("/tutor/settings/services");
+  return {};
+}
+
+export interface UpdateServiceFieldResult {
+  error?: string;
+}
+
+/**
+ * E4 (build-queue.md) — inline Price editor on the Services list. Plain
+ * tutor-owned-column update through RLS (same shape updateServiceAction
+ * already uses for the full form), not a SECURITY DEFINER money
+ * state-machine function — price_cents on `services` only feeds new
+ * sessions logged against it going forward; existing sessions/invoices
+ * already snapshotted their own amount at log time (see lib/billing.ts).
+ */
+export async function updateServicePriceAction(
+  serviceId: string,
+  priceCents: number
+): Promise<UpdateServiceFieldResult> {
+  const error = validatePriceCents(priceCents);
+  if (error) return { error };
+
+  const tutor = await requireTutor();
+  const supabase = await createClient();
+
+  const { error: dbError } = await supabase
+    .from("services")
+    .update({ price_cents: Math.round(priceCents) })
+    .eq("id", serviceId)
+    .eq("tutor_id", tutor.id);
+
+  if (dbError) return { error: dbError.message };
+
+  revalidatePath("/tutor/settings/services");
+  return {};
+}
+
+/** E4 — inline Duration editor, same shape as updateServicePriceAction above. */
+export async function updateServiceDurationMinutesAction(
+  serviceId: string,
+  durationMinutes: number
+): Promise<UpdateServiceFieldResult> {
+  const error = validateDurationMinutes(durationMinutes);
+  if (error) return { error };
+
+  const tutor = await requireTutor();
+  const supabase = await createClient();
+
+  const { error: dbError } = await supabase
+    .from("services")
+    .update({ duration_minutes: Math.round(durationMinutes) })
+    .eq("id", serviceId)
+    .eq("tutor_id", tutor.id);
+
+  if (dbError) return { error: dbError.message };
 
   revalidatePath("/tutor/settings/services");
   return {};

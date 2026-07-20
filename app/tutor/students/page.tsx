@@ -5,11 +5,12 @@ import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { RATE_TYPE_LABELS, type RateType } from "@/lib/billing";
-import { formatCents } from "@/lib/money";
+import type { RateType } from "@/lib/billing";
 import { DeleteStudentRowButton } from "@/components/students/delete-student-row-button";
 import { CopyStudentCodeButton } from "@/components/students/copy-student-code-button";
 import { PendingStudentRow } from "@/components/students/pending-student-row";
+import { InlineStudentNameCell } from "@/components/students/inline-student-name-cell";
+import { StudentRateCells } from "@/components/students/inline-student-rate-cells";
 
 export default async function StudentsPage({
   searchParams,
@@ -123,32 +124,23 @@ export default async function StudentsPage({
             <tbody>
               {students.map((s) => {
                 const rateType = s.rate_type as RateType;
-                const effective =
-                  rateType === "pro_bono"
-                    ? 0
-                    : rateType === "standard"
-                      ? tutor.standard_rate_cents
-                      : (s.custom_rate_cents ?? tutor.standard_rate_cents);
                 const activeCode = s.invites?.find((inv) => inv.status === "active")?.code ?? null;
                 return (
                   <tr key={s.id} className="border-t border-border hover:bg-hover">
-                    <td className="px-5 py-3">
-                      <Link href={`/tutor/students/${s.id}`} className="font-medium">
-                        {s.student_name}
-                      </Link>
-                      {s.is_philanthropic && (
-                        <span className="ml-2 text-xs text-text-tertiary">community impact</span>
-                      )}
-                    </td>
+                    <InlineStudentNameCell
+                      studentId={s.id}
+                      studentName={s.student_name}
+                      isPhilanthropic={s.is_philanthropic}
+                    />
                     <td className="px-5 py-3 text-text-secondary" data-label="Payer">
                       {s.payer_name ?? "—"}
                     </td>
-                    <td className="px-5 py-3 text-text-secondary" data-label="Rate">
-                      {RATE_TYPE_LABELS[rateType]}
-                    </td>
-                    <td className="px-5 py-3 text-right tabular-nums" data-label="Effective rate">
-                      {formatCents(effective)}/hr
-                    </td>
+                    <StudentRateCells
+                      studentId={s.id}
+                      initialRateType={rateType}
+                      initialCustomRateCents={s.custom_rate_cents}
+                      standardRateCents={tutor.standard_rate_cents}
+                    />
                     <td className="px-5 py-3" data-label="Student Code">
                       {activeCode ? (
                         <CopyStudentCodeButton code={activeCode} />
