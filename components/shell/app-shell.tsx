@@ -18,11 +18,17 @@ export function AppShell({
   navItems,
   brand,
   userLabel,
+  paletteTrigger,
   children,
 }: {
   navItems: NavItem[];
   brand: string;
   userLabel?: string;
+  // E5 (build-queue.md): the command palette's trigger button/discoverability
+  // hint, rendered here in the header so it's visible on every /tutor/*
+  // page without this shared shell (also used by /parent) knowing anything
+  // about the palette itself — the caller (app/tutor/layout.tsx) owns it.
+  paletteTrigger?: ReactNode;
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -120,7 +126,10 @@ export function AppShell({
             </svg>
           </button>
           <div className="hidden sm:block" />
-          <ThemeToggle />
+          <div className="flex items-center gap-2">
+            {paletteTrigger}
+            <ThemeToggle />
+          </div>
         </header>
         {/*
           min-w-0 overrides the flex item's default automatic minimum size

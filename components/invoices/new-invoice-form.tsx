@@ -33,7 +33,7 @@ export function NewInvoiceForm({ clients }: { clients: Tables<"clients">[] }) {
     <form action={formAction} className="space-y-6">
       <div>
         <Label htmlFor="client_id">Student</Label>
-        <Select id="client_id" name="client_id" defaultValue={clients[0]?.id}>
+        <Select id="client_id" name="client_id" defaultValue={clients[0]?.id} autoFocus>
           {clients.map((c) => (
             <option key={c.id} value={c.id}>
               {c.student_name}

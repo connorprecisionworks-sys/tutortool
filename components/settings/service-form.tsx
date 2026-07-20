@@ -53,6 +53,8 @@ export function ServiceForm({
           name="name"
           defaultValue={service?.name}
           placeholder="e.g. Diagnostic assessment"
+          // E5 (build-queue.md): create-only autofocus.
+          autoFocus={!service}
           required
         />
       </div>

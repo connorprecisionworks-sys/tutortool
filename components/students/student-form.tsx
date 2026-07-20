@@ -71,6 +71,8 @@ export function StudentForm({
           name="student_name"
           defaultValue={student?.student_name}
           placeholder="e.g. Maya Chen"
+          // E5 (build-queue.md): create-only autofocus.
+          autoFocus={!student}
           required
         />
       </div>

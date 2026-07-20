@@ -91,6 +91,8 @@ export function PackageForm({
           id="client_id"
           name="client_id"
           value={clientId}
+          // E5 (build-queue.md): this form is create-only (no edit prop).
+          autoFocus
           onChange={(e) => {
             const value = e.target.value;
             setClientId(value);

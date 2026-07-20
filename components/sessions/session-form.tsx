@@ -117,6 +117,10 @@ export function SessionForm({
           id="client_id"
           name="client_id"
           value={clientId}
+          // E5 (build-queue.md): autofocus only on the create path — an
+          // edit-in-place render of an already-logged session shouldn't
+          // steal focus from whatever the tutor is looking at.
+          autoFocus={!session}
           onChange={(e) => {
             const newClientId = e.target.value;
             setClientId(newClientId);

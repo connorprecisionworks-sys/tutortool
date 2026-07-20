@@ -62,6 +62,8 @@ export function ExpenseForm({
             id="category"
             name="category"
             value={category}
+            // E5 (build-queue.md): create-only autofocus.
+            autoFocus={!expense}
             onChange={(e) => setCategory(e.target.value as ExpenseCategory)}
           >
             {EXPENSE_CATEGORIES.map((c) => (

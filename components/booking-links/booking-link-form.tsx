@@ -102,7 +102,14 @@ export function BookingLinkForm({ clients, services }: { clients: Client[]; serv
     <form action={formAction} className="space-y-6">
       <div>
         <Label htmlFor="student_id">For</Label>
-        <Select id="student_id" name="student_id" value={studentId} onChange={(e) => setStudentId(e.target.value)}>
+        <Select
+          id="student_id"
+          name="student_id"
+          value={studentId}
+          // E5 (build-queue.md): this form is create-only.
+          autoFocus
+          onChange={(e) => setStudentId(e.target.value)}
+        >
           <option value={OPEN_LINK}>Open — a new parent I haven&apos;t added yet</option>
           {clients.map((c) => (
             <option key={c.id} value={c.id}>
