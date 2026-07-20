@@ -15,8 +15,9 @@ export function ResourceForm({ students }: { students: Tables<"clients">[] }) {
   const [state, formAction, pending] = useActionState(async (prev: ResourceFormResult, formData: FormData) => {
     const result = await createResourceAction(prev, formData);
     if (!result.error) {
+      // push() alone — a trailing router.refresh() here races push() and
+      // can clobber the navigation; see the note in app/accept-terms/actions.ts.
       router.push("/tutor/resources");
-      router.refresh();
     }
     return result;
   }, initialState);

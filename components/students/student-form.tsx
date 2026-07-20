@@ -52,8 +52,9 @@ export function StudentForm({
           toast("Student added — copy its code from the Students list");
         }
       }
+      // push() alone — a trailing router.refresh() here races push() and
+      // can clobber the navigation; see the note in app/accept-terms/actions.ts.
       router.push(onSuccessPath);
-      router.refresh();
     }
     return result;
   }, initialState);

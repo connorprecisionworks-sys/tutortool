@@ -51,12 +51,13 @@ export function PackageForm({
 
   const [state, formAction, pending] = useActionState(async (prev: PackageFormResult, formData: FormData) => {
     const result = await createPackageAction(prev, formData);
+    // push() alone in both branches — a trailing router.refresh() here
+    // races push() and can clobber the navigation; see the note in
+    // app/accept-terms/actions.ts.
     if (result.invoiceId) {
       router.push(`/tutor/invoices/${result.invoiceId}`);
-      router.refresh();
     } else if (result.packageId) {
       router.push("/tutor/packages");
-      router.refresh();
     }
     return result;
   }, initialState);

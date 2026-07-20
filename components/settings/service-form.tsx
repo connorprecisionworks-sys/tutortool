@@ -36,8 +36,9 @@ export function ServiceForm({
   const [state, formAction, pending] = useActionState(async (prev: ServiceFormResult, formData: FormData) => {
     const result = await action(prev, formData);
     if (!result.error) {
+      // push() alone — a trailing router.refresh() here races push() and
+      // can clobber the navigation; see the note in app/accept-terms/actions.ts.
       router.push(onSuccessPath);
-      router.refresh();
     }
     return result;
   }, initialState);

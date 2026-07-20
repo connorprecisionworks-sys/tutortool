@@ -8,8 +8,9 @@ import { useConfirmedAction } from "@/lib/hooks/use-confirmed-action";
 export function DeleteSessionButton({ sessionId }: { sessionId: string }) {
   const router = useRouter();
   const { run, pending, error } = useConfirmedAction(deleteSessionAction, "Delete this session? This can't be undone.", () => {
+    // push() alone — a trailing router.refresh() here races push() and can
+    // clobber the navigation; see the note in app/accept-terms/actions.ts.
     router.push("/tutor/sessions");
-    router.refresh();
   });
 
   return (

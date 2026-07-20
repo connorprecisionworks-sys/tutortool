@@ -11,8 +11,9 @@ export function DeleteStudentButton({ studentId, studentName }: { studentId: str
     deleteStudentAction,
     `Delete ${studentName}? This can't be undone.`,
     () => {
+      // push() alone — a trailing router.refresh() here races push() and
+      // can clobber the navigation; see the note in app/accept-terms/actions.ts.
       router.push("/tutor/students");
-      router.refresh();
     }
   );
 

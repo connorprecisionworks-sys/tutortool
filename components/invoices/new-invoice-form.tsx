@@ -23,8 +23,9 @@ export function NewInvoiceForm({ clients }: { clients: Tables<"clients">[] }) {
   const [state, formAction, pending] = useActionState(async (prev: InvoiceFormResult, formData: FormData) => {
     const result = await createDraftInvoiceAction(prev, formData);
     if (result.invoiceId) {
+      // push() alone — a trailing router.refresh() here races push() and
+      // can clobber the navigation; see the note in app/accept-terms/actions.ts.
       router.push(`/tutor/invoices/${result.invoiceId}`);
-      router.refresh();
     }
     return result;
   }, initialState);

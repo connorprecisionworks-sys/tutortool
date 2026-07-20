@@ -101,8 +101,9 @@ export function DeleteDraftInvoiceButton({ invoiceId }: { invoiceId: string }) {
     deleteDraftInvoiceAction,
     "Delete this draft invoice? This can't be undone.",
     () => {
+      // push() alone — a trailing router.refresh() here races push() and
+      // can clobber the navigation; see the note in app/accept-terms/actions.ts.
       router.push("/tutor/invoices");
-      router.refresh();
     }
   );
 
