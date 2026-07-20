@@ -1178,7 +1178,7 @@ PRINCIPLES (apply to every item in this batch):
 - Remove steps that exist only to confirm something harmless.
 - SAFETY EXCEPTION: never remove confirmation from destructive or money-moving actions (delete, refund, sending a real invoice, unlocking paid content). Reducing friction must not cause accidents.
 
-## E1 — Friction audit + baseline  [x] (PENDING_HASH)
+## E1 — Friction audit + baseline  [x] (9ebe673)
 
 Measured all 10 flows in a real headless browser against a fresh disposable
 tutor account (admin-API pattern), pushed through onboarding, added one
