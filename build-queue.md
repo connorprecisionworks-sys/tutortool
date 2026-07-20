@@ -1431,11 +1431,39 @@ test tutors deleted after; cascade verified 0 tutor rows each time.
 
 `tsc --noEmit`, `npm run lint`, `npm run build` all clean.
 
-## E5 — Command palette + keyboard  [ ]
+## E5 — Command palette + keyboard  [x] (56890ca)
 
-- Add a Cmd/Ctrl+K command palette that jumps straight to any action or record: "log session", "new invoice", "add student", "availability", or a student's name. Fuzzy search, keyboard-only operable.
-- Autofocus the first field on every form, Enter submits, sensible tab order, and shortcuts for the top actions.
-- Acceptance: a tutor can log a session start to finish without touching the mouse.
+Added `components/command-palette/command-palette.tsx`, mounted once via a new
+`paletteTrigger` prop on `AppShell` (set in `app/tutor/layout.tsx`, which now
+also fetches a lightweight `{id, student_name}` active-student list scoped to
+`tutor_id`/`archived=false`). Global Cmd/Ctrl+K opens it from anywhere,
+including from inside a real form field (only guard is the shortcut itself —
+no bare-letter globals added, per the SAFETY EXCEPTION reasoning: typing "k"
+in a field does nothing, Cmd+K always opens); Escape closes; ↑/↓/Ctrl+N/Ctrl+P
+move the highlight; Enter activates; mouse click still works. Entries: all of
+`TUTOR_NAV` + 8 quick-actions (log session, new invoice, add student, set
+availability, new service/package/booking link, add expense) + fuzzy-matched
+students. Matching is a 3-tier inline scorer (prefix > substring > in-order
+subsequence) — no new dependency, per package.json check. Discoverability:
+"Search ⌘K" button in the shell header.
+
+Added create-only `autoFocus` to the first field of 7 forms (session,
+service, package, expense, both booking-link forms, student, invoice) —
+gated off an existing `session`/`service`/etc prop so editing never steals
+focus. Verified in a real headless browser against a disposable QA tutor
+(admin-API pattern): Cmd+K → typed "log ses" → filtered to exactly "Log
+session" → Enter navigated to `/tutor/sessions/new` with the Student select
+already focused → Tab reached every field in DOM order (Service, Date, Start
+time, Duration, Travel, Location, Meeting link, Notes, submit button, no
+tabIndex overrides needed) → Enter inside the notes textarea inserted a
+newline and did not submit → Enter on the focused submit button created the
+session (verified in the Sessions list). Also verified: typing a student's
+name in the palette surfaces and navigates to `/tutor/students/[id]`; Escape
+closes without navigating; light/dark and 390px mobile all render the
+palette legibly (mobile hides the "⌘K" label, keeps a tappable search icon).
+Test tutor deleted after; cascade verified 0 rows (tutors/clients/sessions).
+
+`tsc --noEmit`, `npm run lint`, `npm run build` all clean.
 
 ## E6 — Re-measure + report  [ ]
 
