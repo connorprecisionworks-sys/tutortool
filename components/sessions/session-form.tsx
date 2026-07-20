@@ -19,12 +19,15 @@ const initialState: SessionFormResult = {};
 const NO_SERVICE = "";
 const NO_PACKAGE = "";
 
+type LastSession = { service_id: string | null; duration_minutes: number; travel_minutes: number };
+
 export function SessionForm({
   clients,
   services,
   packages = [],
   tutor,
   session,
+  lastSessionByClient = {},
   action,
   onSuccessPath,
 }: {
@@ -33,15 +36,26 @@ export function SessionForm({
   packages?: Package[];
   tutor: Tables<"tutors">;
   session?: Session;
+  lastSessionByClient?: Record<string, LastSession>;
   action: (prev: SessionFormResult, formData: FormData) => Promise<SessionFormResult>;
   onSuccessPath: string;
 }) {
   const router = useRouter();
-  const [clientId, setClientId] = useState(session?.client_id ?? clients[0]?.id ?? "");
-  const [serviceId, setServiceId] = useState(session?.service_id ?? NO_SERVICE);
+  const initialClientId = session?.client_id ?? clients[0]?.id ?? "";
+  // Only prefill from a repeat-session default when creating a new session —
+  // editing an existing one should show exactly what was saved, not drift
+  // toward "what this student usually gets."
+  const initialLastSession = !session ? lastSessionByClient[initialClientId] : undefined;
+  const initialLastServiceValid =
+    !!initialLastSession?.service_id && services.some((s) => s.id === initialLastSession.service_id);
+
+  const [clientId, setClientId] = useState(initialClientId);
+  const [serviceId, setServiceId] = useState(
+    session?.service_id ?? (initialLastServiceValid ? (initialLastSession!.service_id as string) : NO_SERVICE)
+  );
   const [packageId, setPackageId] = useState(session?.package_id ?? NO_PACKAGE);
-  const [duration, setDuration] = useState(session?.duration_minutes ?? 60);
-  const [travel, setTravel] = useState(session?.travel_minutes ?? 0);
+  const [duration, setDuration] = useState(session?.duration_minutes ?? initialLastSession?.duration_minutes ?? 60);
+  const [travel, setTravel] = useState(session?.travel_minutes ?? initialLastSession?.travel_minutes ?? 0);
   const clientPackages = packages.filter((p) => p.client_id === clientId || p.client_id === null);
 
   const [state, formAction, pending] = useActionState(async (prev: SessionFormResult, formData: FormData) => {
@@ -104,13 +118,22 @@ export function SessionForm({
           name="client_id"
           value={clientId}
           onChange={(e) => {
-            setClientId(e.target.value);
+            const newClientId = e.target.value;
+            setClientId(newClientId);
             // A package/service picked for the previous student may not
             // apply to the new one (client-specific packages belong to one
             // student) — reset both rather than silently keep a selection
             // the new student can't actually use.
             setPackageId(NO_PACKAGE);
-            setServiceId(NO_SERVICE);
+            // Prefill service/duration/travel from this student's own last
+            // session (same "still active" guard as the initial state) so
+            // switching students still lands on a sensible repeat default
+            // instead of always falling back to blank.
+            const lastSession = lastSessionByClient[newClientId];
+            const lastServiceValid = !!lastSession?.service_id && services.some((s) => s.id === lastSession.service_id);
+            setServiceId(lastServiceValid ? (lastSession!.service_id as string) : NO_SERVICE);
+            setDuration(lastSession?.duration_minutes ?? 60);
+            setTravel(lastSession?.travel_minutes ?? 0);
           }}
           disabled={!!session}
         >

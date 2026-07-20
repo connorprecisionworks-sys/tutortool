@@ -24,7 +24,7 @@ export default async function EditServicePage({ params }: { params: Promise<{ id
     <div>
       <PageHeader title="Edit service" description="Editing here never rewrites sessions already billed against it." />
       <Card className="max-w-xl">
-        <ServiceForm service={service} action={updateServiceAction} onSuccessPath="/tutor/settings/services" />
+        <ServiceForm service={service} tutor={tutor} action={updateServiceAction} onSuccessPath="/tutor/settings/services" />
       </Card>
     </div>
   );

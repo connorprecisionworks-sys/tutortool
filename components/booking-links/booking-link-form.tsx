@@ -27,7 +27,13 @@ export function BookingLinkForm({ clients, services }: { clients: Client[]; serv
   const [studentId, setStudentId] = useState(OPEN_LINK);
   const [serviceId, setServiceId] = useState(NO_SERVICE);
   const [nextKey, setNextKey] = useState(1);
-  const [slots, setSlots] = useState<SlotRow[]>([{ key: 0, date: "", time: "" }]);
+  // Prefill the first slot's date to tomorrow (matching the app's existing
+  // `new Date().toISOString().slice(0, 10)` local-date convention, e.g.
+  // components/expenses/expense-form.tsx) rather than leaving it blank —
+  // cuts one required field's typing without guessing a time.
+  const [slots, setSlots] = useState<SlotRow[]>(() => [
+    { key: 0, date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10), time: "" },
+  ]);
   const [state, formAction, pending] = useActionState(createBookingLinkAction, initialState);
 
   if (state.token) {

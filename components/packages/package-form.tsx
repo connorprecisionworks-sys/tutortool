@@ -13,13 +13,26 @@ const NO_SERVICE = "";
 const GENERAL = "";
 type DiscountType = "none" | "percent" | "amount";
 
-export function PackageForm({ clients, services }: { clients: Tables<"clients">[]; services: Tables<"services">[] }) {
+export function PackageForm({
+  clients,
+  services,
+  mostCommonServiceId = null,
+}: {
+  clients: Tables<"clients">[];
+  services: Tables<"services">[];
+  mostCommonServiceId?: string | null;
+}) {
   const router = useRouter();
   // Defaults to a real student when the tutor has one — general packages
   // skip invoicing entirely and activate with a full balance immediately,
   // so that's too consequential a choice to default to silently.
   const [clientId, setClientId] = useState(clients[0]?.id ?? GENERAL);
-  const [serviceId, setServiceId] = useState(NO_SERVICE);
+  // Prefill to the tutor's most-used service, but only if it's still an
+  // active, selectable option — a since-deactivated/deleted service must
+  // not get silently defaulted back in.
+  const [serviceId, setServiceId] = useState(
+    mostCommonServiceId && services.some((s) => s.id === mostCommonServiceId) ? mostCommonServiceId : NO_SERVICE
+  );
   const [customPrice, setCustomPrice] = useState("");
   // Kept as strings so clearing the field to retype doesn't get forced back
   // to "0" mid-edit (Number("") === 0, which fights a controlled input).
@@ -28,6 +41,10 @@ export function PackageForm({ clients, services }: { clients: Tables<"clients">[
   const [discountPercentInput, setDiscountPercentInput] = useState("");
   const [discountAmount, setDiscountAmount] = useState("");
   const [isPublic, setIsPublic] = useState(false);
+  // "Touched" once the tutor types their own name directly — after that we
+  // never overwrite it, even if student/service/session-count keep changing.
+  const [nameTouched, setNameTouched] = useState(false);
+  const [nameInput, setNameInput] = useState("");
 
   const totalSessions = Number(totalSessionsInput) || 0;
   const discountPercent = Number(discountPercentInput) || 0;
@@ -46,6 +63,13 @@ export function PackageForm({ clients, services }: { clients: Tables<"clients">[
 
   const selectedService = services.find((s) => s.id === serviceId);
   const pricePerSessionCents = selectedService ? selectedService.price_cents : dollarsToCents(Number(customPrice) || 0);
+
+  const selectedClient = clients.find((c) => c.id === clientId);
+  const serviceLabel = selectedService ? selectedService.name : "Session";
+  const derivedName = selectedClient
+    ? `${selectedClient.student_name} — ${totalSessions}× ${serviceLabel}`
+    : `${totalSessions}× ${serviceLabel}`;
+  const nameValue = nameTouched ? nameInput : derivedName;
 
   const { subtotalCents, discountCents, totalCents } = useMemo(() => {
     const subtotal = pricePerSessionCents * totalSessions;
@@ -122,7 +146,17 @@ export function PackageForm({ clients, services }: { clients: Tables<"clients">[
 
       <div>
         <Label htmlFor="name">Package name</Label>
-        <Input id="name" name="name" placeholder="e.g. 4-Session Package" required />
+        <Input
+          id="name"
+          name="name"
+          value={nameValue}
+          onChange={(e) => {
+            setNameInput(e.target.value);
+            setNameTouched(true);
+          }}
+          placeholder="e.g. 4-Session Package"
+          required
+        />
       </div>
 
       <div>

@@ -12,7 +12,10 @@ export default async function NewBookingLinkPage({
   searchParams: Promise<{ mode?: string }>;
 }) {
   const { mode } = await searchParams;
-  const isOpenAvailability = mode === "open";
+  // Open availability (standing, zero-typing) is the default now — the
+  // typing-heavy "specific times" form is the explicit opt-in via
+  // ?mode=fixed. ?mode=open is kept working for old bookmarked links.
+  const isOpenAvailability = mode !== "fixed";
 
   const tutor = await requireTutor();
   const supabase = await createClient();
@@ -36,14 +39,14 @@ export default async function NewBookingLinkPage({
 
       <div className="mb-4 flex gap-2 text-sm">
         <Link
-          href="/tutor/booking-links/new"
+          href="/tutor/booking-links/new?mode=fixed"
           className={!isOpenAvailability ? "font-medium text-text" : "text-text-secondary hover:text-text"}
         >
           Offer specific times
         </Link>
         <span className="text-text-tertiary">·</span>
         <Link
-          href="/tutor/booking-links/new?mode=open"
+          href="/tutor/booking-links/new"
           className={isOpenAvailability ? "font-medium text-text" : "text-text-secondary hover:text-text"}
         >
           Open availability (standing)
