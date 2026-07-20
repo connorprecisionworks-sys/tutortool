@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { StatusDot } from "@/components/ui/status-dot";
 import { CopyButton } from "@/components/ui/copy-button";
+import { ShareButton } from "@/components/ui/share-button";
 import { CancelBookingLinkButton } from "@/components/booking-links/cancel-booking-link-button";
 import { bookingLink } from "@/lib/booking-link";
 
@@ -73,7 +74,16 @@ export default async function BookingLinksPage() {
                   </td>
                   <td className="px-5 py-3" data-label="Link">
                     {l.status === "open" ? (
-                      <CopyButton value={bookingLink(l.token)} label="Copy link" copiedLabel="Copied" size="sm" />
+                      <span className="inline-flex items-center gap-2">
+                        <CopyButton
+                          value={bookingLink(l.token)}
+                          label="Copy link"
+                          copiedLabel="Copied"
+                          size="sm"
+                          toastMessage="Link copied to clipboard"
+                        />
+                        <ShareButton title="Book a session" url={bookingLink(l.token)} size="sm" />
+                      </span>
                     ) : (
                       <span className="text-xs text-text-tertiary">—</span>
                     )}

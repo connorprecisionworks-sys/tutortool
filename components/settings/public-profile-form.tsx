@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea, FieldHint } from "@/components/ui/input";
 import { CopyButton } from "@/components/ui/copy-button";
+import { ShareButton } from "@/components/ui/share-button";
 import { updatePublicProfileAction, type PublicProfileFormResult } from "@/app/tutor/settings/profile-actions";
 import { publicAppUrl } from "@/lib/app-url";
 import { avatarPublicUrl } from "@/lib/avatar-url";
@@ -61,8 +62,18 @@ export function PublicProfileForm({
       <form action={formAction} className="space-y-4">
         {tutor.is_public && publicUrl && (
           <div className="flex items-center gap-3 rounded-lg border border-border bg-surface-sunken px-4 py-3">
-            <code className="flex-1 truncate text-sm">{publicUrl}</code>
-            <CopyButton value={publicUrl} size="sm" />
+            <code className="min-w-0 flex-1 truncate text-sm">{publicUrl}</code>
+            {/*
+              TODO(connor): judgment call (E3, build-queue.md) — this URL is
+              stable and viewed repeatedly (not freshly generated on this
+              page load), so this stays a manual copy + toast rather than
+              auto-copying every time Settings renders, which would be a
+              surprising clipboard side-effect on a page a tutor might just
+              be glancing at. Revisit if that reads as too passive in
+              practice.
+            */}
+            <CopyButton value={publicUrl} size="sm" toastMessage="Public page link copied" />
+            <ShareButton title="Book with me on Slate" url={publicUrl} />
           </div>
         )}
 

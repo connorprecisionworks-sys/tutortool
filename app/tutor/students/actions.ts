@@ -10,6 +10,13 @@ import { isSmsConfigured } from "@/lib/sms";
 
 export interface StudentFormResult {
   error?: string;
+  // Only ever set by createStudentAction (E3 auto-copy-on-generation) — a
+  // freshly-created student's active Student Code, so the client can copy
+  // its join link to the clipboard the instant creation succeeds instead of
+  // waiting for a separate manual click. updateStudentAction never sets
+  // this, so an edit-save never triggers the copy/toast.
+  code?: string;
+  studentId?: string;
 }
 
 function parseRateType(value: FormDataEntryValue | null): RateType {
@@ -63,7 +70,7 @@ export async function createStudentAction(
   // Postgres params accept null (the type generator only sees the SQL
   // types, not that the function body is fine with a null value) —
   // Postgres itself accepts null here without issue.
-  const { error } = await supabase.rpc("create_student", {
+  const { data: student, error } = await supabase.rpc("create_student", {
     p_student_name: studentName,
     p_payer_name: (String(formData.get("payer_name") ?? "").trim() || null) as unknown as string,
     p_payer_email: (String(formData.get("payer_email") ?? "").trim() || null) as unknown as string,
@@ -83,7 +90,7 @@ export async function createStudentAction(
     p_needs_goals: (String(formData.get("needs_goals") ?? "").trim() || null) as unknown as string,
   });
 
-  if (error) return { error: error.message };
+  if (error || !student) return { error: error?.message ?? "Could not create student." };
 
   const posthog = getPostHogClient();
   posthog.capture({
@@ -97,7 +104,18 @@ export async function createStudentAction(
   await posthog.flush();
 
   revalidatePath("/tutor/students");
-  return {};
+
+  // E3 (build-queue.md — "creating a student surfaces its code already
+  // copied"): read back the code create_student just issued so the client
+  // can auto-copy its join link immediately, without a second round trip.
+  const { data: invite } = await supabase
+    .from("invites")
+    .select("code")
+    .eq("student_id", student.id)
+    .eq("status", "active")
+    .maybeSingle();
+
+  return { code: invite?.code ?? undefined, studentId: student.id };
 }
 
 export async function updateStudentAction(

@@ -9,6 +9,7 @@ import { StripeConnectSection } from "@/components/settings/stripe-connect-secti
 import { PublicProfileForm } from "@/components/settings/public-profile-form";
 import { IcalFeedSection } from "@/components/settings/ical-feed-section";
 import { CopyButton } from "@/components/ui/copy-button";
+import { ShareButton } from "@/components/ui/share-button";
 import { getStripeAccountStatus, isStripeConfigured } from "@/lib/stripe/client";
 import { tutorCodeLink } from "@/lib/tutor-code-link";
 import { isSmsConfigured } from "@/lib/sms";
@@ -59,8 +60,14 @@ export default async function SettingsPage() {
             students), and land in their portal. Per-student Student Codes still work too.
           </p>
           <div className="flex items-center gap-3 rounded-lg border border-border bg-surface-sunken px-4 py-3">
-            <code className="flex-1 truncate text-sm">{tutorCodeLink(tutor.tutor_code)}</code>
-            <CopyButton value={tutorCodeLink(tutor.tutor_code)} size="sm" />
+            <code className="min-w-0 flex-1 truncate text-sm">{tutorCodeLink(tutor.tutor_code)}</code>
+            {/*
+              This code is assigned once at signup (Q7) and never
+              regenerates from this page, so it's a stable re-view, not a
+              generation event — manual copy + toast, no auto-copy-on-load.
+            */}
+            <CopyButton value={tutorCodeLink(tutor.tutor_code)} size="sm" toastMessage="Tutor code link copied" />
+            <ShareButton title="Join me on Slate" text="Use this link to join and see your child's sessions." url={tutorCodeLink(tutor.tutor_code)} />
           </div>
         </Card>
 

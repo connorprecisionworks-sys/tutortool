@@ -97,7 +97,18 @@ export function AppShell({
         />
       )}
 
-      <div className="flex min-h-full flex-1 flex-col">
+      {/*
+        min-w-0: this is the actual flex item whose width is constrained by
+        the row above (`<div className="flex min-h-full">`) — `<aside>` is
+        `position:fixed` below `sm:`, so on mobile this is the row's only
+        in-flow child, and without min-w-0 its automatic minimum width
+        (content's min-content size) can still win over flex-1 when a
+        descendant has unbreakable long text, pushing the whole content
+        column wider than the viewport instead of letting `<main>` (and any
+        `truncate` box inside it) shrink to fit. See the comment on <main>
+        below for the QA finding that surfaced this (E3, build-queue.md).
+      */}
+      <div className="flex min-w-0 min-h-full flex-1 flex-col">
         <header className="flex h-14 items-center justify-between border-b border-border px-4 sm:px-8">
           <button
             className="flex h-11 w-11 items-center justify-center rounded-lg text-text-secondary hover:bg-hover sm:hidden"
@@ -111,7 +122,19 @@ export function AppShell({
           <div className="hidden sm:block" />
           <ThemeToggle />
         </header>
-        <main className="mx-auto w-full max-w-[1100px] flex-1 px-4 py-8 sm:px-8">{children}</main>
+        {/*
+          min-w-0 overrides the flex item's default automatic minimum size
+          (which, per the flexbox spec, is its content's min-content width
+          when overflow is visible) — without it, an unbreakable long string
+          anywhere in `children` (a booking link, Student Code, public page
+          URL, iCal feed URL — every "truncate" display box this app uses)
+          can force this whole <main> wider than the viewport instead of
+          letting its own `truncate` utility do its job. Found via E3
+          mobile-viewport QA (build-queue.md): a booking link's `<code
+          className="flex-1 truncate">` box was overflowing past the screen
+          edge at 390px because of exactly this, one level up the tree.
+        */}
+        <main className="mx-auto min-w-0 w-full max-w-[1100px] flex-1 px-4 py-8 sm:px-8">{children}</main>
       </div>
     </div>
   );

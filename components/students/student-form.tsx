@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea, FieldHint } from "@/components/ui/input";
 import { PrivacyPill } from "@/components/ui/privacy-pill";
+import { useToast } from "@/components/ui/toast";
+import { studentJoinLink } from "@/lib/invite-link";
 import {
   RATE_TYPE_LABELS,
   RATE_TYPES_REQUIRING_CUSTOM_RATE,
@@ -29,10 +31,27 @@ export function StudentForm({
   smsConfigured?: boolean;
 }) {
   const router = useRouter();
+  const { toast } = useToast();
   const [rateType, setRateType] = useState<RateType>((student?.rate_type as RateType) ?? "standard");
   const [state, formAction, pending] = useActionState(async (prev: StudentFormResult, formData: FormData) => {
     const result = await action(prev, formData);
     if (!result.error) {
+      // E3 (build-queue.md) — createStudentAction returns the student's
+      // freshly-issued code on creation only (never on an edit save, see
+      // that action's comment), so this auto-copy fires exactly once, at
+      // the "just generated" moment, matching the Resend pattern: "creating
+      // a student surfaces its code already copied." The Students list this
+      // redirects to still has a manual Copy fallback per row in case the
+      // clipboard write below is blocked in this browser context.
+      if (result.code) {
+        const link = studentJoinLink(result.code);
+        try {
+          await navigator.clipboard.writeText(link);
+          toast("Student added — code copied to clipboard", { variant: "success" });
+        } catch {
+          toast("Student added — copy its code from the Students list");
+        }
+      }
       router.push(onSuccessPath);
       router.refresh();
     }

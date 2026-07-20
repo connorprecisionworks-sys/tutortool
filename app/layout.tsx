@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+import { ToastProvider } from "@/components/ui/toast";
 import "./globals.css";
 
 const inter = localFont({
@@ -71,7 +72,9 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
-      <body className="min-h-full bg-bg text-text">{children}</body>
+      <body className="min-h-full bg-bg text-text">
+        <ToastProvider>{children}</ToastProvider>
+      </body>
     </html>
   );
 }

@@ -4,8 +4,11 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { CopyButton } from "@/components/ui/copy-button";
+import { ShareButton } from "@/components/ui/share-button";
+import { useToast } from "@/components/ui/toast";
 import { Input, Label } from "@/components/ui/input";
 import { buildInviteMessage } from "@/lib/invite-message";
+import { studentJoinLink } from "@/lib/invite-link";
 import {
   logInviteCopyAction,
   regenerateInviteAction,
@@ -56,6 +59,7 @@ export function InviteParentSection({
   pendingInvites: PendingInvite[];
 }) {
   const router = useRouter();
+  const { toast } = useToast();
   const [codePending, startCodeTransition] = useTransition();
   const [copyLogPending, startCopyLogTransition] = useTransition();
   const [sendPending, startSendTransition] = useTransition();
@@ -93,6 +97,20 @@ export function InviteParentSection({
       if (result.error) setCodeError(result.error);
       else {
         setCodeError(null);
+        // E3 (build-queue.md): Generate/Regenerate is the "just generated"
+        // moment for this code (unlike the Copy buttons below, which
+        // re-copy a code that already existed) — auto-copy its join link
+        // here. The Copy link button after router.refresh() is the
+        // fallback if the clipboard write below is blocked.
+        if (result.code) {
+          const link = studentJoinLink(result.code);
+          try {
+            await navigator.clipboard.writeText(link);
+            toast("Code copied — send it to the parent", { variant: "success" });
+          } catch {
+            toast("New code generated — copy it below to send to the parent");
+          }
+        }
         router.refresh();
       }
     });
@@ -163,6 +181,11 @@ export function InviteParentSection({
               />
               <CopyButton value={joinLink} label="Copy link" variant="secondary" />
               <CopyButton value={currentInvite.code} label="Copy code" variant="secondary" />
+              <ShareButton
+                title={`Join ${studentName} on Slate`}
+                text={message || undefined}
+                url={joinLink}
+              />
               {copyLogPending && <span className="text-xs text-text-tertiary">Saving…</span>}
             </div>
 

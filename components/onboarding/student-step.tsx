@@ -1,10 +1,12 @@
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { CopyButton } from "@/components/ui/copy-button";
+import { ShareButton } from "@/components/ui/share-button";
+import { useToast } from "@/components/ui/toast";
 import { createStudentAction, type StudentFormResult } from "@/app/tutor/students/actions";
 import { ackOnboardingAction } from "@/app/onboarding/actions";
 
@@ -12,6 +14,7 @@ const initialState: StudentFormResult = {};
 
 export function StudentStep({ tutorCodeLink }: { tutorCodeLink: string }) {
   const router = useRouter();
+  const { toast } = useToast();
   const [added, setAdded] = useState(false);
   const [finishing, startFinish] = useTransition();
   const [state, formAction, pending] = useActionState(async (prev: StudentFormResult, formData: FormData) => {
@@ -19,6 +22,22 @@ export function StudentStep({ tutorCodeLink }: { tutorCodeLink: string }) {
     if (!result.error) setAdded(true);
     return result;
   }, initialState);
+
+  // E3 (build-queue.md): the moment this step flips to "added," the tutor
+  // code shown below is exactly what they need to hand to the parent right
+  // now — auto-copy it instead of waiting for the manual CopyButton click,
+  // which stays as the fallback if the clipboard write is blocked.
+  useEffect(() => {
+    if (!added) return;
+    (async () => {
+      try {
+        await navigator.clipboard.writeText(tutorCodeLink);
+        toast("Code copied — share it with the parent", { variant: "success" });
+      } catch {
+        toast("Student added — copy the code below to share it");
+      }
+    })();
+  }, [added, tutorCodeLink, toast]);
 
   function finish() {
     startFinish(async () => {
@@ -35,8 +54,9 @@ export function StudentStep({ tutorCodeLink }: { tutorCodeLink: string }) {
           Added. Share your tutor code so the parent can join and see this student:
         </p>
         <div className="flex items-center gap-3 rounded-lg border border-border bg-surface-sunken px-4 py-3">
-          <code className="flex-1 truncate text-sm">{tutorCodeLink}</code>
+          <code className="min-w-0 flex-1 truncate text-sm">{tutorCodeLink}</code>
           <CopyButton value={tutorCodeLink} size="sm" />
+          <ShareButton title="Join me on Slate" text="Use this link to join and see your child's sessions." url={tutorCodeLink} />
         </div>
         <Button type="button" className="w-full" disabled={finishing} onClick={finish}>
           {finishing ? "Finishing…" : "Go to dashboard"}

@@ -1,10 +1,13 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, FieldHint } from "@/components/ui/input";
 import { CopyButton } from "@/components/ui/copy-button";
+import { ShareButton } from "@/components/ui/share-button";
+import { useToast } from "@/components/ui/toast";
 import { createBookingLinkAction, type BookingLinkFormResult } from "@/app/tutor/booking-links/actions";
 import { bookingLink } from "@/lib/booking-link";
 import { formatCents } from "@/lib/money";
@@ -16,6 +19,9 @@ type Service = Tables<"services">;
 const initialState: BookingLinkFormResult = {};
 const OPEN_LINK = "";
 const NO_SERVICE = "";
+// Long enough for the "copied" toast to register before the view changes
+// out from under it (per E3's build-queue.md spec of ~1.2-1.5s).
+const AUTO_RETURN_MS = 1300;
 
 interface SlotRow {
   key: number;
@@ -24,6 +30,8 @@ interface SlotRow {
 }
 
 export function BookingLinkForm({ clients, services }: { clients: Client[]; services: Service[] }) {
+  const router = useRouter();
+  const { toast } = useToast();
   const [studentId, setStudentId] = useState(OPEN_LINK);
   const [serviceId, setServiceId] = useState(NO_SERVICE);
   const [nextKey, setNextKey] = useState(1);
@@ -35,18 +43,43 @@ export function BookingLinkForm({ clients, services }: { clients: Client[]; serv
     { key: 0, date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10), time: "" },
   ]);
   const [state, formAction, pending] = useActionState(createBookingLinkAction, initialState);
+  const copiedRef = useRef(false);
+
+  // E3 (build-queue.md): the moment createBookingLinkAction returns a
+  // token, the link is "just generated" — auto-copy it and collapse the
+  // old create-then-copy-then-Done sequence into one action's worth of
+  // effect. copiedRef guards against firing twice (React 18 dev-mode
+  // double-invoke, or a re-render before the redirect below fires).
+  useEffect(() => {
+    if (!state.token || copiedRef.current) return;
+    copiedRef.current = true;
+    const link = bookingLink(state.token);
+    (async () => {
+      try {
+        await navigator.clipboard.writeText(link);
+        toast("Link copied — send it to the parent", { variant: "success" });
+      } catch {
+        toast("Link created — copy it below to send to the parent");
+      }
+    })();
+    const timer = setTimeout(() => router.push("/tutor/booking-links"), AUTO_RETURN_MS);
+    return () => clearTimeout(timer);
+  }, [state.token, toast, router]);
 
   if (state.token) {
     const link = bookingLink(state.token);
     return (
       <div className="space-y-4">
-        <p className="text-sm text-text">Link created. Send it to the parent — they pick a time, no account needed.</p>
+        <p className="text-sm text-text">
+          Link created and copied — send it to the parent. Returning to Booking Links…
+        </p>
         <div className="flex items-center gap-3 rounded-lg border border-border bg-surface-sunken px-4 py-3">
-          <code className="flex-1 truncate text-sm">{link}</code>
+          <code className="min-w-0 flex-1 truncate text-sm">{link}</code>
           <CopyButton value={link} />
+          <ShareButton title="Book a session" text="Pick a time that works for you:" url={link} />
         </div>
-        <Link href="/tutor/booking-links">
-          <Button variant="secondary">Done</Button>
+        <Link href="/tutor/booking-links" className="text-sm text-text-secondary hover:text-text">
+          Back to Booking Links now
         </Link>
       </div>
     );
