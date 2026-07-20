@@ -1164,6 +1164,74 @@ verified directly to reject `javascript:`/`data:` and accept `https:`.
 
 ---
 
+# BATCH 5 — Ease of use / friction reduction (2026-07-19)
+
+Goal from Connor: minimize clicks and keystrokes for every action. If something can be filled in automatically, it should be. If something can be automated for the user, it should be.
+
+North star example (Connor's): Resend's API key flow. You click one button, the key is generated, it's already copied to your clipboard, and the only thing left to do is name it. Zero hunting, zero extra steps. Apply that thinking everywhere.
+
+PRINCIPLES (apply to every item in this batch):
+- Smart defaults from real data: prefill from the tutor's settings, the most recent/most likely value, today's date, the student's usual service/duration/rate.
+- Required fields are the true minimum; everything else optional or deferred.
+- Anything generated (codes, links, URLs) auto-copies to the clipboard with a confirmation toast.
+- Edit in place instead of navigating to a separate page.
+- Remove steps that exist only to confirm something harmless.
+- SAFETY EXCEPTION: never remove confirmation from destructive or money-moving actions (delete, refund, sending a real invoice, unlocking paid content). Reducing friction must not cause accidents.
+
+## E1 — Friction audit + baseline  [x] (PENDING_HASH)
+
+Measured all 10 flows in a real headless browser against a fresh disposable
+tutor account (admin-API pattern), pushed through onboarding, added one
+student, then walked each flow counting exact clicks/keystrokes. Findings in
+`ux-friction-audit.md`. Headline: booking-link creation is the worst flow (5
+clicks/15 keystrokes, defaults to the typing-required "specific times" mode
+instead of the zero-typing standing-link mode, no auto-copy, an extra "Done"
+click); service price and package name have no defaults and are fully typed;
+student-code copy already auto-copies but gives no toast; invoice send
+silently "succeeds" with no payer email and no Stripe connected. Log
+session, add student, cancel session, set availability, and add expense are
+already near the practical minimum. Test tutor deleted after (cascade
+verified 0 rows).
+
+Measure before changing anything.
+
+- In a real browser, walk the 10 highest-frequency actions and count the exact clicks + keystrokes each takes today: log a session, create + send an invoice, add a student, share a student code, create + share a booking link, add a service, cancel a session, set availability, add an expense, create a package.
+- Write `ux-friction-audit.md` with a table of each flow, its current click/keystroke count, every point of unnecessary friction, and the specific fix proposed.
+- Acceptance: the audit doc exists with real measured counts (not estimates) and a concrete fix list.
+
+## E2 — Smart defaults + prefill everywhere  [ ]
+
+- Prefill every form from real data: logging a session defaults to that student's usual service, duration, rate, and travel time (from their last session) and today's date; new invoice preselects all unbilled sessions; new service prefills a sensible duration/price; expenses default to today; packages prefill from the tutor's common service.
+- Cut required fields to the true minimum (e.g., adding a student should need only a name, everything else can come later).
+- Acceptance: logging a repeat session for an existing student takes no more than 2 clicks with zero typing when nothing has changed.
+
+## E3 — One-click generate + auto-copy (the Resend pattern)  [ ]
+
+- Anything generated or shareable auto-copies to the clipboard the moment it's created, with a clear toast: student codes, tutor join code, booking links, parent invite links, the public page URL, the iCal feed URL.
+- Add a native share action on mobile (Web Share API) alongside copy.
+- Where a link is the whole point (invite a parent, share a booking link), collapse it to a single primary button that creates + copies in one action.
+- Acceptance: creating a student surfaces its code already copied; sharing a booking link is one tap and it's on the clipboard.
+
+## E4 — Inline editing + fewer steps  [ ]
+
+- Make list rows and detail fields editable in place (rates, session values, service prices, student names, notes) instead of routing to a separate edit page.
+- Auto-save inline edits where safe, with a subtle saved indicator; keep explicit save only where a batch of changes must commit together.
+- Remove unnecessary intermediate steps and dead-end confirmations (keeping the safety exception above).
+- Acceptance: changing a student's rate or a service price takes a click, a type, and no page navigation.
+
+## E5 — Command palette + keyboard  [ ]
+
+- Add a Cmd/Ctrl+K command palette that jumps straight to any action or record: "log session", "new invoice", "add student", "availability", or a student's name. Fuzzy search, keyboard-only operable.
+- Autofocus the first field on every form, Enter submits, sensible tab order, and shortcuts for the top actions.
+- Acceptance: a tutor can log a session start to finish without touching the mouse.
+
+## E6 — Re-measure + report  [ ]
+
+- Re-run the E1 measurements on the same 10 flows and report before/after click + keystroke counts in `ux-friction-audit.md`.
+- Acceptance: a clear before/after table showing measured reduction on every flow, with any flow that didn't improve explained.
+
+---
+
 ## Parked (do NOT build in this loop)
 
 - Searchable "find tutors in your area" directory / marketplace + matching. Public tutor pages (Q3) make this possible later, but the directory, search, and tutor discovery are a separate initiative.
