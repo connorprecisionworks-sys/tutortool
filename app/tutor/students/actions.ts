@@ -134,6 +134,7 @@ export async function updateStudentAction(
   const studentId = String(formData.get("id") ?? "");
   if (!studentId) return { error: "Missing student id." };
 
+  const tutor = await requireTutor();
   const supabase = await createClient();
 
   const studentName = String(formData.get("student_name") ?? "").trim();
@@ -159,6 +160,7 @@ export async function updateStudentAction(
     .from("clients")
     .select("payer_phone, sms_opt_in")
     .eq("id", studentId)
+    .eq("tutor_id", tutor.id)
     .single();
 
   let smsOptIn = existing?.sms_opt_in ?? false;
@@ -183,7 +185,8 @@ export async function updateStudentAction(
       needs_goals: String(formData.get("needs_goals") ?? "").trim() || null,
       sms_opt_in: smsOptIn,
     })
-    .eq("id", studentId);
+    .eq("id", studentId)
+    .eq("tutor_id", tutor.id);
 
   if (error) return { error: error.message };
 
@@ -267,8 +270,9 @@ export async function updateStudentNameAction(
 }
 
 export async function setStudentArchivedAction(studentId: string, archived: boolean): Promise<void> {
+  const tutor = await requireTutor();
   const supabase = await createClient();
-  await supabase.from("clients").update({ archived }).eq("id", studentId);
+  await supabase.from("clients").update({ archived }).eq("id", studentId).eq("tutor_id", tutor.id);
   revalidatePath("/tutor/students");
 }
 

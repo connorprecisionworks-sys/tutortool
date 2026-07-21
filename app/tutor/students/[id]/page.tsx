@@ -17,8 +17,15 @@ import { AutoInvoiceSettingsCard } from "@/components/students/auto-invoice-sett
 import { MessageParentCard } from "@/components/students/message-parent-card";
 import { computeSessionAmountCents } from "@/lib/billing";
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export default async function StudentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  // The packages query below interpolates `id` into a raw PostgREST `.or()`
+  // filter string — validating the shape up front closes that off as an
+  // injection vector (a crafted id could otherwise widen the filter with
+  // extra comma-separated predicates) rather than relying on RLS alone.
+  if (!UUID_RE.test(id)) notFound();
   const tutor = await requireTutor();
   const supabase = await createClient();
 

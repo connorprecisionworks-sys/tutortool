@@ -241,6 +241,7 @@ export async function updateSessionAction(
 }
 
 export async function deleteSessionAction(sessionId: string): Promise<SessionFormResult> {
+  await requireTutor();
   const supabase = await createClient();
   const { error } = await supabase.rpc("delete_session", { p_session_id: sessionId });
 
