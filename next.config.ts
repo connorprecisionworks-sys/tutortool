@@ -5,6 +5,13 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.join(__dirname),
   },
+  env: {
+    // Vercel sets VERCEL_GIT_COMMIT_SHA server-side only; aliasing it here
+    // inlines a short build id into the client bundle so the F1 feedback
+    // widget (build-queue.md) can attach "what version were you on" to a
+    // diagnostic report without a round trip. Falls back to "dev" locally.
+    NEXT_PUBLIC_APP_VERSION: (process.env.VERCEL_GIT_COMMIT_SHA ?? "dev").slice(0, 7),
+  },
   images: {
     // The brand logo/mark SVGs (components/brand/logo.tsx) are the only
     // SVGs ever passed to next/image, and they're trusted first-party

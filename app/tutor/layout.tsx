@@ -2,6 +2,8 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/shell/app-shell";
 import { CommandPalette } from "@/components/command-palette/command-palette";
+import { FeedbackWidget } from "@/components/feedback/feedback-widget";
+import { FeedbackTracker } from "@/components/feedback/feedback-tracker";
 import { TUTOR_NAV } from "@/lib/nav";
 import { requireTutor } from "@/lib/auth/tutor";
 import { getOnboardingStatus } from "@/lib/onboarding";
@@ -44,8 +46,10 @@ export default async function TutorLayout({ children }: { children: React.ReactN
       brand="Slate"
       userLabel={tutor.email}
       paletteTrigger={<CommandPalette navItems={TUTOR_NAV} students={students ?? []} />}
+      feedbackTrigger={<FeedbackWidget />}
     >
       <PostHogIdentifier distinctId={tutor.auth_user_id} name={tutor.name} email={tutor.email} role="tutor" />
+      <FeedbackTracker />
       {children}
     </AppShell>
   );

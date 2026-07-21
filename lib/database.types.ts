@@ -631,6 +631,146 @@ export type Database = {
           },
         ]
       }
+      founder_call_notes: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          lead_id: string
+          note: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lead_id: string
+          note: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lead_id?: string
+          note?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "founder_call_notes_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "founder_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      founder_feedback: {
+        Row: {
+          body: string
+          build_queue_ref: string | null
+          context: Json | null
+          created_at: string
+          date: string
+          id: string
+          lead_id: string | null
+          source: string
+          status: string
+          tag: string | null
+          tutor_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          build_queue_ref?: string | null
+          context?: Json | null
+          created_at?: string
+          date?: string
+          id?: string
+          lead_id?: string | null
+          source: string
+          status?: string
+          tag?: string | null
+          tutor_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          build_queue_ref?: string | null
+          context?: Json | null
+          created_at?: string
+          date?: string
+          id?: string
+          lead_id?: string | null
+          source?: string
+          status?: string
+          tag?: string | null
+          tutor_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "founder_feedback_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "founder_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "founder_feedback_tutor_id_fkey"
+            columns: ["tutor_id"]
+            isOneToOne: false
+            referencedRelation: "tutors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      founder_leads: {
+        Row: {
+          context: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          next_action: string | null
+          next_action_date: string | null
+          notes: string | null
+          owner: string | null
+          phone: string | null
+          source: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          context?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          next_action?: string | null
+          next_action_date?: string | null
+          notes?: string | null
+          owner?: string | null
+          phone?: string | null
+          source: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          context?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          next_action?: string | null
+          next_action_date?: string | null
+          notes?: string | null
+          owner?: string | null
+          phone?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       invite_sends: {
         Row: {
           channel: string
@@ -1835,6 +1975,7 @@ export type Database = {
         }
         Returns: Json
       }
+      founder_is_allowlisted: { Args: never; Returns: boolean }
       generate_open_slots: {
         Args: {
           p_buffer_minutes: number

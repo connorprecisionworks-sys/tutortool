@@ -1,7 +1,7 @@
 # Privacy Policy
 
-**Effective Date:** July 19, 2026
-**Version:** 2.1
+**Effective Date:** July 20, 2026
+**Version:** 2.2
 
 This Privacy Policy explains how Solomon Caldwell LLC ("Slate," "we," "us," or "our") collects, uses, and shares information in connection with the Slate website (slatetutor.com) and services (the "Service").
 
@@ -21,6 +21,7 @@ Students do not create Slate accounts and do not directly provide information to
 - Name, email, phone number, business/contact information, and payment details needed to process your subscription (handled via Stripe).
 - Content you create in the Service: students and clients, rates and services, sessions and travel time, invoices, packages, cancellations, availability and bookings, session notes, resources, and your public tutor page (photo, bio, subjects, services, prices).
 - Expense records, receipts (including uploaded images or files), and mileage entries you add for your own record-keeping.
+- If you send us in-app feedback, the message you write, plus a short technical diagnostic attached automatically: the page you were on, a log of the button/menu labels and pages you navigated in that session, device/browser type, screen size, light/dark mode, timestamp, and any recent app errors. We show you exactly what's attached before you send it. This diagnostic never includes what you typed into a form or session note, or your students'/their parents' names or contact details.
 
 **From Parents/Guardians:**
 

@@ -1497,6 +1497,39 @@ invoices/packages/booking_links/expenses).
 
 ---
 
+# BATCH 6 — In-app feedback widget (2026-07-19)
+
+Gives tutors a two-click way to send feedback or report a bug from inside Slate, with an auto-attached diagnostic mini-report so we can actually act on it. Writes into the SAME Supabase project's `founder_feedback` table, which the separate Slate Founders dashboard reads, so feedback lands in our inbox with zero integration.
+
+## F1 — Feedback widget + diagnostic mini-report  [ ]
+
+**The widget (keep it dead simple):**
+- A persistent "Feedback" entry point in the tutor nav / help menu, reachable from any page. Two clicks to send: open, type, send.
+- Fields: a text box, plus an optional category (bug / idea / confusing / praise). Nothing required except the text. No star ratings, no NPS popups, no interrupting a tutor mid-work.
+- Confirmation toast on send, and a short thank-you. Never block the page.
+
+**The auto-attached mini-report:**
+Capture and attach automatically so the tutor doesn't have to explain context:
+- Current route/page and page title.
+- A breadcrumb trail of the last ~10 user actions: button labels and navigation events (e.g. "clicked Log Session", "navigated /tutor/invoices"). PostHog is already in the app, so prefer reusing its event stream over building a parallel tracker.
+- Device/browser, viewport size, theme (light/dark), timestamp, tutor id, and the app version/commit.
+- Any recent client-side console errors.
+
+**PRIVACY GUARDRAILS (non-negotiable, this app holds children's data):**
+- NEVER capture form field values, keystrokes, note contents, student names, or parent contact details. Capture button labels and route names only, never the data inside them.
+- No session recording, no screenshots.
+- Show the tutor exactly what's being attached in a collapsible "what's included" preview before they hit send. Transparency, not silent collection.
+- This adds a new type of data collected, so the LEGAL DOCS RULE applies: update /privacy (and /terms if relevant), bump the version + effective date, and log it in legal/legal-changelog.md.
+
+**Data + access:**
+- Write to `founder_feedback` in the shared Supabase project, with the diagnostic context stored in a `context` jsonb column. If the table doesn't exist yet (the Slate Founders app may not have shipped its migration), create it matching that spec and add the `context` column; do not alter any existing Slate table.
+- RLS: an authenticated tutor may INSERT their own feedback and read only their own; they must never read anyone else's. Founder-side reads are handled by the separate dashboard.
+- Rollback SQL in supabase/rollbacks/ as always.
+
+**Acceptance:** a tutor clicks Feedback from any page, sees what context will be attached, types a sentence, sends it in two clicks, and the entry appears in `founder_feedback` with the route, action breadcrumbs, and device info attached, and with zero form values or student/parent data captured.
+
+---
+
 ## Parked (do NOT build in this loop)
 
 - Searchable "find tutors in your area" directory / marketplace + matching. Public tutor pages (Q3) make this possible later, but the directory, search, and tutor discovery are a separate initiative.

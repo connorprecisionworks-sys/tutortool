@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
+import { recordFeedbackBreadcrumb } from "@/lib/feedback/breadcrumbs";
 
 export interface CommandPaletteNavItem {
   href: string;
@@ -150,6 +151,11 @@ export function CommandPalette({
 
   const activate = useCallback(
     (entry: Entry) => {
+      // F1 (build-queue.md): Actions/Pages labels are static strings from
+      // this file — safe to record. A Students entry's label is the
+      // student's actual name, so it's redacted to a fixed generic string
+      // instead, never the name itself.
+      recordFeedbackBreadcrumb("click", entry.group === "Students" ? "Selected a student" : entry.label);
       close();
       router.push(entry.href);
     },

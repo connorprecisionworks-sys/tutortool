@@ -8,6 +8,7 @@ import posthog from "posthog-js";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Mark } from "@/components/brand/logo";
 import { signOutAction } from "@/app/(auth)/actions";
+import { recordFeedbackBreadcrumb } from "@/lib/feedback/breadcrumbs";
 
 export interface NavItem {
   href: string;
@@ -19,6 +20,7 @@ export function AppShell({
   brand,
   userLabel,
   paletteTrigger,
+  feedbackTrigger,
   children,
 }: {
   navItems: NavItem[];
@@ -29,6 +31,10 @@ export function AppShell({
   // page without this shared shell (also used by /parent) knowing anything
   // about the palette itself — the caller (app/tutor/layout.tsx) owns it.
   paletteTrigger?: ReactNode;
+  // F1 (build-queue.md): the feedback widget's trigger, same ownership
+  // pattern as paletteTrigger — only the tutor layout passes one, so the
+  // parent portal never renders a Feedback entry point.
+  feedbackTrigger?: ReactNode;
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -74,7 +80,12 @@ export function AppShell({
               <Link
                 key={item.href}
                 href={item.href}
-                onClick={() => setMobileOpen(false)}
+                onClick={() => {
+                  // F1 (build-queue.md): nav labels are static strings from
+                  // lib/nav.ts — safe to record verbatim, never row/user data.
+                  recordFeedbackBreadcrumb("click", item.label);
+                  setMobileOpen(false);
+                }}
                 className={clsx(
                   "block rounded-lg px-3 py-2.5 text-sm transition-colors",
                   active ? "bg-hover text-text font-medium" : "text-text-secondary hover:bg-hover hover:text-text"
@@ -87,6 +98,7 @@ export function AppShell({
         </nav>
         <div className="border-t border-border p-3">
           {userLabel && <p className="mb-2 truncate px-3 text-xs text-text-tertiary">{userLabel}</p>}
+          {feedbackTrigger}
           <button
             onClick={signOut}
             className="w-full rounded-lg px-3 py-2 text-left text-sm text-text-secondary hover:bg-hover hover:text-text"
