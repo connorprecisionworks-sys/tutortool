@@ -1,7 +1,65 @@
 import type { NextConfig } from "next";
 import path from "node:path";
 
+// Built from env at config-eval time (Node, build time) rather than
+// hardcoded, since the Supabase project host is per-deployment. Falls back
+// to a permissive wildcard only when the var is genuinely unset (local
+// scripts/tooling that import next.config without full env) so this file
+// never throws during, e.g., `next lint`.
+const supabaseHost = (() => {
+  try {
+    return process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).origin : "https://*.supabase.co";
+  } catch {
+    return "https://*.supabase.co";
+  }
+})();
+
+// No security-header config existed anywhere in the app (checked next.config.ts
+// and vercel.json) before this — flagged in a production-readiness review as
+// a real gap for a Stripe-integrated, PII-handling app. No Stripe.js/Elements
+// embed and no third-party iframe embedding this app exist anywhere in the
+// codebase (verified by grep), so this can be reasonably strict rather than
+// permissive-by-default.
+// Next/React dev mode (Turbopack HMR, React's dev-only stack-trace
+// reconstruction) calls eval() and gets hard-blocked without this — verified
+// via a browser console check against the dev server. React never uses
+// eval() in production, so this is dev-only; production keeps the tighter
+// policy.
+const isDev = process.env.NODE_ENV !== "production";
+
+const CSP = [
+  "default-src 'self'",
+  // The root layout's theme-init script (app/layout.tsx) is a small inline
+  // <script>; there's no nonce/hash plumbing in this build, so 'unsafe-inline'
+  // is required here rather than tightened further.
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: https:",
+  "font-src 'self' data:",
+  `connect-src 'self' ${supabaseHost} https://*.posthog.com`,
+  "frame-src 'none'",
+  "frame-ancestors 'none'",
+  "form-action 'self'",
+  "base-uri 'self'",
+  "object-src 'none'",
+].join("; ");
+
 const nextConfig: NextConfig = {
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "Content-Security-Policy", value: CSP },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+          { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
+        ],
+      },
+    ];
+  },
   turbopack: {
     root: path.join(__dirname),
   },
