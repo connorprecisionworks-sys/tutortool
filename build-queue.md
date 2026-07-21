@@ -1501,7 +1501,83 @@ invoices/packages/booking_links/expenses).
 
 Gives tutors a two-click way to send feedback or report a bug from inside Slate, with an auto-attached diagnostic mini-report so we can actually act on it. Writes into the SAME Supabase project's `founder_feedback` table, which the separate Slate Founders dashboard reads, so feedback lands in our inbox with zero integration.
 
-## F1 — Feedback widget + diagnostic mini-report  [ ]
+## F1 — Feedback widget + diagnostic mini-report  [x] (b0aef9e)
+
+Persistent "Feedback" button in the tutor sidebar footer (every /tutor/*
+page), opening a dialog: textarea + four optional category chips (Bug/Idea/
+Confusing/Praise) + a collapsed "What's included" preview + Cancel/Send. Two
+clicks to send; nothing required but the text. The diagnostic mini-report
+(lib/feedback/context.ts) is built client-side at open time — route + page
+title, a ~10-entry breadcrumb trail, device/viewport/theme, timestamp, app
+version (aliased from Vercel's VERCEL_GIT_COMMIT_SHA in next.config.ts), and
+recent console errors — then re-derived server-side (sanitizeContext() in
+the server action) rather than trusted verbatim, capping array lengths and
+string sizes as defense-in-depth.
+
+Privacy is enforced architecturally, not by convention: every
+recordFeedbackBreadcrumb() call site (AppShell nav, CommandPalette,
+FeedbackWidget's own open button) passes a hardcoded static string, never
+text pulled from a clicked element — CommandPalette's one dynamic case
+(the Students group, whose label is a real student's name) is explicitly
+redacted to "Selected a student" instead. Console-error capture
+(lib/feedback/console-errors.ts) only ever keeps a real Error instance's own
+.name/.message from window 'error'/'unhandledrejection' or a console.error()
+call that happened to include one — deliberately never stringifies other
+console.error() arguments, since app code sometimes logs objects/values
+alongside an error. No session recording or screenshots anywhere.
+
+`founder_feedback` already existed in this shared Supabase project — the
+separate Slate Founders dashboard's own leads/feedback CRM (RLS already
+enabled, gated on founder_is_allowlisted(); confirmed 0 rows before
+touching it). The migration only extends it: `tutor_id` + `context` jsonb
+columns, and widens (never narrows) the existing `tag` CHECK to also allow
+null, since nothing but the text is required. Two new additive RLS policies
+(insert-own/select-own, scoped via `tutor_id in (select id from tutors
+where auth_user_id = auth.uid())`) OR on top of the founders' own four
+policies, left completely untouched; the insert WITH CHECK also pins
+source='in_app', status='new', lead_id/build_queue_ref null so a tutor can
+only ever create a fresh, untriaged row for themselves — never impersonate
+a demo/call entry or write into the founders' triage fields. No UPDATE/
+DELETE policy for tutors: sent feedback can't be edited or withdrawn.
+Rollback in supabase/rollbacks/; applied via `supabase db query --linked -f`
+(db push still broken on this project, see memory) only after showing the
+SQL and getting an explicit go-ahead, since this project holds real tutor
+data. Migration-tracking table synced, types regenerated.
+
+Self-directed security review (git origin/HEAD ref was missing and had to
+be repaired first — `git remote set-head origin -a` — before any diff-based
+tooling could see the changes) covering every file that can reach
+founder_feedback.context found zero exploitable issues, verified live
+against the actual linked database (RLS policies, column defaults, grants)
+rather than just the SQL file. QA'd end-to-end in a real headless browser
+with a disposable tutor (connor.precisionworks+f1qa@gmail.com, admin-API
+pattern): Feedback button reachable from the dashboard and from a second
+page (Students) → panel opens → "What's included" showed exactly route/
+breadcrumb/device/errors with zero form or student data → sent a real
+message tagged Bug → confirmed via direct DB query the row landed with
+source=in_app, tag=bug, status=new, correct tutor_id, and a clean context
+payload → reopened after navigating and confirmed the breadcrumb trail
+accumulated across the page change. Found and fixed one real bug: on a
+short mobile viewport, an expanded "What's included" preview with a full
+breadcrumb trail could be taller than the screen, and the dialog had no
+scroll boundary (`overflow-hidden`, no max-height) — the top (header,
+Close, textarea) became unreachable, clipped off-screen with nothing to
+scroll. Fixed by capping the dialog at 85vh with its own
+overflow-y-auto region; reverified at 390px in dark mode. Also observed
+(not a bug — self-correcting, not a privacy issue, not fixed): the "Page"
+preview and its "navigate" breadcrumb can lag the actual route for well
+under a second right after a very fast click-through-a-navigation, since
+Next.js App Router doesn't update window.location until an in-flight
+transition's RSC payload lands; the preview corrects itself once the
+transition settles. Light/dark and 390px/1280px checked throughout. Test
+tutor and its one test feedback row deleted after (cascade verified: the 9
+pre-existing tutor rows untouched, founder_feedback back to 0 rows).
+`npx tsc --noEmit`, `npm run lint`, `npm run build` all clean.
+
+Legal: added a bullet to /privacy under "From Tutors" describing exactly
+what the diagnostic attaches and the never-form-data/never-student-data
+guarantee, bumped Privacy 2.1 -> 2.2 (Terms unchanged — no new subprocessor,
+not public-facing), logged in legal/legal-changelog.md.
 
 **The widget (keep it dead simple):**
 - A persistent "Feedback" entry point in the tutor nav / help menu, reachable from any page. Two clicks to send: open, type, send.
