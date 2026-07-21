@@ -45,9 +45,30 @@ async function tryCreateStripePaymentLinkAsAdmin(admin: Admin, invoiceId: string
   const tutorRow = invoice?.tutors as unknown as { stripe_account_id: string | null } | null;
   const clientRow = invoice?.clients as unknown as { payer_email: string | null; student_name: string } | null;
   if (!invoice || !tutorRow?.stripe_account_id) return;
+  // Only a sent/overdue invoice is payable — never mint a fresh live
+  // Checkout Session against a paid/void/draft invoice (double-payment risk
+  // caught in security review: a stray extra live session would still
+  // accept a real charge even though the DB write back is separately
+  // guarded by set_invoice_stripe_link's own status check).
+  if (invoice.status !== "sent" && invoice.status !== "overdue") return;
 
   const status = await getStripeAccountStatus(tutorRow.stripe_account_id);
   if (!status?.chargesEnabled) return;
+
+  // Expire any still-open prior Checkout Session for this invoice first, so
+  // at most one live session can ever accept payment for it at a time.
+  if (invoice.stripe_invoice_id) {
+    try {
+      const stripe = getStripe();
+      await stripe.checkout.sessions.expire(
+        invoice.stripe_invoice_id,
+        {},
+        { stripeAccount: tutorRow.stripe_account_id }
+      );
+    } catch {
+      // Already expired/completed/gone — fine, proceed to mint a new one.
+    }
+  }
 
   try {
     const stripe = getStripe();
@@ -143,7 +164,7 @@ async function runAndNotify(admin: Admin, clientId: string): Promise<{ invoiceId
   );
 
   if (!isEmailConfigured()) {
-    console.log(`[auto-invoice] would email ${client.payer_email} for invoice ${invoiceId} (Resend not configured)`);
+    console.log(`[auto-invoice] invoice ${invoiceId} sent — would email payer (Resend not configured)`);
     return { invoiceId };
   }
 
