@@ -57,22 +57,31 @@ async function runAutoInvoiceJob(request: NextRequest): Promise<NextResponse> {
   let clientsProcessed = 0;
   let invoicesGenerated = 0;
   let cyclesSkippedNoUnbilled = 0;
+  let clientsErrored = 0;
 
+  // One client's unexpected throw must not stop the rest of the run — same
+  // per-item isolation as generate-recurring-sessions' loop, added after a
+  // security review flagged this loop as the one cron job without it.
   for (const client of dueClients ?? []) {
-    let nextDate = client.auto_invoice_next_date as string;
-    let cycles = 0;
+    try {
+      let nextDate = client.auto_invoice_next_date as string;
+      let cycles = 0;
 
-    while (nextDate <= today && cycles < MAX_CATCHUP_CYCLES) {
-      const outcome = await claimAndRunAutoInvoice(admin, client.id, `weekly:${nextDate}`);
-      if (outcome.invoiceId) invoicesGenerated += 1;
-      else if (outcome.claimed) cyclesSkippedNoUnbilled += 1;
+      while (nextDate <= today && cycles < MAX_CATCHUP_CYCLES) {
+        const outcome = await claimAndRunAutoInvoice(admin, client.id, `weekly:${nextDate}`);
+        if (outcome.invoiceId) invoicesGenerated += 1;
+        else if (outcome.claimed) cyclesSkippedNoUnbilled += 1;
 
-      nextDate = addDays(nextDate, AUTO_INVOICE_WEEKLY_CADENCE_DAYS);
-      cycles += 1;
+        nextDate = addDays(nextDate, AUTO_INVOICE_WEEKLY_CADENCE_DAYS);
+        cycles += 1;
+      }
+
+      await admin.from("clients").update({ auto_invoice_next_date: nextDate }).eq("id", client.id);
+      clientsProcessed += 1;
+    } catch (clientError) {
+      clientsErrored++;
+      console.error(`Auto-invoice run failed for client ${client.id}:`, clientError);
     }
-
-    await admin.from("clients").update({ auto_invoice_next_date: nextDate }).eq("id", client.id);
-    clientsProcessed += 1;
   }
 
   return NextResponse.json({
@@ -80,5 +89,6 @@ async function runAutoInvoiceJob(request: NextRequest): Promise<NextResponse> {
     clientsProcessed,
     invoicesGenerated,
     cyclesSkippedNoUnbilled,
+    clientsErrored,
   });
 }

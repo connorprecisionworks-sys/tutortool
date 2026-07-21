@@ -144,8 +144,13 @@ async function runReminderJob(request: NextRequest): Promise<NextResponse> {
 
   let remindersSent = 0;
   let sendFailures = 0;
+  let invoicesErrored = 0;
+  let sessionsErrored = 0;
 
+  // Per-item isolation: an unexpected throw on one invoice/session (bad
+  // template shape, unexpected null) must not abort the rest of this run.
   for (const invoice of invoices ?? []) {
+   try {
     const tutor = invoice.tutors as unknown as {
       reminder_cadence: { offsets_days?: number[] } | null;
       reminder_templates: ReminderTemplates;
@@ -224,6 +229,10 @@ async function runReminderJob(request: NextRequest): Promise<NextResponse> {
       if (outcome === "sent") remindersSent += 1;
       else if (outcome === "failed") sendFailures += 1;
     }
+   } catch (invoiceError) {
+    invoicesErrored++;
+    console.error(`Invoice reminder processing failed for invoice ${invoice.id}:`, invoiceError);
+   }
   }
 
   let sessionRemindersSent = 0;
@@ -237,6 +246,7 @@ async function runReminderJob(request: NextRequest): Promise<NextResponse> {
   const now = new Date(nowAsStoredWallClockIso()).getTime();
 
   for (const session of upcomingSessions ?? []) {
+   try {
     const tutor = session.tutors as unknown as {
       name: string;
       email: string;
@@ -321,14 +331,20 @@ async function runReminderJob(request: NextRequest): Promise<NextResponse> {
       if (outcome === "sent") sessionRemindersSent += 1;
       else if (outcome === "failed") sendFailures += 1;
     }
+   } catch (sessionError) {
+    sessionsErrored++;
+    console.error(`Session reminder processing failed for session ${session.id}:`, sessionError);
+   }
   }
 
   return NextResponse.json({
     overdueFlipped: flipped?.length ?? 0,
     invoicesScanned: invoices?.length ?? 0,
     remindersSent,
+    invoicesErrored,
     sessionsScanned: upcomingSessions?.length ?? 0,
     sessionRemindersSent,
+    sessionsErrored,
     sendFailures,
   });
 }
