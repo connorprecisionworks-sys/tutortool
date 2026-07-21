@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireParent } from "@/lib/auth/parent";
 import { getPostHogClient } from "@/lib/posthog-server";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export interface RedeemInviteResult {
   error?: string;
@@ -20,6 +21,12 @@ export async function redeemInviteAction(
     .trim()
     .toUpperCase();
   if (!code) return { error: "Enter a Student Code." };
+
+  // Requires an authenticated parent session already, but still worth
+  // capping guess attempts per account.
+  if (!(await checkRateLimit(supabase, `redeem:${parent.auth_user_id}`, 20, 3600))) {
+    return { error: "Too many attempts. Please wait a while and try again." };
+  }
 
   const { error } = await supabase.rpc("redeem_invite", { p_code: code });
   if (error) return { error: error.message };
@@ -53,6 +60,10 @@ export async function redeemTutorCodeAction(
 
   if (!tutorCode) return { error: "Missing tutor code." };
   if (!childName && !existingStudentId) return { error: "Enter your child's name, or pick one from the list." };
+
+  if (!(await checkRateLimit(supabase, `redeem:${parent.auth_user_id}`, 20, 3600))) {
+    return { error: "Too many attempts. Please wait a while and try again." };
+  }
 
   // redeem_tutor_code (SECURITY DEFINER) creates the client + Student Code
   // inline when childName is given (mirrors create_student's "never a

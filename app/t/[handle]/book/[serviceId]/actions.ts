@@ -10,6 +10,7 @@ import type { ReminderTemplates } from "@/lib/reminders";
 import { resolveSystemTemplate, renderTemplateEmailHtml } from "@/lib/email-templates";
 import { parentFacingIdentity } from "@/lib/email-identity";
 import { isNotificationEnabled, type NotificationSettings } from "@/lib/notification-settings";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -70,6 +71,13 @@ export async function confirmPublicServiceBookingAction(
   if (Number.isNaN(new Date(startTs).getTime())) return { error: "Invalid time." };
 
   const supabase = await createClient();
+
+  // Fully anonymous, DB-writing, and triggers a metered email send on
+  // success — cap attempts per IP so a script can't spam bookings.
+  const ip = await getClientIp();
+  if (!(await checkRateLimit(supabase, `book:${ip}`, 10, 600))) {
+    return { error: "Too many attempts. Please wait a few minutes and try again." };
+  }
 
   const { data, error } = await supabase.rpc("confirm_public_service_booking", {
     p_handle: handle,

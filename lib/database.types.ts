@@ -723,6 +723,50 @@ export type Database = {
           },
         ]
       }
+      founder_jobs: {
+        Row: {
+          assignee: string | null
+          blocked_by: string | null
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          id: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assignee?: string | null
+          blocked_by?: string | null
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assignee?: string | null
+          blocked_by?: string | null
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "founder_jobs_blocked_by_fkey"
+            columns: ["blocked_by"]
+            isOneToOne: false
+            referencedRelation: "founder_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       founder_leads: {
         Row: {
           context: string | null
@@ -1109,6 +1153,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      rate_limit_buckets: {
+        Row: {
+          bucket_key: string
+          count: number
+          window_start: string
+        }
+        Insert: {
+          bucket_key: string
+          count?: number
+          window_start: string
+        }
+        Update: {
+          bucket_key?: string
+          count?: number
+          window_start?: string
+        }
+        Relationships: []
       }
       recurring_sessions: {
         Row: {
@@ -1801,6 +1863,10 @@ export type Database = {
       cancel_session: {
         Args: { p_override_handling?: string; p_session_id: string }
         Returns: Json
+      }
+      check_rate_limit: {
+        Args: { p_key: string; p_max_count: number; p_window_seconds: number }
+        Returns: boolean
       }
       confirm_booking_link: {
         Args: {

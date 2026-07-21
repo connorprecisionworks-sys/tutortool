@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getPostHogClient } from "@/lib/posthog-server";
 import { TERMS_DOC, PRIVACY_DOC } from "@/lib/legal/docs";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export interface AuthActionResult {
   error?: string;
@@ -15,6 +16,15 @@ export async function signInAction(formData: FormData): Promise<AuthActionResult
   const password = String(formData.get("password") ?? "");
 
   const supabase = await createClient();
+
+  // Anonymous, credential-guessable endpoint — layered on top of whatever
+  // Supabase Auth's own GoTrue rate limits already provide, not a
+  // replacement for them.
+  const ip = await getClientIp();
+  if (!(await checkRateLimit(supabase, `signin:${ip}`, 20, 600))) {
+    return { error: "Too many attempts. Please wait a few minutes and try again." };
+  }
+
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) return { error: error.message };
@@ -33,6 +43,13 @@ async function signUpWithRole(role: "tutor" | "parent", formData: FormData): Pro
   if (!agreed) return { error: "You must agree to the Terms of Service and Privacy Policy to continue." };
 
   const supabase = await createClient();
+
+  // Anonymous, DB-writing, fully scriptable endpoint — cap sign-up attempts
+  // per IP so a script can't mass-create accounts.
+  const ip = await getClientIp();
+  if (!(await checkRateLimit(supabase, `signup:${ip}`, 10, 3600))) {
+    return { error: "Too many attempts. Please wait a while and try again." };
+  }
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
