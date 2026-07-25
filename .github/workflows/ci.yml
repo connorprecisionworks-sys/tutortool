@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run test
+
+      # `next build` is intentionally not run here: it needs runtime env vars
+      # (Supabase/Stripe/PostHog keys) that CI doesn't have, and this workflow
+      # is meant to stay fast and secret-free. typecheck + lint + test cover
+      # the code; all external deps in the tests are mocked.
