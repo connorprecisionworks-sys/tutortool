@@ -1,5 +1,4 @@
 import type { createAdminClient } from "@/lib/supabase/admin";
-import { getStripe, getStripeAccountStatus, isStripeConfigured } from "@/lib/stripe/client";
 import { sendEmail, isEmailConfigured } from "@/lib/email";
 import { formatCents } from "@/lib/money";
 import { formatDate } from "@/lib/date";
@@ -7,7 +6,7 @@ import { resolveSystemTemplate, renderTemplateEmailHtml } from "@/lib/email-temp
 import { parentFacingIdentity } from "@/lib/email-identity";
 import { isNotificationEnabled, type NotificationSettings } from "@/lib/notification-settings";
 import type { ReminderTemplates } from "@/lib/reminders";
-import { appUrl } from "@/lib/env";
+import { createInvoiceCheckoutSession } from "@/lib/stripe-checkout-session";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -26,84 +25,26 @@ export interface AutoInvoiceOutcome {
 
 /**
  * Best-effort Stripe Checkout Session creation for a just-auto-sent invoice.
- * Mirrors tryCreateStripePaymentLink in app/tutor/invoices/actions.ts, but
- * can't reuse it directly: that helper reads via the RLS-scoped client and
- * persists through set_invoice_stripe_link, a current_tutor_id()-gated
- * SECURITY DEFINER function that would reject a service-role caller (no
- * auth.uid()). Writing the link straight to the invoices row is safe here
- * since the admin client bypasses RLS entirely.
+ * Shares createInvoiceCheckoutSession with tryCreateStripePaymentLink in
+ * app/tutor/invoices/actions.ts — the two differ only in which client they
+ * read/write through and how the link gets persisted: that helper writes
+ * through set_invoice_stripe_link, a current_tutor_id()-gated SECURITY
+ * DEFINER function that would reject a service-role caller (no auth.uid());
+ * writing the link straight to the invoices row is safe here since the
+ * admin client bypasses RLS entirely. Never throws (createInvoiceCheckoutSession's
+ * own contract) — a Stripe hiccup must not undo a successfully generated+sent
+ * invoice, so any error is logged and swallowed.
  */
 async function tryCreateStripePaymentLinkAsAdmin(admin: Admin, invoiceId: string): Promise<void> {
-  if (!isStripeConfigured()) return;
-
-  const { data: invoice } = await admin
-    .from("invoices")
-    .select("*, tutors(stripe_account_id), clients(payer_email, student_name)")
-    .eq("id", invoiceId)
-    .maybeSingle();
-
-  const tutorRow = invoice?.tutors as unknown as { stripe_account_id: string | null } | null;
-  const clientRow = invoice?.clients as unknown as { payer_email: string | null; student_name: string } | null;
-  if (!invoice || !tutorRow?.stripe_account_id) return;
-  // Only a sent/overdue invoice is payable — never mint a fresh live
-  // Checkout Session against a paid/void/draft invoice (double-payment risk
-  // caught in security review: a stray extra live session would still
-  // accept a real charge even though the DB write back is separately
-  // guarded by set_invoice_stripe_link's own status check).
-  if (invoice.status !== "sent" && invoice.status !== "overdue") return;
-
-  const status = await getStripeAccountStatus(tutorRow.stripe_account_id);
-  if (!status?.chargesEnabled) return;
-
-  // Expire any still-open prior Checkout Session for this invoice first, so
-  // at most one live session can ever accept payment for it at a time.
-  if (invoice.stripe_invoice_id) {
-    try {
-      const stripe = getStripe();
-      await stripe.checkout.sessions.expire(
-        invoice.stripe_invoice_id,
-        {},
-        { stripeAccount: tutorRow.stripe_account_id }
-      );
-    } catch {
-      // Already expired/completed/gone — fine, proceed to mint a new one.
-    }
-  }
-
-  try {
-    const stripe = getStripe();
-    const session = await stripe.checkout.sessions.create(
-      {
-        mode: "payment",
-        line_items: [
-          {
-            price_data: {
-              currency: "usd",
-              product_data: { name: `Tutoring — ${clientRow?.student_name ?? "invoice"}` },
-              unit_amount: invoice.total_cents,
-            },
-            quantity: 1,
-          },
-        ],
-        customer_email: clientRow?.payer_email ?? undefined,
-        metadata: { invoice_id: invoiceId },
-        success_url: `${appUrl()}/tutor/invoices/${invoiceId}?stripe=success`,
-        cancel_url: `${appUrl()}/tutor/invoices/${invoiceId}?stripe=cancelled`,
-      },
-      { stripeAccount: tutorRow.stripe_account_id }
-    );
-
-    if (session.url) {
-      await admin
-        .from("invoices")
-        .update({ stripe_invoice_id: session.id, stripe_payment_url: session.url })
-        .eq("id", invoiceId);
-    }
-  } catch (err) {
-    console.error(
-      `tryCreateStripePaymentLinkAsAdmin failed for invoice ${invoiceId}:`,
-      err instanceof Error ? err.message : err
-    );
+  const result = await createInvoiceCheckoutSession(admin, invoiceId, async (session) => {
+    const { error } = await admin
+      .from("invoices")
+      .update({ stripe_invoice_id: session.id, stripe_payment_url: session.url, session_lock_at: null })
+      .eq("id", invoiceId);
+    return error ? { error: error.message } : {};
+  });
+  if (result.error) {
+    console.error(`tryCreateStripePaymentLinkAsAdmin failed for invoice ${invoiceId}:`, result.error);
   }
 }
 

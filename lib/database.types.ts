@@ -973,6 +973,7 @@ export type Database = {
           period_end: string
           period_start: string
           sent_at: string | null
+          session_lock_at: string | null
           status: Database["public"]["Enums"]["invoice_status"]
           stripe_invoice_id: string | null
           stripe_payment_url: string | null
@@ -992,6 +993,7 @@ export type Database = {
           period_end: string
           period_start: string
           sent_at?: string | null
+          session_lock_at?: string | null
           status?: Database["public"]["Enums"]["invoice_status"]
           stripe_invoice_id?: string | null
           stripe_payment_url?: string | null
@@ -1011,6 +1013,7 @@ export type Database = {
           period_end?: string
           period_start?: string
           sent_at?: string | null
+          session_lock_at?: string | null
           status?: Database["public"]["Enums"]["invoice_status"]
           stripe_invoice_id?: string | null
           stripe_payment_url?: string | null
@@ -1868,6 +1871,10 @@ export type Database = {
         Args: { p_key: string; p_max_count: number; p_window_seconds: number }
         Returns: boolean
       }
+      claim_invoice_checkout_session_lock: {
+        Args: { p_invoice_id: string; p_stale_after_seconds?: number }
+        Returns: string
+      }
       confirm_booking_link: {
         Args: {
           p_parent_email: string
@@ -2156,11 +2163,16 @@ export type Database = {
       }
       regenerate_ical_token: { Args: never; Returns: string }
       regenerate_invite: { Args: { p_student_id: string }; Returns: string }
+      release_invoice_checkout_session_lock: {
+        Args: { p_claimed_at: string; p_invoice_id: string }
+        Returns: undefined
+      }
       remove_line_item: { Args: { p_line_item_id: string }; Returns: undefined }
       remove_resource_gate: {
         Args: { p_resource_id: string }
         Returns: undefined
       }
+      reset_rate_limit: { Args: { p_key: string }; Returns: undefined }
       revoke_invite: { Args: { p_student_id: string }; Returns: undefined }
       run_client_auto_invoice: {
         Args: { p_client_id: string }

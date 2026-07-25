@@ -4,30 +4,72 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getPostHogClient } from "@/lib/posthog-server";
 import { TERMS_DOC, PRIVACY_DOC } from "@/lib/legal/docs";
-import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { checkIpRateLimit, checkRateLimit, resetRateLimit } from "@/lib/rate-limit";
 
 export interface AuthActionResult {
   error?: string;
   needsEmailConfirmation?: boolean;
 }
 
+// Shown for both a real invalid-credentials failure and a rate-limited one
+// (see signInAction) — a distinct "too many attempts" message on the
+// rate-limited path would itself be a signal an attacker could use to tell
+// when they've been throttled vs. just guessed wrong. Below, signInAction
+// substitutes this same constant in place of GoTrue's own message whenever
+// its error code is "invalid_credentials", so the two paths are guaranteed
+// byte-identical by construction — this doesn't depend on guessing GoTrue's
+// exact wording (UNCONFIRMED against live Supabase Auth in this session; no
+// network calls were made under this task's constraints).
+const INVALID_CREDENTIALS_MESSAGE = "Invalid login credentials";
+
 export async function signInAction(formData: FormData): Promise<AuthActionResult> {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
+  const normalizedEmail = email.toLowerCase();
 
   const supabase = await createClient();
 
-  // Anonymous, credential-guessable endpoint — layered on top of whatever
-  // Supabase Auth's own GoTrue rate limits already provide, not a
-  // replacement for them.
-  const ip = await getClientIp();
-  if (!(await checkRateLimit(supabase, `signin:${ip}`, 20, 600))) {
-    return { error: "Too many attempts. Please wait a few minutes and try again." };
+  // Two independent limiters, both must pass. IP alone doesn't stop
+  // credential stuffing (cheap residential-proxy pools rotate IPs freely),
+  // and email alone doesn't stop one source hammering many accounts — see
+  // supabase/migrations/20260724100000_sec4_login_account_rate_limit.sql
+  // (NOT YET APPLIED) for the reset_rate_limit() this relies on below.
+  // Layered on top of whatever Supabase Auth's own GoTrue rate limits
+  // already provide, not a replacement for them.
+  const emailKey = `signin-email:${normalizedEmail}`;
+  const emailHourlyKey = `${emailKey}:hourly`;
+  const [ipOk, emailOk, emailHourlyOk] = await Promise.all([
+    checkIpRateLimit(supabase, "signin", 20, 600),
+    checkRateLimit(supabase, emailKey, 5, 900),
+    checkRateLimit(supabase, emailHourlyKey, 20, 3600),
+  ]);
+  if (!ipOk || !emailOk || !emailHourlyOk) {
+    // Same message and a comparable delay to a real signInWithPassword
+    // round trip — GoTrue's own password check has real crypto latency we
+    // can't replicate exactly without calling it, so this is a best-effort
+    // delay match (not a constant-time guarantee), just enough that an
+    // instant response isn't itself a tell that this attempt got throttled.
+    await new Promise((resolve) => setTimeout(resolve, 200 + Math.random() * 150));
+    return { error: INVALID_CREDENTIALS_MESSAGE };
   }
 
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
-  if (error) return { error: error.message };
+  if (error) {
+    // Normalized to the exact same string as the rate-limited path above
+    // for "invalid_credentials" specifically — guarantees the two are
+    // indistinguishable by construction. Other GoTrue error codes (e.g.
+    // "email_not_confirmed") are unrelated to this task and pass through
+    // unchanged, same as before.
+    return { error: error.code === "invalid_credentials" ? INVALID_CREDENTIALS_MESSAGE : error.message };
+  }
+
+  // Successful login — give this email's attempt budget back rather than
+  // leaving a legitimate user who fumbled a password twice one or two
+  // failed attempts away from being locked out on their next visit.
+  // Best-effort: never block/undo a successful login on a reset failure.
+  await Promise.all([resetRateLimit(supabase, emailKey), resetRateLimit(supabase, emailHourlyKey)]);
+
   return {};
 }
 
@@ -46,8 +88,7 @@ async function signUpWithRole(role: "tutor" | "parent", formData: FormData): Pro
 
   // Anonymous, DB-writing, fully scriptable endpoint — cap sign-up attempts
   // per IP so a script can't mass-create accounts.
-  const ip = await getClientIp();
-  if (!(await checkRateLimit(supabase, `signup:${ip}`, 10, 3600))) {
+  if (!(await checkIpRateLimit(supabase, "signup", 10, 3600))) {
     return { error: "Too many attempts. Please wait a while and try again." };
   }
   const { data, error } = await supabase.auth.signUp({

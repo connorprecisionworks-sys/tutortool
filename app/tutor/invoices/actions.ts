@@ -4,101 +4,30 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireTutor } from "@/lib/auth/tutor";
 import { dollarsToCents } from "@/lib/money";
-import { getStripe, getStripeAccountStatus, isStripeConfigured } from "@/lib/stripe/client";
-import { appUrl } from "@/lib/env";
+import { isStripeConfigured } from "@/lib/stripe/client";
 import { getPostHogClient } from "@/lib/posthog-server";
+import { createInvoiceCheckoutSession } from "@/lib/stripe-checkout-session";
 
 /**
  * Best-effort: create a Stripe Checkout Session (direct charge on the
  * tutor's connected Express account) for a sent/overdue invoice and persist
- * the link. Never throws — a Stripe hiccup shouldn't undo a successful send;
- * the tutor still has the manual mark-as-paid fallback. Callable both right
- * after send and on-demand to refresh an expired link (Checkout Session
- * URLs expire ~24h after creation, well inside a net-7/14/30 invoice's
- * life, so this needs to be re-callable, not just a one-shot at send time).
+ * the link via set_invoice_stripe_link (current_tutor_id()-gated, so this
+ * needs the RLS-scoped client, not the admin one lib/auto-invoice.ts uses).
+ * Callable both right after send and on-demand to refresh an expired link
+ * (Checkout Session URLs expire ~24h after creation, well inside a
+ * net-7/14/30 invoice's life, so this needs to be re-callable, not just a
+ * one-shot at send time).
  */
 async function tryCreateStripePaymentLink(invoiceId: string): Promise<{ error?: string }> {
-  if (!isStripeConfigured()) return {};
-
   const supabase = await createClient();
-  const { data: invoice } = await supabase
-    .from("invoices")
-    .select("*, tutors(stripe_account_id), clients(payer_email, student_name)")
-    .eq("id", invoiceId)
-    .maybeSingle();
-
-  const tutorRow = invoice?.tutors as unknown as { stripe_account_id: string | null } | null;
-  const clientRow = invoice?.clients as unknown as { payer_email: string | null; student_name: string } | null;
-  if (!invoice || !tutorRow?.stripe_account_id) return {};
-  // Only a sent/overdue invoice is payable — never mint a fresh live
-  // Checkout Session against a paid/void/draft invoice. Without this, a
-  // tutor re-clicking "regenerate payment link" while an older session is
-  // still open could leave two valid Checkout Sessions accepting payment
-  // for the same invoice — a real double-charge risk, since the DB write
-  // guard in set_invoice_stripe_link only protects the stored link, not
-  // whether Stripe itself has more than one live session outstanding.
-  if (invoice.status !== "sent" && invoice.status !== "overdue") {
-    return { error: "This invoice can no longer accept a payment link." };
-  }
-
-  const status = await getStripeAccountStatus(tutorRow.stripe_account_id);
-  if (!status?.chargesEnabled) return {};
-
-  // Expire any still-open prior Checkout Session for this invoice first, so
-  // at most one live session can ever accept payment for it at a time.
-  if (invoice.stripe_invoice_id) {
-    try {
-      const stripe = getStripe();
-      await stripe.checkout.sessions.expire(
-        invoice.stripe_invoice_id,
-        {},
-        { stripeAccount: tutorRow.stripe_account_id }
-      );
-    } catch {
-      // Already expired/completed/gone — fine, proceed to mint a new one.
-    }
-  }
-
-  try {
-    const stripe = getStripe();
-    const session = await stripe.checkout.sessions.create(
-      {
-        mode: "payment",
-        line_items: [
-          {
-            price_data: {
-              currency: "usd",
-              product_data: { name: `Tutoring — ${clientRow?.student_name ?? "invoice"}` },
-              unit_amount: invoice.total_cents,
-            },
-            quantity: 1,
-          },
-        ],
-        customer_email: clientRow?.payer_email ?? undefined,
-        metadata: { invoice_id: invoiceId },
-        success_url: `${appUrl()}/tutor/invoices/${invoiceId}?stripe=success`,
-        cancel_url: `${appUrl()}/tutor/invoices/${invoiceId}?stripe=cancelled`,
-      },
-      { stripeAccount: tutorRow.stripe_account_id }
-    );
-
-    if (session.url) {
-      const { error } = await supabase.rpc("set_invoice_stripe_link", {
-        p_invoice_id: invoiceId,
-        p_stripe_checkout_session_id: session.id,
-        p_stripe_payment_url: session.url,
-      });
-      if (error) {
-        console.error(`set_invoice_stripe_link failed for invoice ${invoiceId}:`, error.message);
-        return { error: error.message };
-      }
-    }
-    return {};
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Stripe error creating the payment link.";
-    console.error(`tryCreateStripePaymentLink failed for invoice ${invoiceId}:`, message);
-    return { error: message };
-  }
+  return createInvoiceCheckoutSession(supabase, invoiceId, async (session) => {
+    const { error } = await supabase.rpc("set_invoice_stripe_link", {
+      p_invoice_id: invoiceId,
+      p_stripe_checkout_session_id: session.id,
+      p_stripe_payment_url: session.url,
+    });
+    return error ? { error: error.message } : {};
+  });
 }
 
 export interface InvoiceFormResult {
