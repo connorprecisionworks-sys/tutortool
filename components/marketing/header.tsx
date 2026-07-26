@@ -2,45 +2,57 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { Logo } from "@/components/brand/logo";
+import Image from "next/image";
 
 const LINKS = [
-  { href: "#features", label: "Features" },
   { href: "#how-it-works", label: "How it works" },
+  { href: "#features", label: "Features" },
 ];
 
+/**
+ * Landing chrome — fixed dark glass over the cinematic page (the landing is
+ * near-black in both themes, so no theme toggle and the on-dark logo asset
+ * is used directly). The only CTA is the waitlist; "Log in" stays as a quiet
+ * link for existing early-access users.
+ */
 export function MarketingHeader() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-bg/90 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-[rgba(168,184,204,0.1)] bg-[rgba(18,18,20,0.72)] backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6 sm:px-10">
         <Link href="/" aria-label="Slate home" onClick={() => setOpen(false)}>
-          <Logo className="h-6 sm:h-7" />
+          <Image
+            src="/brand/logo/slate-logo-on-dark.svg"
+            alt="Slate"
+            width={886}
+            height={236}
+            className="h-6 w-auto sm:h-7"
+          />
         </Link>
 
-        <nav className="hidden items-center gap-8 text-sm text-text-secondary md:flex">
+        <nav className="hidden items-center gap-8 text-sm text-[#a8b8cc] md:flex">
           {LINKS.map((link) => (
-            <a key={link.href} href={link.href} className="hover:text-text">
+            <a key={link.href} href={link.href} className="transition duration-150 hover:text-[#f7f7f7]">
               {link.label}
             </a>
           ))}
         </nav>
 
-        <div className="hidden items-center gap-3 md:flex">
-          <ThemeToggle />
-          <Link href="/login" className="text-sm text-text-secondary hover:text-text">
+        <div className="hidden items-center gap-4 md:flex">
+          <Link href="/login" className="text-sm text-[#a8b8cc] transition duration-150 hover:text-[#f7f7f7]">
             Log in
           </Link>
-          <Link href="/signup/tutor">
-            <Button size="sm">Sign up free</Button>
-          </Link>
+          <a
+            href="#waitlist"
+            className="inline-flex h-9 items-center rounded-lg bg-[#5f728c] px-4 text-sm font-medium text-white shadow-[0_0_24px_-6px_rgba(95,114,140,0.8)] transition duration-150 hover:opacity-90 motion-safe:hover:-translate-y-0.5"
+          >
+            Join the waitlist
+          </a>
         </div>
 
         <button
-          className="flex h-11 w-11 items-center justify-center rounded-lg text-text-secondary hover:bg-hover md:hidden"
+          className="flex h-11 w-11 items-center justify-center rounded-lg text-[#a8b8cc] transition duration-150 hover:bg-[rgba(168,184,204,0.08)] hover:text-[#f7f7f7] md:hidden"
           onClick={() => setOpen((v) => !v)}
           aria-label="Toggle menu"
           aria-expanded={open}
@@ -58,29 +70,30 @@ export function MarketingHeader() {
       </div>
 
       {open && (
-        <div className="border-t border-border px-6 py-4 md:hidden">
+        <div className="border-t border-[rgba(168,184,204,0.1)] px-6 py-4 md:hidden">
           <nav className="flex flex-col gap-1 text-sm">
             {LINKS.map((link) => (
               <a
                 key={link.href}
                 href={link.href}
                 onClick={() => setOpen(false)}
-                className="rounded-lg px-2 py-2 text-text-secondary hover:bg-hover hover:text-text"
+                className="rounded-lg px-2 py-2 text-[#a8b8cc] transition duration-150 hover:bg-[rgba(168,184,204,0.08)] hover:text-[#f7f7f7]"
               >
                 {link.label}
               </a>
             ))}
           </nav>
-          <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
-            <ThemeToggle />
-            <div className="flex items-center gap-3">
-              <Link href="/login" onClick={() => setOpen(false)} className="text-sm text-text-secondary hover:text-text">
-                Log in
-              </Link>
-              <Link href="/signup/tutor" onClick={() => setOpen(false)}>
-                <Button size="sm">Sign up free</Button>
-              </Link>
-            </div>
+          <div className="mt-3 flex items-center justify-between border-t border-[rgba(168,184,204,0.1)] pt-4">
+            <Link href="/login" onClick={() => setOpen(false)} className="text-sm text-[#a8b8cc] hover:text-[#f7f7f7]">
+              Log in
+            </Link>
+            <a
+              href="#waitlist"
+              onClick={() => setOpen(false)}
+              className="inline-flex h-9 items-center rounded-lg bg-[#5f728c] px-4 text-sm font-medium text-white"
+            >
+              Join the waitlist
+            </a>
           </div>
         </div>
       )}

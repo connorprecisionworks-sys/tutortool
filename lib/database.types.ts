@@ -1780,6 +1780,33 @@ export type Database = {
         }
         Relationships: []
       }
+      waitlist: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          num_students: string | null
+          source: string | null
+          subjects: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          num_students?: string | null
+          source?: string | null
+          subjects?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          num_students?: string | null
+          source?: string | null
+          subjects?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       parent_visible_sessions: {
@@ -2103,6 +2130,15 @@ export type Database = {
         Returns: Json
       }
       is_handle_available: { Args: { p_handle: string }; Returns: boolean }
+      join_waitlist: {
+        Args: {
+          p_email: string
+          p_num_students?: string
+          p_source?: string
+          p_subjects?: string
+        }
+        Returns: undefined
+      }
       is_parent_of_session: { Args: { p_session_id: string }; Returns: boolean }
       is_parent_of_student: { Args: { p_student_id: string }; Returns: boolean }
       is_slot_bookable: {

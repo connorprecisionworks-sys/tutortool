@@ -152,24 +152,6 @@ textarea {
   display: block;
 }
 
-@keyframes marquee-left {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
-}
-
-@keyframes marquee-right {
-  from {
-    transform: translateX(-50%);
-  }
-  to {
-    transform: translateX(0);
-  }
-}
-
 @keyframes word-rise {
   from {
     opacity: 0;
@@ -192,19 +174,243 @@ textarea {
   }
 }
 
-@keyframes float {
+/* Landing hero product scene (components/marketing/hero-scene.tsx) */
+@keyframes card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes scene-float {
   0%,
   100% {
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-8px);
+    transform: translateY(-7px);
   }
 }
 
-.marquee-fade {
-  mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
-  -webkit-mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+/* Live payment toast: slides in, holds, slides away — one calm cycle. */
+@keyframes toast-cycle {
+  0% {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  7%,
+  62% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+/* Invoice status pill crossfade: Sent for the first half of the cycle,
+   Paid for the second. Base styles show Paid statically, so
+   reduced-motion visitors see the resolved state. */
+@keyframes pill-sent {
+  0%,
+  42% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  50%,
+  100% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes pill-paid {
+  0%,
+  42% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  50%,
+  92% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes draw-line {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* ---- Landing hero atmosphere (waitlist-hero.tsx / hero-scene.tsx) ----
+   The hero band gets cinematic license the app itself never takes: slate
+   aurora washes, a perspective grid floor, film grain, drifting particles.
+   Colors stay strictly in the brand slate family — the drama comes from
+   light and depth, not new hues. All movement is gated behind
+   prefers-reduced-motion; the static composition stands on its own. */
+
+.hero-aurora-a {
+  background: radial-gradient(ellipse 720px 460px at 72% 18%, rgba(95, 114, 140, 0.32), transparent 65%);
+}
+
+.hero-aurora-b {
+  background: radial-gradient(ellipse 640px 480px at 12% 88%, rgba(168, 184, 204, 0.1), transparent 60%);
+}
+
+.hero-grid {
+  background-image:
+    linear-gradient(rgba(95, 114, 140, 0.16) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(95, 114, 140, 0.16) 1px, transparent 1px);
+  background-size: 44px 44px;
+  transform: perspective(620px) rotateX(63deg);
+  transform-origin: center top;
+  mask-image: linear-gradient(to bottom, transparent, black 30%, black 75%, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, black 30%, black 75%, transparent);
+}
+
+.hero-noise {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/><feColorMatrix type='saturate' values='0'/></filter><rect width='160' height='160' filter='url(%23n)' opacity='0.5'/></svg>");
+  opacity: 0.05;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero-aurora-a {
+    animation: aurora-drift 16s ease-in-out infinite alternate;
+  }
+  .hero-aurora-b {
+    animation: aurora-drift 22s ease-in-out infinite alternate-reverse;
+  }
+  .hero-grid {
+    animation: grid-scroll 3.2s linear infinite;
+  }
+}
+
+@keyframes aurora-drift {
+  from {
+    transform: translate3d(-2%, -1%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(2%, 2%, 0) scale(1.08);
+  }
+}
+
+@keyframes grid-scroll {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 0 44px;
+  }
+}
+
+@keyframes particle-rise {
+  0% {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.7;
+  }
+  70% {
+    opacity: 0.25;
+  }
+  100% {
+    transform: translateY(-140px);
+    opacity: 0;
+  }
+}
+
+@keyframes ring-pulse {
+  from {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  to {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+/* Diagonal light beam that sweeps across the hero every few seconds. */
+@keyframes beam-sweep {
+  0%,
+  12% {
+    transform: translateX(-70%) rotate(18deg);
+  }
+  55%,
+  100% {
+    transform: translateX(70%) rotate(18deg);
+  }
+}
+
+/* A narrow bright arc orbiting a card's border (conic gradient spun 360°). */
+@keyframes border-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Shimmer for gradient-clipped display text. */
+.text-shimmer {
+  background-size: 220% 100%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .text-shimmer {
+    animation: gradient-shift 7s ease-in-out infinite;
+  }
+}
+
+@keyframes gradient-shift {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Large blurred bokeh orbs drifting in the backdrop. */
+@keyframes orb-drift {
+  from {
+    transform: translate3d(-24px, 12px, 0) scale(1);
+  }
+  to {
+    transform: translate3d(24px, -18px, 0) scale(1.12);
+  }
+}
+
+/* Revenue number pop when a payment lands. */
+@keyframes num-pop {
+  0% {
+    transform: scale(0.92);
+    color: #a8b8cc;
+  }
+  60% {
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Energy flowing along the how-it-works pipeline line. */
+@keyframes dash-flow {
+  to {
+    stroke-dashoffset: -28;
+  }
 }
 
 /* Responsive tables: below `sm`, rows become stacked cards instead of a
