@@ -4,7 +4,7 @@ import { AppShell } from "@/components/shell/app-shell";
 import { CommandPalette } from "@/components/command-palette/command-palette";
 import { FeedbackWidget } from "@/components/feedback/feedback-widget";
 import { FeedbackTracker } from "@/components/feedback/feedback-tracker";
-import { TUTOR_NAV } from "@/lib/nav";
+import { TUTOR_NAV, flattenNav } from "@/lib/nav";
 import { requireTutor } from "@/lib/auth/tutor";
 import { getOnboardingStatus } from "@/lib/onboarding";
 import { PostHogIdentifier } from "@/components/posthog-identifier";
@@ -40,12 +40,17 @@ export default async function TutorLayout({ children }: { children: React.ReactN
     .eq("archived", false)
     .order("student_name");
 
+  // The sidebar is 5 sections now, but the command palette should still find
+  // every page by its own name ("Expenses", "Booking links", …) — so it gets
+  // the flat list of destinations, not the grouped one.
+  const paletteNav = flattenNav(TUTOR_NAV);
+
   return (
     <AppShell
       navItems={TUTOR_NAV}
       brand="Slate"
       userLabel={tutor.email}
-      paletteTrigger={<CommandPalette navItems={TUTOR_NAV} students={students ?? []} />}
+      paletteTrigger={<CommandPalette navItems={paletteNav} students={students ?? []} />}
       feedbackTrigger={<FeedbackWidget />}
     >
       <PostHogIdentifier distinctId={tutor.auth_user_id} name={tutor.name} email={tutor.email} role="tutor" />

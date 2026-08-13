@@ -9,8 +9,11 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: Size;
 }
 
+// The press state (scale down, drop the hover lift) is what makes a click
+// feel acknowledged before the server has answered — the cheapest perceived
+// -latency win there is, and the one piece of motion every button gets.
 const base =
-  "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition duration-150 disabled:opacity-50 disabled:pointer-events-none disabled:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-4 motion-safe:hover:-translate-y-0.5";
+  "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition duration-150 disabled:opacity-50 disabled:pointer-events-none disabled:hover:translate-y-0 focus-visible:outline-none focus-visible:ring-4 motion-safe:hover:-translate-y-0.5 motion-safe:active:translate-y-0 motion-safe:active:scale-[0.97]";
 
 const variants: Record<Variant, string> = {
   primary: "bg-accent text-accent-text hover:opacity-90 focus-visible:ring-[var(--focus-ring)]",

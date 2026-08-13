@@ -174,6 +174,134 @@ textarea {
   }
 }
 
+/* ---------------- App shell motion (components/shell/app-shell.tsx) ----------------
+   The marketing pages get cinematic license (see the hero block further
+   down); the app itself gets the opposite budget. Everything here is under
+   270ms, moves 8px or less, and exists to make a state change legible —
+   where the highlight went, that the sidebar is narrowing on purpose, that
+   the page under you actually changed. No new dependency: the reference
+   libraries (unlumen, Magic UI, SmoothUI) all ship Motion/GSAP, and none of
+   these four effects needs it.
+
+   All of it is opt-out under prefers-reduced-motion at the bottom of the
+   block. Durations live here rather than in Tailwind arbitrary values so
+   they can be tuned in one place. */
+
+/* 1. Route change. Content fades up as the new page mounts, so a sub-tab
+      switch reads as "this replaced that" instead of a hard repaint. */
+.page-enter {
+  animation: fade-rise-in 240ms cubic-bezier(0.2, 0.6, 0.3, 1);
+}
+
+/* 2. Sidebar collapse. The label's width, margin and opacity animate
+      together with the rail, so text slides toward its icon instead of
+      being clipped mid-word. margin-left (not a flex gap) carries the
+      icon-to-label spacing precisely so it can go to zero — otherwise a
+      12px gap survives the collapse and the icon sits off-centre in the
+      68px rail. */
+.nav-label {
+  display: block;
+  max-width: 12rem;
+  margin-left: 0.75rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  opacity: 1;
+  transform: translateX(0);
+  transition:
+    max-width 220ms cubic-bezier(0.4, 0, 0.2, 1),
+    margin-left 220ms cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 140ms ease 60ms,
+    transform 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Only above `sm` — below it the sidebar is a full-width drawer that never
+   collapses to a rail, so labels always show there regardless of data-nav. */
+@media (min-width: 640px) {
+  :root[data-nav="collapsed"] .nav-label {
+    max-width: 0;
+    margin-left: 0;
+    opacity: 0;
+    transform: translateX(-8px);
+    /* Fade out first, then let width finish — the reverse of expanding,
+       where the label waits (60ms delay above) for space to exist. */
+    transition:
+      max-width 220ms cubic-bezier(0.4, 0, 0.2, 1),
+      margin-left 220ms cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 90ms ease,
+      transform 220ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+/* 3. Active section marker. A 2px accent rule that grows out of the item's
+      leading edge, with a slight overshoot. Survives the collapse (it's
+      anchored to the item, not the label), so the icon rail still shows
+      where you are. */
+.nav-item {
+  position: relative;
+}
+
+.nav-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 2px;
+  height: 0;
+  border-radius: 0 2px 2px 0;
+  background: var(--accent);
+  transform: translateY(-50%);
+  transition: height 220ms cubic-bezier(0.34, 1.3, 0.64, 1);
+}
+
+.nav-item[data-active="true"]::before {
+  height: 18px;
+}
+
+.nav-item svg {
+  transition: transform 200ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+.nav-item:hover svg {
+  transform: translateY(-1px);
+}
+
+.nav-item[data-active="true"] svg {
+  color: var(--accent);
+}
+
+/* 4. Sub-tab pill. One shared element that slides and resizes between tabs
+      rather than a background that blinks off one tab and on to another —
+      the eye tracks the move, so you keep your place in the row. Position
+      is written imperatively from the active tab's box (see the effect in
+      app-shell.tsx); everything here is just how it travels. */
+.subtab-pill {
+  position: absolute;
+  top: 0.5rem;
+  left: 0;
+  height: 1.875rem;
+  border-radius: 0.5rem;
+  background: var(--hover);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform 260ms cubic-bezier(0.34, 1.25, 0.64, 1),
+    width 260ms cubic-bezier(0.34, 1.25, 0.64, 1),
+    opacity 150ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter {
+    animation: none;
+  }
+  .nav-label,
+  .nav-item::before,
+  .nav-item svg,
+  .subtab-pill {
+    transition: none;
+  }
+}
+
 /* Landing hero product scene (components/marketing/hero-scene.tsx) */
 @keyframes card-enter {
   from {

@@ -44,7 +44,13 @@ export const viewport: Viewport = {
   ],
 };
 
-const THEME_INIT_SCRIPT = `
+// Runs before first paint and writes both browser-only shell preferences
+// onto <html> as data attributes. Those attributes are then the single
+// source of truth the client components read via useSyncExternalStore
+// (components/theme-toggle.tsx, components/shell/app-shell.tsx) — which is
+// what keeps them free of a hydration mismatch *and* free of a visible flash
+// of the wrong theme / a sidebar that pops from wide to narrow on load.
+const SHELL_INIT_SCRIPT = `
 (function () {
   try {
     // Falls back to the pre-rebrand key so an existing user's saved theme
@@ -54,6 +60,10 @@ const THEME_INIT_SCRIPT = `
     if (stored) localStorage.setItem('slate-theme', stored);
     var theme = stored || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     document.documentElement.setAttribute('data-theme', theme);
+  } catch (e) {}
+  try {
+    var nav = localStorage.getItem('slate_nav_collapsed') === '1' ? 'collapsed' : 'expanded';
+    document.documentElement.setAttribute('data-nav', nav);
   } catch (e) {}
 })();
 `;
@@ -70,7 +80,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: SHELL_INIT_SCRIPT }} />
       </head>
       <body className="min-h-full bg-bg text-text">
         <ToastProvider>{children}</ToastProvider>

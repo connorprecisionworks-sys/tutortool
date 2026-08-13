@@ -46,3 +46,7 @@ next-env.d.ts
 .gstack/
 .env.local
 scratch/
+
+# Design reference recordings (screen captures used for motion study).
+# Video, not source — an 88MB .mov never comes back out of git history cleanly.
+refs/
