@@ -7,6 +7,7 @@ import { Input, Label, Select, Textarea, FieldHint } from "@/components/ui/input
 import { PrivacyPill } from "@/components/ui/privacy-pill";
 import { useToast } from "@/components/ui/toast";
 import { studentJoinLink } from "@/lib/invite-link";
+import { SMS_CONSENT_TEXT } from "@/lib/sms";
 import {
   RATE_TYPE_LABELS,
   RATE_TYPES_REQUIRING_CUSTOM_RATE,
@@ -109,14 +110,19 @@ export function StudentForm({
         </div>
 
         {smsConfigured && (
-          <label className="mt-4 flex items-center gap-2 text-sm">
+          // The label is SMS_CONSENT_TEXT rather than its own wording on
+          // purpose: the database trigger stores that exact string on the
+          // client row when this box is ticked, so what the tutor agreed to
+          // on screen and what Slate can produce at audit time are provably
+          // the same sentence. See lib/sms.ts.
+          <label className="mt-4 flex items-start gap-2 text-sm">
             <input
               type="checkbox"
               name="sms_opt_in"
               defaultChecked={student?.sms_opt_in ?? false}
-              className="h-4 w-4 rounded border-border"
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-border"
             />
-            Parent has agreed to receive text reminders at this number
+            {SMS_CONSENT_TEXT}
           </label>
         )}
 

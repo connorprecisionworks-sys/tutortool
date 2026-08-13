@@ -2,6 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail } from "@/lib/email";
 import { isSmsConfigured, maskPhone, normalizePhoneToE164, sendSms } from "@/lib/sms";
+import { invoiceLinkForSms } from "@/lib/invoice-link";
+import { interpolateSmsBody } from "@/lib/reminders";
 import { formatCents } from "@/lib/money";
 import { formatDate } from "@/lib/date";
 import { formatBookingWhen, nowAsStoredWallClockIso } from "@/lib/scheduling";
@@ -127,7 +129,7 @@ async function runReminderJob(request: NextRequest): Promise<NextResponse> {
     admin
       .from("invoices")
       .select(
-        "id, due_date, total_cents, stripe_payment_url, tutor_id, tutors(reminder_cadence, reminder_templates, notification_settings, name, email, sms_enabled), clients(payer_email, student_name, payer_phone, sms_opt_in)"
+        "id, due_date, total_cents, stripe_payment_url, short_token, tutor_id, tutors(reminder_cadence, reminder_templates, notification_settings, name, email, sms_enabled), clients(payer_email, student_name, payer_phone, sms_opt_in)"
       )
       .in("status", ["sent", "overdue"])
       .not("due_date", "is", null),
@@ -200,6 +202,21 @@ async function runReminderJob(request: NextRequest): Promise<NextResponse> {
     };
     const rendered = renderTemplateEmailHtml(template, vars, { ctaLabel: "Pay invoice", logoUrl: LOGO_URL });
 
+    // The SMS body is rendered separately from the email's, for two reasons
+    // that both cost real money:
+    //
+    //   * {{link}}. Email gets the Stripe URL (100+ chars, straight to
+    //     checkout). A text can't afford that — it pushes every invoice
+    //     reminder to a second segment, i.e. double price, and points at a
+    //     third-party domain, which is the worst case for carrier spam
+    //     filtering. SMS gets /i/<token> on our own domain: 32 characters.
+    //   * escaping. rendered.body is HTML-escaped for the email shell, so a
+    //     parent named O'Brien would receive "O&#39;Brien" in a text.
+    const smsBody = interpolateSmsBody(template, {
+      ...vars,
+      link: invoice.short_token ? invoiceLinkForSms(invoice.short_token) : (invoice.stripe_payment_url ?? ""),
+    });
+
     const outcomes = await Promise.all([
       hasEmail
         ? claimAndSend(
@@ -219,7 +236,7 @@ async function runReminderJob(request: NextRequest): Promise<NextResponse> {
         ? claimAndSend(
             admin,
             { invoice_id: invoice.id, channel: "sms", template_key: key },
-            () => sendSms({ to: smsPhone!, body: rendered.body }),
+            () => sendSms({ to: smsPhone!, body: smsBody }),
             `invoice ${invoice.id}/${key} (sms, ${maskPhone(smsPhone!)})`
           )
         : Promise.resolve(null),
@@ -288,15 +305,14 @@ async function runReminderJob(request: NextRequest): Promise<NextResponse> {
     const hasSms = Boolean(smsPhone);
     if (!hasEmail && !hasSms) continue;
 
-    const rendered = renderTemplateEmailHtml(
-      template,
-      {
-        student: client!.student_name,
-        tutor: tutor.name,
-        when: formatBookingWhen(`${session.occurred_on}T${session.start_time}.000Z`),
-      },
-      { logoUrl: LOGO_URL }
-    );
+    // Named rather than inline so the SMS body below renders from exactly the
+    // same values the email does — the two must never drift.
+    const sessionVars = {
+      student: client!.student_name,
+      tutor: tutor.name,
+      when: formatBookingWhen(`${session.occurred_on}T${session.start_time}.000Z`),
+    };
+    const rendered = renderTemplateEmailHtml(template, sessionVars, { logoUrl: LOGO_URL });
 
     // Same insert-to-claim dedup shape as the invoice loop above, scoped
     // by the partial unique index on (session_id, kind, channel) instead of
@@ -321,7 +337,7 @@ async function runReminderJob(request: NextRequest): Promise<NextResponse> {
         ? claimAndSend(
             admin,
             { session_id: session.id, kind: "session_reminder", channel: "sms", template_key: "session_reminder" },
-            () => sendSms({ to: smsPhone!, body: rendered.body }),
+            () => sendSms({ to: smsPhone!, body: interpolateSmsBody(template, sessionVars) }),
             `session ${session.id} (sms, ${maskPhone(smsPhone!)})`
           )
         : Promise.resolve(null),

@@ -975,6 +975,7 @@ export type Database = {
           sent_at: string | null
           session_lock_at: string | null
           status: Database["public"]["Enums"]["invoice_status"]
+          short_token: string
           stripe_invoice_id: string | null
           stripe_payment_url: string | null
           subtotal_cents: number
@@ -995,6 +996,7 @@ export type Database = {
           sent_at?: string | null
           session_lock_at?: string | null
           status?: Database["public"]["Enums"]["invoice_status"]
+          short_token?: string | null
           stripe_invoice_id?: string | null
           stripe_payment_url?: string | null
           subtotal_cents?: number
@@ -1015,6 +1017,7 @@ export type Database = {
           sent_at?: string | null
           session_lock_at?: string | null
           status?: Database["public"]["Enums"]["invoice_status"]
+          short_token?: string | null
           stripe_invoice_id?: string | null
           stripe_payment_url?: string | null
           subtotal_cents?: number
@@ -2089,6 +2092,7 @@ export type Database = {
       get_booking_link_public: { Args: { p_token: string }; Returns: Json }
       get_ical_feed: { Args: { p_token: string }; Returns: Json }
       get_invoice_document: { Args: { p_invoice_id: string }; Returns: Json }
+      get_invoice_document_by_token: { Args: { p_token: string }; Returns: Json }
       get_open_availability_slots: {
         Args: { p_date: string; p_token: string }
         Returns: Json
@@ -2184,6 +2188,8 @@ export type Database = {
         Args: { p_direction: string; p_service_id: string }
         Returns: undefined
       }
+      record_sms_opt_in: { Args: { p_phone: string }; Returns: number }
+      record_sms_opt_out: { Args: { p_phone: string }; Returns: number }
       recompute_invoice_totals: {
         Args: { p_invoice_id: string }
         Returns: undefined

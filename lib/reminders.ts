@@ -47,6 +47,22 @@ export function interpolateTemplate(
   return { subject: fill(template.subject, false), body: fill(template.body, true) };
 }
 
+/**
+ * SMS bodies, interpolated WITHOUT HTML escaping.
+ *
+ * interpolateTemplate escapes substituted values because its output goes
+ * straight into `<p>${body}</p>` in an email. A text message is not HTML, so
+ * that same escaping is a bug there: a parent named O'Brien receives
+ * "O&#39;Brien", and an ampersand in a tutor's business name arrives as
+ * "&amp;". Only the subject was ever exempt, because it's an email header.
+ *
+ * Same substitution, no escaping — the SMS transport has no markup to
+ * protect against.
+ */
+export function interpolateSmsBody(template: ReminderTemplate, vars: Record<string, string>): string {
+  return template.body.replace(/\{\{(\w+)\}\}/g, (_, key: string) => vars[key] ?? "");
+}
+
 /** Days between two YYYY-MM-DD dates (b - a), ignoring time-of-day. */
 export function daysBetween(dateA: string, dateB: string): number {
   const a = new Date(`${dateA}T00:00:00Z`).getTime();
