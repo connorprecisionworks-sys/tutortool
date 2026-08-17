@@ -32,15 +32,18 @@ export default async function InvoicesPage({
 
   if (filter !== "all") query = query.eq("status", filter);
 
-  const { data: invoices } = await query;
-
-  const { data: hasUnbilled } = await supabase
+  // Parallel, not sequential: neither query depends on the other, so awaiting
+  // them in series just paid for two Supabase round-trips where one would do.
+  const [{ data: invoices }, { data: hasUnbilled }] = await Promise.all([
+    query,
+    supabase
     .from("sessions")
     .select("id")
     .eq("tutor_id", tutor.id)
     .eq("status", "logged")
     .is("invoice_id", null)
-    .limit(1);
+    .limit(1),
+  ]);
 
   return (
     <div>

@@ -30,14 +30,16 @@ export default async function SessionsPage({
 
   if (filter !== "all") query = query.eq("status", filter);
 
-  const { data: sessions } = await query;
-
-  const { data: activeClients } = await supabase
-    .from("clients")
-    .select("id")
-    .eq("tutor_id", tutor.id)
-    .eq("archived", false)
-    .limit(1);
+  // Parallel, not sequential — see the note in invoices/page.tsx.
+  const [{ data: sessions }, { data: activeClients }] = await Promise.all([
+    query,
+    supabase
+      .from("clients")
+      .select("id")
+      .eq("tutor_id", tutor.id)
+      .eq("archived", false)
+      .limit(1),
+  ]);
 
   const hasClients = (activeClients?.length ?? 0) > 0;
 
